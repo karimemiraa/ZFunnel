@@ -218,6 +218,17 @@ Live & evergreen webinars (LiveKit) · AI conversion coach (analyses funnel stat
   - Store, customer center, courses, community, blog and RSS, booking (week starts on Sunday), affiliate portal, webinars, chat widget, 404 and the "Powered by" badge.
   - Every visitor-facing API error, built-in emails (right-to-left layout) and the marketing email footer and unsubscribe page.
   - Covered by `e2e/tests/arabic.spec.ts`: an RTL store purchase with an Arabic decline error and the Arabic customer center.
+- **6.3 Dashboard: done.**
+  - Every screen, dialog, toast, validation and server message has English and natively written Arabic, across about 40 namespaces.
+  - Dates, money and relative times follow the user's language. Data the dashboard creates (default stages, starter lessons, starter emails) is written in the creator's language.
+  - The AI coach answers in Arabic when the dashboard is in Arabic.
+- **6.4 Arabic templates: done.**
+  - All 11 funnel templates and every starter page are written natively in Arabic, adapted to the market (for example an Arabic calligraphy course, times in Mecca time, Arabic testimonials).
+  - Every block has Arabic default text, and the editor uses it on Arabic sites.
+  - Tests check that no English is left in Arabic templates.
+- **6.5 Deploy: prepared.** `infra/deploy/setup-env.sh zf.zealmarketing.net <email>` generates the production config. DNS records and steps are in `docs/DEPLOYMENT.md`. The owner runs `deploy.sh` on the VPS.
+
+**Phase 6 complete.** `e2e/tests/arabic.spec.ts` covers an Arabic RTL purchase and an Arabic dashboard.
 
 ---
 

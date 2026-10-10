@@ -1,3 +1,4 @@
+import { getTranslator, type MessageKey } from "@zfunnel/i18n";
 import "server-only";
 
 import { buildTemplate, starterPage, type StarterStepType } from "@zfunnel/blocks";
@@ -137,10 +138,16 @@ export async function createFunnelWithSteps(
     // Reserved words (api, account…) would collide with the public site's own routes.
     const slug = uniqueSlug(name, new Set([...existing.map((f) => f.slug), ...RESERVED_SLUGS]));
     const [funnel] = await tx.insert(funnels).values({ workspaceId: ctx.workspace.id, name, slug }).returning();
+    // New funnels speak the site's language: Arabic sites get natively written Arabic pages.
+    const lang = ctx.workspace.siteLocale;
+    const tSite = getTranslator(lang);
     const spec =
       "template" in source
-        ? (buildTemplate(source.template) ?? []).map((s) => [s.name, s.type, s.page] as const)
-        : FUNNEL_PRESETS[source.preset].steps.map(([n, t]) => [n, t, starterPage(t, n)] as const);
+        ? (buildTemplate(source.template, lang) ?? []).map((s) => [s.name, s.type, s.page] as const)
+        : FUNNEL_PRESETS[source.preset].steps.map(([n, t]) => {
+            const name = lang === "en" ? n : tSite(`funnels.stepTypes.${t}` as MessageKey);
+            return [name, t, starterPage(t, name, undefined, lang)] as const;
+          });
     if (!spec.length) throw new Error("Unknown template");
     const taken = new Set<string>();
     const rows = await tx

@@ -5,7 +5,8 @@ import { useT } from "@zfunnel/i18n/react";
 
 import { createUsePuck, Puck, type Data } from "@puckeditor/core";
 import "@puckeditor/core/puck.css";
-import { config, type BlockRuntime, type RuntimeOffer } from "@zfunnel/blocks";
+import type { config } from "@zfunnel/blocks";
+import { configFor, type BlockRuntime, type RuntimeOffer } from "@zfunnel/blocks";
 import { Button } from "@zfunnel/ui/button";
 import {
   DropdownMenu,
@@ -298,7 +299,7 @@ export function PageEditor(props: Props) {
     <ChromeContext.Provider value={chrome}>
       <div className="zf-editor h-dvh">
         <Puck
-          config={config}
+          config={configFor(props.siteLocale)}
           data={props.initialData}
           metadata={metadata}
           onChange={onChange}

@@ -1,7 +1,7 @@
 export const billing = {
   thanks: "Thank you! Your plan is active. It can take a few seconds for the change to show.",
   isOn: "{organization} is on",
-  daysLeft: { other: "{count} days left" },
+  daysLeft: { one: "{count} day left", other: "{count} days left" },
   trialEnded: "Trial ended",
   paymentFailed: "Payment failed",
   active: "Active",

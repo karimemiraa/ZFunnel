@@ -230,7 +230,7 @@ export async function addStep(
         position: (last?.position ?? -1) + 1,
         mapX: (last?.mapX ?? -300) + 300,
         mapY: last?.mapY ?? 0,
-        draft: starterPage(parsed.data.type, parsed.data.name),
+        draft: starterPage(parsed.data.type, parsed.data.name, undefined, ctx.workspace.siteLocale),
       })
       .returning();
     // Append to the flow: the previous final step now continues here.
