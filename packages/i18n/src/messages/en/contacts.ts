@@ -87,7 +87,7 @@ export const contacts = {
   import: "Import",
   importTitle: "Import contacts from CSV",
   importDescription:
-    "Needs an “email” column. Optional: name, phone, tags (separated by |). Existing contacts are updated, never duplicated.",
+    "Needs an “email” column. Optional: name (or first and last name), phone, tags (separated by | or commas) and created date. ClickFunnels contact exports work as they are. Existing contacts are updated, never duplicated.",
   chooseCsv: "Choose a .csv file",
   importTag: "Tag everyone in this file (optional)",
   importTagPlaceholder: "imported-oct",

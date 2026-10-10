@@ -1,7 +1,7 @@
 import { getTranslator, type MessageKey } from "@zfunnel/i18n";
 import "server-only";
 
-import { buildTemplate, starterPage, type StarterStepType } from "@zfunnel/blocks";
+import { buildTemplate, starterPage, type PageData, type StarterStepType } from "@zfunnel/blocks";
 import { and, asc, desc, eq, funnels, funnelSteps, getDb, sql, withWorkspace, type Tx } from "@zfunnel/db";
 import { RESERVED_SLUGS, slugify } from "@zfunnel/shared";
 import type { WorkspaceContext } from "./workspaces";
@@ -131,7 +131,7 @@ export function uniqueSlug(base: string, taken: Set<string>) {
 export async function createFunnelWithSteps(
   ctx: WorkspaceContext,
   name: string,
-  source: { preset: FunnelPreset } | { template: string },
+  source: { preset: FunnelPreset } | { template: string } | { steps: [string, StepType, PageData][] },
 ) {
   return inWorkspace(ctx, async (tx) => {
     const existing = await tx.select({ slug: funnels.slug }).from(funnels);
@@ -142,12 +142,14 @@ export async function createFunnelWithSteps(
     const lang = ctx.workspace.siteLocale;
     const tSite = getTranslator(lang);
     const spec =
-      "template" in source
-        ? (buildTemplate(source.template, lang) ?? []).map((s) => [s.name, s.type, s.page] as const)
-        : FUNNEL_PRESETS[source.preset].steps.map(([n, t]) => {
-            const name = lang === "en" ? n : tSite(`funnels.stepTypes.${t}` as MessageKey);
-            return [name, t, starterPage(t, name, undefined, lang)] as const;
-          });
+      "steps" in source
+        ? source.steps
+        : "template" in source
+          ? (buildTemplate(source.template, lang) ?? []).map((s) => [s.name, s.type, s.page] as const)
+          : FUNNEL_PRESETS[source.preset].steps.map(([n, t]) => {
+              const name = lang === "en" ? n : tSite(`funnels.stepTypes.${t}` as MessageKey);
+              return [name, t, starterPage(t, name, undefined, lang)] as const;
+            });
     if (!spec.length) throw new Error("Unknown template");
     const taken = new Set<string>();
     const rows = await tx

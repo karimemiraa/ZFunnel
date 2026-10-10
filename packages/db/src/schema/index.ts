@@ -21,3 +21,4 @@ export * from "./inbox";
 export * from "./tracking";
 export * from "./webinars";
 export * from "./platform";
+export * from "./media";

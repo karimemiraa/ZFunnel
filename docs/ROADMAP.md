@@ -269,6 +269,10 @@ Live & evergreen webinars (LiveKit) · AI conversion coach (analyses funnel stat
 
 **Owner decisions.**
 
+**7.3 status: Done.** Funnels → **Import from ClickFunnels** takes up to 10 published URLs (one step each, in order), a funnel name and an ownership confirmation. Pages are fetched through the SSRF-safe `safeFetch` in `@zfunnel/shared/net` and converted by `@zfunnel/blocks/import`. It recognizes classic CF (`data-de-type`, `.elHeadline`…), CF 2.0 (`data-page-element`) and plain HTML, and maps headings, text, images, buttons, YouTube/Vimeo/Wistia video, bullet lists, section colors and background images, 2–4 columns, opt-in forms, order forms (→ checkout step) and countdowns. Anything else becomes a sanitized custom-HTML block. Images (up to 30 per page, 5 MB each, raster only) are copied into the new `media_files` table and served from `/api/media/{id}` on the public site. The import runs synchronously, with no job queue (ADR-025). The contacts CSV import now reads ClickFunnels classic and 2.0 headers, including first and last name and the created date. The user guide is `docs/IMPORT.md`. **Later:** popups, multi-step CF forms and custom fields from the CSV.
+
+**Open questions for the owner.**
+
 1. The first super admin is `karim@zealmarketing.net`, the account already registered.
 2. The admin area stays at `app.zf.zealmarketing.net/admin`.
 3. Admins can "view as" a customer: read-only, logged, with a visible banner.

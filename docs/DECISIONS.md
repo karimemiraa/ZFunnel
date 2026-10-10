@@ -222,3 +222,22 @@ Format: **ID — Title** · Status (Proposed / Accepted / Superseded) · Date. S
 **Why.** An env allow-list is the smallest secure mechanism for a single-owner platform and matches the owner's decision in the Phase 7 plan. A signed cookie needs no session table or impersonation plugin, and because the admin never becomes a member or another user, no tenant write path ever sees them as authorized. That's safer than "log in as user", which the plan rules out.
 
 **Consequences.** Email verification isn't sent at sign-up yet, so the first admin is verified once by SQL (`docs/DEPLOYMENT.md`). A plan override on a Stripe-billed organization can be overwritten by the next Stripe subscription event. Background work for a suspended organization (queued automations, broadcasts and webinar reminders already scheduled) still runs, and links that don't go through host resolution (an existing customer-center session, for example) aren't cut off. Read-only view-as relies on dashboard pages not writing during render, which is true today; a page that starts doing so must check `viewAs`.
+
+### ADR-025 — ClickFunnels import: synchronous, SSRF-safe, images in Postgres · **Accepted** · 2026-10-10
+
+**Decision.**
+
+- **Synchronous, not a worker job.** The import is a server action with hard limits: at most 10 URLs; each page has 15 s and 3 MB; each page copies up to 30 images, at 5 MB and 10 s each, 6 at a time. Only one import can run per workspace at a time. Every page is fetched and converted before anything is written, so a bad URL creates nothing. The result screen lists each step with its block count, custom-HTML count and image copy results.
+- **One fetch helper for user-supplied URLs.** `safeFetch` in `@zfunnel/shared/net` is server-only, so it lives on its own subpath. It allows http(s) only, with no credentials in the URL. It resolves DNS and refuses private, loopback, link-local (including `169.254.169.254`), CGNAT, multicast, NAT64 and IPv4-mapped addresses. It checks every redirect hop again, and it pins the connection to the validated address with a custom `lookup`, which defeats DNS rebinding. Total time, body size (after decompression) and redirect count are all capped. The worker's webhook check (`isPublicUrl`) now uses the same code. `FETCH_ALLOW_ORIGINS` exempts listed origins; it exists only for the e2e mock and must never be set in production.
+- **Converter in `@zfunnel/blocks/import`.** It is pure and server-only. It uses `htmlparser2`, `domhandler`/`domutils` and `sanitize-html`, all MIT and already in the lockfile through `@zfunnel/email`. Nothing from the page is ever executed. Scripts, styles, event handlers, forms, non-video iframes and tracking pixels are dropped. The custom-HTML fallback keeps only a safe tag and attribute allow-list and a few inline styles, with no `url()`.
+- **Imported custom HTML is not sandboxed in an iframe.** Its sanitized content can't run code, and an iframe would need a script to size itself. Custom HTML that users paste by hand keeps its existing behavior (scripts run on the published page only).
+- **Images go into a new `media_files` table** (bytea, deduplicated by SHA-256 per workspace, protected by RLS). They are served from the public site at `/api/media/{id}`, scoped to the host's workspace. The type is sniffed from the bytes. Only PNG, JPEG, GIF, WebP and AVIF are accepted; SVG is refused because it can carry script. Responses send `nosniff` and a `sandbox` CSP. An image that can't be copied keeps its original URL, and the result screen reports it.
+
+**Why.** The owner has 5–10 funnels, and this is a one-time migration. A job queue would add a jobs table, polling UI and worker plumbing for something that finishes in well under a minute at these limits. The repo had no object storage yet (S3 was deferred in Phase 0). A small Postgres table, capped per import, avoids new infrastructure and keeps backups in one place.
+
+**Consequences.**
+
+- A slow site can hold one dashboard request for up to about 2–3 minutes in the worst case.
+- If imports grow (many users, or big sites), move them to a BullMQ job and the bytes to S3/R2. The `media_files` id URLs can stay stable behind the same route.
+- Layout fidelity is approximate. Popups, multi-step forms, products and prices aren't imported (`docs/IMPORT.md`).
+- The contacts CSV import now matches ClickFunnels classic and 2.0 headers, including first + last name and the created date (`mapContactColumns` in `@zfunnel/shared`).
