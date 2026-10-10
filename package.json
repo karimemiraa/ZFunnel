@@ -18,7 +18,8 @@
     "check:licenses": "node scripts/check-licenses.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "e2e": "pnpm --filter @zfunnel/e2e e2e"
+    "e2e": "pnpm --filter @zfunnel/e2e e2e",
+    "verify": "scripts/verify.sh"
   },
   "devDependencies": {
     "prettier": "3.9.9",

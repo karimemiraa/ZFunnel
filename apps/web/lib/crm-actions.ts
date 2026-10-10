@@ -145,17 +145,15 @@ export async function setTags(
       )
       .returning({ id: contacts.id });
     if (changed.length)
-      await tx
-        .insert(contactActivities)
-        .values(
-          changed.map((c) => ({
-            workspaceId: ctx.workspace.id,
-            contactId: c.id,
-            type: mode === "add" ? ("tag_added" as const) : ("tag_removed" as const),
-            body: t.data,
-            actorUserId: user.id,
-          })),
-        );
+      await tx.insert(contactActivities).values(
+        changed.map((c) => ({
+          workspaceId: ctx.workspace.id,
+          contactId: c.id,
+          type: mode === "add" ? ("tag_added" as const) : ("tag_removed" as const),
+          body: t.data,
+          actorUserId: user.id,
+        })),
+      );
   });
   revalidatePath(`/${workspaceSlug}/contacts`, "layout");
   return {
@@ -351,18 +349,16 @@ export async function createPipeline(workspaceSlug: string, name: string): Promi
   const n = name.trim().slice(0, 60) || "Sales pipeline";
   const id = await inWorkspace(ctx, async (tx) => {
     const [p] = await tx.insert(pipelines).values({ workspaceId: ctx.workspace.id, name: n }).returning();
-    await tx
-      .insert(pipelineStages)
-      .values(
-        DEFAULT_STAGES.map(([sn, color, kind], i) => ({
-          workspaceId: ctx.workspace.id,
-          pipelineId: p!.id,
-          name: sn,
-          color,
-          kind,
-          position: i,
-        })),
-      );
+    await tx.insert(pipelineStages).values(
+      DEFAULT_STAGES.map(([sn, color, kind], i) => ({
+        workspaceId: ctx.workspace.id,
+        pipelineId: p!.id,
+        name: sn,
+        color,
+        kind,
+        position: i,
+      })),
+    );
     return p!.id;
   });
   revalidatePath(`/${workspaceSlug}/pipelines`);

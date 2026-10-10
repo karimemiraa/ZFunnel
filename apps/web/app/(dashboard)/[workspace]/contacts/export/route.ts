@@ -53,7 +53,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ workspac
     );
   }
   await recordAudit(ctx, user.id, { action: "contacts.exported", entityType: "contact", data: { rows: rows.length } });
-  return new Response(`﻿${lines.join("\r\n")}\r\n`, {
+  return new Response(`\uFEFF${lines.join("\r\n")}\r\n`, {
     headers: {
       "content-type": "text/csv; charset=utf-8",
       "content-disposition": `attachment; filename="contacts-${ctx.workspace.slug}-${new Date().toISOString().slice(0, 10)}.csv"`,

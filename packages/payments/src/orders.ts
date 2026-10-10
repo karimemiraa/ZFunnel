@@ -340,13 +340,11 @@ export async function logActivity(
     data?: Record<string, unknown>;
   },
 ) {
-  await tx
-    .insert(contactActivities)
-    .values({
-      workspaceId: input.workspaceId,
-      contactId: input.contactId,
-      type: input.type,
-      body: input.body ?? null,
-      data: input.data,
-    });
+  await tx.insert(contactActivities).values({
+    workspaceId: input.workspaceId,
+    contactId: input.contactId,
+    type: input.type,
+    body: input.body ?? null,
+    data: input.data,
+  });
 }

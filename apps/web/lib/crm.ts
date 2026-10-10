@@ -19,7 +19,6 @@ import {
   segmentCondition,
   segments,
   sql,
-  type SegmentRule,
 } from "@zfunnel/db";
 import { inWorkspace } from "./funnels";
 import type { WorkspaceContext } from "./workspaces";
