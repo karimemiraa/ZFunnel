@@ -253,6 +253,20 @@
       "when": 1791642938933,
       "tag": "0035_share_funnels",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1791643364274,
+      "tag": "0036_affiliates",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1791643366108,
+      "tag": "0037_affiliates_rls",
+      "breakpoints": true
     }
   ]
 }

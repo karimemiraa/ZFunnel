@@ -155,6 +155,8 @@ export const orders = pgTable(
     /** Sum of paid items, in cents. */
     total: integer().notNull().default(0),
     refundedAmount: integer().notNull().default(0),
+    /** Referring affiliate (set at checkout from the zf_aff cookie). */
+    affiliateId: uuid(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     paidAt: timestamp({ withTimezone: true }),
   },

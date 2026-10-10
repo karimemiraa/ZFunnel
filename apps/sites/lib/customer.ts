@@ -1,7 +1,20 @@
 import "server-only";
 
 import { signValue, verifyValue } from "@zfunnel/email";
-import { and, contacts, desc, eq, inArray, orderItems, orders, prices, products, subscriptions } from "@zfunnel/db";
+import {
+  and,
+  contacts,
+  desc,
+  emailMessages,
+  eq,
+  inArray,
+  orderItems,
+  orders,
+  prices,
+  products,
+  sql,
+  subscriptions,
+} from "@zfunnel/db";
 import { system } from "@zfunnel/payments";
 import { cookies } from "next/headers";
 
@@ -94,4 +107,41 @@ export async function customerAccount(workspaceId: string, contactId: string) {
       subscriptions: subs,
     };
   });
+}
+
+/** Queues a one-time sign-in link for a contact (at most one per minute). Returns the message id or null. */
+export async function queueLoginLink(
+  tx: Parameters<Parameters<typeof system>[0]>[0],
+  input: {
+    workspaceId: string;
+    workspaceName: string;
+    contactId: string;
+    email: string;
+    origin: string;
+    next?: string;
+  },
+) {
+  const [recent] = await tx
+    .select({ id: emailMessages.id })
+    .from(emailMessages)
+    .where(
+      and(
+        eq(emailMessages.contactId, input.contactId),
+        sql`${emailMessages.meta}->>'kind' = 'login'`,
+        sql`${emailMessages.createdAt} > now() - interval '1 minute'`,
+      ),
+    )
+    .limit(1);
+  if (recent) return null;
+  const [m] = await tx
+    .insert(emailMessages)
+    .values({
+      workspaceId: input.workspaceId,
+      contactId: input.contactId,
+      toEmail: input.email,
+      subject: `Your sign-in link for ${input.workspaceName}`,
+      meta: { kind: "login", siteOrigin: input.origin, next: input.next },
+    })
+    .returning({ id: emailMessages.id });
+  return m!.id;
 }

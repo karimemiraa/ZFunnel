@@ -1,5 +1,12 @@
 import { and, eq, orgBilling, orders, paymentAccounts, payments, subscriptions, sql } from "@zfunnel/db";
-import { constructWebhookEvent, markPaymentFailed, markPaymentSucceeded, system, type Stripe } from "@zfunnel/payments";
+import {
+  constructWebhookEvent,
+  markPaymentFailed,
+  markPaymentSucceeded,
+  syncCommission,
+  system,
+  type Stripe,
+} from "@zfunnel/payments";
 
 /**
  * Stripe webhook. Events from connected accounts (customers' payments) and from the
@@ -178,6 +185,7 @@ async function handle(event: Stripe.Event) {
             status: refunded >= order.total ? "refunded" : refunded > 0 ? "partially_refunded" : order.status,
           })
           .where(eq(orders.id, p.orderId));
+        await syncCommission(tx, p.orderId);
       });
       return;
     }

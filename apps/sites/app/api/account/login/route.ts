@@ -4,7 +4,7 @@ import { enqueue } from "@zfunnel/queue";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { jsonError, publicPost } from "@/lib/api";
-import { requestOrigin } from "@/lib/customer";
+import { queueLoginLink, requestOrigin } from "@/lib/customer";
 
 const schema = z.object({
   email: z.string().trim().toLowerCase().email("Please enter a valid email address.").max(254),
@@ -31,31 +31,14 @@ export async function POST(req: Request) {
       .from(contacts)
       .where(and(eq(contacts.workspaceId, g.ws.id), eq(contacts.email, parsed.data.email)));
     if (!c) return null;
-    // At most one link per minute per contact.
-    const [recent] = await tx
-      .select({ id: emailMessages.id })
-      .from(emailMessages)
-      .where(
-        and(
-          eq(emailMessages.contactId, c.id),
-          sql`${emailMessages.meta}->>'kind' = 'login'`,
-          sql`${emailMessages.createdAt} > now() - interval '1 minute'`,
-        ),
-      )
-      .orderBy(desc(emailMessages.createdAt))
-      .limit(1);
-    if (recent) return null;
-    const [m] = await tx
-      .insert(emailMessages)
-      .values({
-        workspaceId: g.ws.id,
-        contactId: c.id,
-        toEmail: parsed.data.email,
-        subject: `Your sign-in link for ${g.ws.name}`,
-        meta: { kind: "login", siteOrigin: origin, next: parsed.data.next },
-      })
-      .returning({ id: emailMessages.id });
-    return m!.id;
+    return queueLoginLink(tx, {
+      workspaceId: g.ws.id,
+      workspaceName: g.ws.name,
+      contactId: c.id,
+      email: parsed.data.email,
+      origin,
+      next: parsed.data.next,
+    });
   });
   if (messageId) await enqueue("email", { messageId }, { jobId: `msg-${messageId}` });
   return NextResponse.json({ ok: true });

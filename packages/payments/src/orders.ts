@@ -1,4 +1,6 @@
 import {
+  affiliateSettings,
+  commissions,
   and,
   asc,
   contactActivities,
@@ -138,6 +140,7 @@ export async function createPendingOrder(
     provider: PaymentProvider;
     test: boolean;
     items: OfferView[];
+    affiliateId?: string | null;
   },
 ) {
   const number = await nextOrderNumber(tx, input.workspaceId);
@@ -153,6 +156,7 @@ export async function createPendingOrder(
       provider: input.provider,
       test: input.test,
       currency,
+      affiliateId: input.affiliateId ?? null,
     })
     .returning();
   await tx.insert(orderItems).values(
@@ -221,6 +225,32 @@ export async function recomputeOrder(tx: Tx, orderId: string) {
     .update(orders)
     .set({ total, status, paidAt: paid.length && !order.paidAt ? new Date() : order.paidAt })
     .where(eq(orders.id, orderId));
+  await syncCommission(tx, orderId);
+}
+
+/**
+ * Keeps the affiliate commission equal to percent × (paid − refunded). Already-paid
+ * commissions are never changed; a commission that drops to zero is voided.
+ */
+export async function syncCommission(tx: Tx, orderId: string) {
+  const [o] = await tx.select().from(orders).where(eq(orders.id, orderId));
+  if (!o?.affiliateId) return;
+  const [settings] = await tx.select().from(affiliateSettings).where(eq(affiliateSettings.workspaceId, o.workspaceId));
+  const pct = settings?.commissionPercent ?? 0;
+  const amount = Math.max(0, Math.round(((o.total - o.refundedAmount) * pct) / 100));
+  const [existing] = await tx.select().from(commissions).where(eq(commissions.orderId, orderId));
+  if (existing?.status === "paid") return;
+  if (!existing) {
+    if (amount > 0)
+      await tx
+        .insert(commissions)
+        .values({ workspaceId: o.workspaceId, affiliateId: o.affiliateId, orderId, amount, currency: o.currency });
+    return;
+  }
+  await tx
+    .update(commissions)
+    .set({ amount, status: amount > 0 ? "pending" : "void" })
+    .where(eq(commissions.id, existing.id));
 }
 
 export async function saveProfile(

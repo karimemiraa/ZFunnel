@@ -13,8 +13,10 @@ import {
   type OfferView,
 } from "@zfunnel/payments";
 import { eq, orderItems, payments, prices } from "@zfunnel/db";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { affiliateForOrder } from "@/lib/affiliate";
 import { jsonError, publicPost } from "@/lib/api";
 import { resolveStepForWorkspace } from "@/lib/resolve";
 
@@ -36,6 +38,7 @@ export async function POST(req: Request) {
   const parsed = bodySchema.safeParse(g.body);
   if (!parsed.success) return jsonError(parsed.error.issues[0]?.message ?? "Invalid checkout.");
   const { stepId, mainOfferId, bumpOfferIds, email, name } = parsed.data;
+  const affCookie = (await cookies()).get("zf_aff")?.value;
 
   const step = await resolveStepForWorkspace(g.ws.id, stepId);
   if (!step) return jsonError("This checkout is no longer available.", 404);
@@ -53,6 +56,7 @@ export async function POST(req: Request) {
       if (cart.some((o) => o.currency !== main.currency))
         return { error: "All products in one order must use the same currency." } as const;
       const contact = await upsertContact(tx, g.ws.id, { email, name, funnelId: step.funnelId, stepId, ip: g.ip });
+      const affiliateId = await affiliateForOrder(tx, g.ws.id, affCookie, contact.id);
       const order = await createPendingOrder(tx, {
         workspaceId: g.ws.id,
         contactId: contact.id,
@@ -61,6 +65,7 @@ export async function POST(req: Request) {
         provider: setup.provider,
         test: setup.provider === "test" || !setup.livemode,
         items: cart,
+        affiliateId,
       });
       const profile = setup.provider === "stripe" ? await getProfile(tx, contact.id, "stripe") : null;
       return { setup, main, bumps, cart, contact, order, profile } as const;

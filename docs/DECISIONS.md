@@ -144,3 +144,11 @@ Format: **ID — Title** · Status (Proposed / Accepted / Superseded) · Date. S
 **Why.** Billing per organization matches who pays: an agency owns several workspaces. A single `enforce()` gate at the points where resources are created or consumed keeps the rules in one place.
 
 **Consequences.** Gates never block visitors: opt-ins, checkouts and published pages keep working after a trial ends or a limit is reached. Only creating and sending is blocked (new funnels, workspaces, domains, imports, broadcasts, activating automations, split tests, AI), each with a message saying how to upgrade. Automation emails already in flight are not counted against the monthly email limit. **The prices and limits are placeholders for the owner to set.**
+
+### ADR-018 — Affiliates: last-click cookie, commission derived from the order · **Accepted** · 2026-10-10
+
+**Decision.** Any page with `?aff=code` stores `zf_aff=code.timestamp` (last click wins). Checkout credits the affiliate if the program is on, the click falls inside the configured window and the affiliate isn't the buyer. The order stores `affiliate_id`. Commission = percent × (paid − refunded) and is recomputed inside `recomputeOrder` and the refund webhook. Upsells raise it, refunds lower it, and an order that drops to zero voids it. Commissions already marked paid are never changed. Payouts happen outside ZFunnel (PayPal or bank) and are recorded with “Mark paid”.
+
+**Why.** Deriving the commission from the order removes a whole class of drift bugs and needs no extra hooks in the payment paths. Paying affiliates automatically would need Stripe Connect payouts with KYC for each affiliate, which is deferred.
+
+**Consequences.** One affiliate per order (last click). Affiliate codes are random-suffixed, so they can't be guessed from a name. Clicks are counted once per browser session per code.
