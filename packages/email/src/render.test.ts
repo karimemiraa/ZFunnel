@@ -59,3 +59,16 @@ describe("email rendering", () => {
     expect(verifyToken("u", t.slice(0, -2) + "xx")).toBeNull();
   });
 });
+
+import { toSafeHtml } from "./html";
+describe("toSafeHtml", () => {
+  it("turns text into paragraphs and strips dangerous HTML", () => {
+    expect(toSafeHtml("Hi\n\nThere 5 < 6")).toBe("<p>Hi</p><p>There 5 &lt; 6</p>");
+    expect(toSafeHtml("Hi\n\nThere <b>bold</b>")).toBe("<p>Hi</p><p>There <b>bold</b></p>");
+    expect(toSafeHtml('<p onclick="x">ok</p><script>bad()</script>')).toBe("<p>ok</p>");
+    expect(toSafeHtml('<h2>T</h2><img src="http://x/a.png">', { article: true })).toBe("<h2>T</h2><img />");
+    expect(toSafeHtml("<h2>Step</h2>\n\nKnow your audience.", { article: true })).toBe(
+      "<h2>Step</h2><p>Know your audience.</p>",
+    );
+  });
+});

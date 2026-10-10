@@ -8,6 +8,7 @@ import {
   KanbanIcon,
   LayoutDashboardIcon,
   MailIcon,
+  NewspaperIcon,
   PackageIcon,
   ReceiptIcon,
   SettingsIcon,
@@ -81,6 +82,12 @@ export const NAV_MODULES: NavModule[] = [
     icon: WorkflowIcon,
 
     description: "Visual workflows: triggers, waits, branches and actions.",
+  },
+  {
+    segment: "blog",
+    label: "Blog",
+    icon: NewspaperIcon,
+    description: "Articles with SEO, sitemap and RSS.",
   },
   {
     segment: "courses",

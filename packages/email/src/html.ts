@@ -71,10 +71,36 @@ export function htmlToText(html: string) {
 }
 
 /** Generic rich-text sanitizer (AI output, pasted HTML): basic formatting and safe links only. */
-export function sanitizeRichText(html: string) {
+export function sanitizeRichText(html: string, opts: { article?: boolean } = {}) {
+  const base = ["p", "br", "strong", "b", "em", "i", "u", "ul", "ol", "li", "a"];
   return sanitize(String(html ?? ""), {
-    allowedTags: ["p", "br", "strong", "b", "em", "i", "u", "ul", "ol", "li", "a"],
-    allowedAttributes: { a: ["href"] },
+    // Articles (blog posts) may also use headings, quotes, code and https images.
+    allowedTags: opts.article
+      ? [...base, "h2", "h3", "h4", "blockquote", "code", "pre", "hr", "img", "figure", "figcaption"]
+      : base,
+    allowedAttributes: { a: ["href"], img: ["src", "alt"] },
     allowedSchemes: ["http", "https", "mailto"],
+    allowedSchemesByTag: { img: ["https"] },
   }).trim();
+}
+
+/** Author input → safe HTML: plain text becomes paragraphs, HTML is sanitized. */
+export function toSafeHtml(input: string, opts: { article?: boolean } = {}) {
+  const t = String(input ?? "").trim();
+  if (!t) return "";
+  if (/<[a-z][\s\S]*>/i.test(t)) {
+    // Inline-only HTML (e.g. "Hello <b>world</b>") still gets paragraphs.
+    const block = /^<(p|h[1-6]|ul|ol|div|blockquote|figure|pre|hr|img)\b/i;
+    const shaped = t
+      .split(/\n{2,}/)
+      .map((chunk) => chunk.trim())
+      .filter(Boolean)
+      .map((chunk) => (block.test(chunk) ? chunk : `<p>${chunk.replace(/\n/g, "<br>")}</p>`))
+      .join("");
+    return sanitizeRichText(shaped, opts);
+  }
+  return t
+    .split(/\n{2,}/)
+    .map((p) => `<p>${esc(p).replace(/\n/g, "<br>")}</p>`)
+    .join("");
 }

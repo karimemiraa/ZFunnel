@@ -1,6 +1,6 @@
 "use server";
 
-import { sanitizeRichText } from "@zfunnel/email";
+import { toSafeHtml } from "@zfunnel/email";
 import {
   and,
   contacts,
@@ -31,18 +31,6 @@ async function ctxFor(workspaceSlug: string) {
 }
 const refresh = (ws: string, courseId?: string) =>
   revalidatePath(courseId ? `/${ws}/courses/${courseId}` : `/${ws}/courses`, "layout");
-
-/** Plain text becomes paragraphs; HTML is sanitized. */
-function toLessonHtml(input: string) {
-  const t = input.trim();
-  if (!t) return "";
-  if (/<[a-z][\s\S]*>/i.test(t)) return sanitizeRichText(t);
-  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  return t
-    .split(/\n{2,}/)
-    .map((p) => `<p>${esc(p).replace(/\n/g, "<br>")}</p>`)
-    .join("");
-}
 
 export async function createCourse(workspaceSlug: string, title: string): Promise<Result> {
   const { user, ctx } = await ctxFor(workspaceSlug);
@@ -198,7 +186,7 @@ export async function saveLesson(
   const { ctx } = await ctxFor(workspaceSlug);
   const d = lessonSchema.safeParse(input);
   if (!d.success) return { ok: false, error: d.error.issues[0]!.message };
-  const content = toLessonHtml(d.data.content);
+  const content = toSafeHtml(d.data.content);
   await inWorkspace(ctx, (tx) =>
     tx
       .update(courseLessons)

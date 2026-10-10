@@ -12,3 +12,4 @@ export * from "./forms";
 export * from "./billing";
 export * from "./courses";
 export * from "./calendars";
+export * from "./blog";
