@@ -23,7 +23,7 @@ test("inbox: a visitor chats from the site and the owner replies", async ({ page
 
   await page.goto(`/${ws}/inbox`);
   await page.getByRole("link", { name: /Nora/ }).click();
-  await expect(page.getByText("Do you ship to Canada?")).toBeVisible();
+  await expect(page.getByText("Do you ship to Canada?").first()).toBeVisible();
   await page.getByLabel("Reply").fill("Yes, worldwide!");
   await page.getByRole("button", { name: "Send" }).click();
   await expect(page.getByText("Reply sent")).toBeVisible();
