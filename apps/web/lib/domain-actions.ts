@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { checkDomainDns } from "./domains";
 import { ROOT_DOMAIN } from "./env";
 import { inWorkspace } from "./funnels";
+import { enforce } from "./billing";
 import { requireUser } from "./session";
 import { canManage, getWorkspaceForUser, recordAudit } from "./workspaces";
 
@@ -21,6 +22,8 @@ async function ctxFor(workspaceSlug: string) {
 
 export async function addDomain(workspaceSlug: string, input: string): Promise<Result> {
   const { user, ctx } = await ctxFor(workspaceSlug);
+  const blocked = await enforce(ctx.membership.organizationId, "domains");
+  if (blocked) return { ok: false, error: blocked };
   const hostname = normalizeHostname(input);
   if (!hostname) return { ok: false, error: "That doesn't look like a valid domain, e.g. offer.yourbrand.com" };
   if (isUnderDomain(hostname, ROOT_DOMAIN))

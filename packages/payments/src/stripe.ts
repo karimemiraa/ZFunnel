@@ -254,10 +254,87 @@ export async function refundPayment(accountId: string, paymentIntentId: string, 
   return stripe().refunds.create({ payment_intent: paymentIntentId, amount }, { stripeAccount: accountId });
 }
 
+// ── ZFunnel's own billing (platform account, not a connected account) ─────────
+
+/** Finds or creates the monthly price for a plan, keyed by a stable lookup_key. */
+export async function ensurePlatformPrice(input: { lookupKey: string; productName: string; amount: number }) {
+  const existing = await stripe().prices.list({ lookup_keys: [input.lookupKey], active: true, limit: 1 });
+  const found = existing.data[0];
+  if (found && found.unit_amount === input.amount) return found.id;
+  const product = await stripe().products.create({
+    name: input.productName,
+    metadata: { zfunnel_plan_key: input.lookupKey },
+  });
+  const price = await stripe().prices.create({
+    product: product.id,
+    unit_amount: input.amount,
+    currency: "usd",
+    recurring: { interval: "month" },
+    lookup_key: input.lookupKey,
+    // Moves the lookup key over if the amount changed.
+    transfer_lookup_key: true,
+  });
+  return price.id;
+}
+
+export async function createPlatformCustomer(input: { email: string; name: string; organizationId: string }) {
+  const c = await stripe().customers.create({
+    email: input.email,
+    name: input.name,
+    metadata: { zfunnel_organization_id: input.organizationId },
+  });
+  return c.id;
+}
+
+export async function createPlanCheckout(input: {
+  customerId: string;
+  priceId: string;
+  organizationId: string;
+  plan: string;
+  successUrl: string;
+  cancelUrl: string;
+}) {
+  const meta = { zfunnel_organization_id: input.organizationId, zfunnel_plan: input.plan };
+  const session = await stripe().checkout.sessions.create({
+    mode: "subscription",
+    customer: input.customerId,
+    line_items: [{ price: input.priceId, quantity: 1 }],
+    success_url: input.successUrl,
+    cancel_url: input.cancelUrl,
+    allow_promotion_codes: true,
+    metadata: meta,
+    subscription_data: { metadata: meta },
+  });
+  return session.url!;
+}
+
+export async function createBillingPortal(customerId: string, returnUrl: string) {
+  const s = await stripe().billingPortal.sessions.create({ customer: customerId, return_url: returnUrl });
+  return s.url;
+}
+
+export async function retrievePlatformSubscription(id: string) {
+  return stripe().subscriptions.retrieve(id);
+}
+
+/**
+ * Verifies a webhook. Stripe signs "Connected accounts" and "Your account" endpoints with
+ * different secrets (STRIPE_WEBHOOK_SECRET and STRIPE_PLATFORM_WEBHOOK_SECRET); either may sign.
+ */
 export function constructWebhookEvent(payload: string, signature: string) {
-  const secret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!secret) throw new Error("STRIPE_WEBHOOK_SECRET is not set");
-  return stripe().webhooks.constructEvent(payload, signature, secret);
+  const secrets = [process.env.STRIPE_WEBHOOK_SECRET, process.env.STRIPE_PLATFORM_WEBHOOK_SECRET].filter(
+    Boolean,
+  ) as string[];
+  if (!secrets.length) throw new Error("STRIPE_WEBHOOK_SECRET is not set");
+  let last: unknown;
+  for (const secret of secrets) {
+    try {
+      return stripe().webhooks.constructEvent(payload, signature, secret);
+    } catch (err) {
+      last = err;
+    }
+  }
+  throw last;
 }
 
 export type { Stripe };

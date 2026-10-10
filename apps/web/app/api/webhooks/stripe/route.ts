@@ -1,8 +1,9 @@
-import { and, eq, orders, paymentAccounts, payments, subscriptions, sql } from "@zfunnel/db";
+import { and, eq, orgBilling, orders, paymentAccounts, payments, subscriptions, sql } from "@zfunnel/db";
 import { constructWebhookEvent, markPaymentFailed, markPaymentSucceeded, system, type Stripe } from "@zfunnel/payments";
 
 /**
- * Stripe Connect webhook (events from connected accounts). The checkout API already
+ * Stripe webhook. Events from connected accounts (customers' payments) and from the
+ * platform account (ZFunnel's own subscriptions, see handlePlatform). The checkout API already
  * finalizes orders synchronously; this is the safety net for closed tabs, async payment
  * methods, renewals, refunds and account status changes. Every handler is idempotent.
  */
@@ -26,7 +27,71 @@ export async function POST(req: Request) {
   return Response.json({ received: true });
 }
 
+/** Events about ZFunnel's own subscriptions (platform account: no `event.account`). */
+async function handlePlatform(event: Stripe.Event) {
+  const planOf = (v: unknown) => (v === "starter" || v === "pro" || v === "scale" ? v : null);
+  switch (event.type) {
+    case "checkout.session.completed": {
+      const cs = event.data.object;
+      const orgId = cs.metadata?.zfunnel_organization_id;
+      const plan = planOf(cs.metadata?.zfunnel_plan);
+      if (cs.mode !== "subscription" || !orgId || !plan) return;
+      await system((tx) =>
+        tx
+          .insert(orgBilling)
+          .values({
+            organizationId: orgId,
+            plan,
+            status: "active",
+            provider: "stripe",
+            stripeCustomerId: String(cs.customer),
+            stripeSubscriptionId: String(cs.subscription),
+          })
+          .onConflictDoUpdate({
+            target: orgBilling.organizationId,
+            set: {
+              plan,
+              status: "active",
+              provider: "stripe",
+              stripeSubscriptionId: String(cs.subscription),
+              cancelAtPeriodEnd: false,
+            },
+          }),
+      );
+      return;
+    }
+    case "customer.subscription.updated":
+    case "customer.subscription.deleted": {
+      const s = event.data.object;
+      const orgId = s.metadata?.zfunnel_organization_id;
+      if (!orgId) return;
+      // Plan switches made in the billing portal show up as a new price lookup key.
+      const key = s.items.data[0]?.price.lookup_key ?? "";
+      const plan = planOf(/^zfunnel_(\w+)_monthly$/.exec(key)?.[1]) ?? planOf(s.metadata?.zfunnel_plan);
+      const status =
+        (["active", "trialing", "past_due", "canceled", "incomplete"] as const).find((x) => x === s.status) ??
+        "canceled";
+      await system((tx) =>
+        tx
+          .update(orgBilling)
+          .set({
+            ...(plan ? { plan } : {}),
+            status: event.type === "customer.subscription.deleted" ? "canceled" : status,
+            stripeSubscriptionId: s.id,
+            cancelAtPeriodEnd: s.cancel_at_period_end,
+            currentPeriodEnd: s.items.data[0]?.current_period_end
+              ? new Date(s.items.data[0].current_period_end * 1000)
+              : null,
+          })
+          .where(eq(orgBilling.organizationId, orgId)),
+      );
+      return;
+    }
+  }
+}
+
 async function handle(event: Stripe.Event) {
+  if (!event.account) return handlePlatform(event);
   switch (event.type) {
     case "account.updated": {
       const a = event.data.object;

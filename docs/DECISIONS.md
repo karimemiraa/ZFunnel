@@ -136,3 +136,11 @@ Format: **ID — Title** · Status (Proposed / Accepted / Superseded) · Date. S
 **Why.** Counting conversions at funnel level credits a sales page for a checkout on the next step, which is what users want to optimize. No attribution plumbing is needed in every API route. The cookie is the minimum needed so a visitor doesn't flip between versions. It holds no personal data.
 
 **Consequences.** One challenger per step for now; the schema allows more. Visitors who clear cookies may be counted in both versions. Declaring B the winner copies B's draft and published version onto the step and deletes the test. Offers attach to the step, so both versions sell the same products.
+
+### ADR-017 — SaaS billing: per-organization plans, soft gates, Stripe Checkout · **Accepted** · 2026-10-10
+
+**Decision.** Plans live in one file (`packages/shared/src/plans.ts`): limits (workspaces, funnels, contacts, emails per month, custom domains, team members) and features (automations, split tests, AI). Every new organization gets a 14-day trial with everything included. Paying uses Stripe Checkout in subscription mode on the platform account. Prices are created from the plan file by lookup key. Changes, cancellations and card updates go through the Stripe Customer Portal. State is kept in `org_billing` via the platform webhook. With `PAYMENTS_TEST_MODE` and no Stripe keys, choosing a plan activates it directly.
+
+**Why.** Billing per organization matches who pays: an agency owns several workspaces. A single `enforce()` gate at the points where resources are created or consumed keeps the rules in one place.
+
+**Consequences.** Gates never block visitors: opt-ins, checkouts and published pages keep working after a trial ends or a limit is reached. Only creating and sending is blocked (new funnels, workspaces, domains, imports, broadcasts, activating automations, split tests, AI), each with a message saying how to upgrade. Automation emails already in flight are not counted against the monthly email limit. **The prices and limits are placeholders for the owner to set.**

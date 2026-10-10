@@ -11,6 +11,7 @@ export function SettingsTabs({ base }: { base: string }) {
     { href: `${base}/payments`, label: "Payments" },
     { href: `${base}/domains`, label: "Domains" },
     { href: `${base}/team`, label: "Team" },
+    { href: `${base}/billing`, label: "Billing" },
     { href: `${base}/activity`, label: "Activity" },
   ];
   return (

@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { enforce } from "./billing";
 import { requireUser } from "./session";
 import {
   canManage,
@@ -96,6 +97,8 @@ export async function createWorkspace(_prev: ActionState, formData: FormData): P
   const organizationId = String(formData.get("organizationId") ?? "");
   const membership = (await getMemberships(user.id)).find((m) => m.organizationId === organizationId);
   if (!membership || !canManage(membership.role)) return { error: "You don't have permission to add workspaces here." };
+  const blocked = await enforce(organizationId, "workspaces");
+  if (blocked) return { error: blocked };
   if (!(await isSlugAvailable(parsed.data.slug))) return { fieldErrors: { slug: [SLUG_TAKEN] } };
 
   try {

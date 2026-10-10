@@ -2,7 +2,7 @@
 
 An all-in-one funnel platform: drag-and-drop pages, sales funnels, checkout with order bumps and one-click upsells, CRM, email, automations, courses, appointments, analytics and AI. The goal is full ClickFunnels 2.0 parity and more.
 
-> **Status: Phase 0 (foundation) is built.** It covers accounts, organizations, workspaces with row-level-security tenant isolation, the dashboard shell, the public subdomain renderer and CI. Phase 1 (editor → funnel → checkout → upsell) starts after sign-off. See [docs/ROADMAP.md](docs/ROADMAP.md).
+> **Status: Phases 0–2 are built.** That covers the editor, funnels, checkout with bumps and one-click upsells, custom domains, analytics, CRM and pipelines, email broadcasts, visual automations, surveys and quizzes, A/B split tests, the customer center, the AI copywriter and SaaS billing. Phase 3 (courses, appointments, websites/blog, SMS, API) is next. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Quick start
 
@@ -22,18 +22,22 @@ pnpm dev                        # dashboard :3000 · public sites :3001 · worke
 
 ## Repository layout
 
-| Path              | What it is                                                              |
-| ----------------- | ----------------------------------------------------------------------- |
-| `apps/web`        | Dashboard: auth, onboarding, workspaces, settings, and later the editor |
-| `apps/sites`      | Public renderer for `{slug}.zfunnel.app` and custom domains             |
-| `apps/worker`     | BullMQ background jobs                                                  |
-| `packages/db`     | Drizzle schema, migrations, RLS policies, tenant-scoped query helpers   |
-| `packages/auth`   | Better Auth configuration (organizations, roles)                        |
-| `packages/ui`     | Design system (shadcn/ui components and theme tokens)                   |
-| `packages/shared` | zod schemas and shared utilities                                        |
-| `packages/config` | Shared TypeScript and ESLint config                                     |
-| `infra/docker`    | Local services                                                          |
-| `docs/`           | PRD, architecture, research, roadmap, decision log                      |
+| Path                | What it is                                                            |
+| ------------------- | --------------------------------------------------------------------- |
+| `apps/web`          | Dashboard: editor, funnels, CRM, email, automations, billing          |
+| `apps/sites`        | Public renderer, checkout/forms APIs and the customer center          |
+| `apps/worker`       | BullMQ background jobs                                                |
+| `packages/db`       | Drizzle schema, migrations, RLS policies, tenant-scoped query helpers |
+| `packages/auth`     | Better Auth configuration (organizations, roles)                      |
+| `packages/blocks`   | Page blocks, themes and templates for the Puck editor                 |
+| `packages/payments` | Stripe Connect, test gateway, orders, upsells, ZFunnel plan billing   |
+| `packages/email`    | Email blocks, renderer, signed tracking links, SMTP sender            |
+| `packages/queue`    | BullMQ queue names and job payloads                                   |
+| `packages/ui`       | Design system (shadcn/ui components and theme tokens)                 |
+| `packages/shared`   | zod schemas and shared utilities                                      |
+| `packages/config`   | Shared TypeScript and ESLint config                                   |
+| `infra/docker`      | Local services                                                        |
+| `docs/`             | PRD, architecture, research, roadmap, decision log                    |
 
 ## Everyday commands
 

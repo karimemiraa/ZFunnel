@@ -3,6 +3,7 @@
 import { sanitizeRichText } from "@zfunnel/email";
 import { z } from "zod";
 import { aiConfigured, complete, takeAiQuota } from "./ai";
+import { enforce } from "./billing";
 import { requireUser } from "./session";
 import { getWorkspaceForUser } from "./workspaces";
 
@@ -30,6 +31,8 @@ export async function aiRewrite(workspaceSlug: string, input: z.input<typeof sch
   if (!aiConfigured()) return { ok: false, error: "AI isn't set up on this server yet (ANTHROPIC_API_KEY)." };
   const p = schema.safeParse(input);
   if (!p.success) return { ok: false, error: "Invalid request" };
+  const blocked = await enforce(ctx.membership.organizationId, "ai");
+  if (blocked) return { ok: false, error: blocked };
   if (!takeAiQuota(ctx.workspace.id))
     return { ok: false, error: "You've reached the hourly AI limit. Try again later." };
   const { format, role, text, instruction, context } = p.data;

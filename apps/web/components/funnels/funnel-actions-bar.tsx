@@ -82,7 +82,12 @@ export function FunnelActionsBar({
                   variant="ghost"
                   size="sm"
                   disabled={busy}
-                  onClick={() => start(() => duplicateFunnel(workspaceSlug, funnel.id))}
+                  onClick={() =>
+                    start(async () => {
+                      const r = await duplicateFunnel(workspaceSlug, funnel.id);
+                      if (r && !r.ok) toast.error(r.error);
+                    })
+                  }
                 >
                   <CopyPlusIcon /> Duplicate
                 </Button>

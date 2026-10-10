@@ -20,6 +20,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createFunnelWithSteps, FUNNEL_PRESETS, inWorkspace, uniqueSlug, type FunnelPreset } from "./funnels";
+import { enforce } from "./billing";
 import { requireUser } from "./session";
 import { canManage, getWorkspaceForUser, recordAudit, type WorkspaceContext } from "./workspaces";
 
@@ -80,6 +81,8 @@ export async function createFunnel(workspaceSlug: string, _prev: FormState, form
     source: choice.startsWith("template:") ? { template: choice.slice(9) } : { preset: choice.replace(/^preset:/, "") },
   });
   if (!parsed.success) return { fieldErrors: z.flattenError(parsed.error).fieldErrors };
+  const blocked = await enforce(ctx.membership.organizationId, "funnels");
+  if (blocked) return { error: blocked };
   const funnel = await createFunnelWithSteps(ctx, parsed.data.name, parsed.data.source);
   await recordAudit(ctx, user.id, {
     action: "funnel.created",
@@ -138,8 +141,10 @@ export async function archiveFunnel(workspaceSlug: string, funnelId: string) {
   redirect(`/${workspaceSlug}/funnels`);
 }
 
-export async function duplicateFunnel(workspaceSlug: string, funnelId: string) {
+export async function duplicateFunnel(workspaceSlug: string, funnelId: string): Promise<Result | void> {
   const { user, ctx } = await ctxFor(workspaceSlug);
+  const blocked = await enforce(ctx.membership.organizationId, "funnels");
+  if (blocked) return { ok: false, error: blocked };
   const copy = await inWorkspace(ctx, async (tx) => {
     const [src] = await tx.select().from(funnels).where(eq(funnels.id, funnelId));
     if (!src) throw new Error("Funnel not found");
@@ -479,6 +484,8 @@ export async function unpublishStep(workspaceSlug: string, stepId: string): Prom
 /** Starts an A/B test: variant B begins as a copy of the step's current draft. */
 export async function createVariant(workspaceSlug: string, stepId: string): Promise<Result & { id?: string }> {
   const { user, ctx } = await ctxFor(workspaceSlug);
+  const blocked = await enforce(ctx.membership.organizationId, "splitTests");
+  if (blocked) return { ok: false, error: blocked };
   const res = await inWorkspace(ctx, async (tx) => {
     const [step] = await tx.select().from(funnelSteps).where(eq(funnelSteps.id, stepId));
     if (!step) return { error: "Step not found" };

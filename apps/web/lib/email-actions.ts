@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { audienceCount } from "./email";
+import { enforce } from "./billing";
 import { inWorkspace } from "./funnels";
 import { requireUser } from "./session";
 import { canManage, getWorkspaceForUser, recordAudit } from "./workspaces";
@@ -171,6 +172,8 @@ export async function sendBroadcast(workspaceSlug: string, broadcastId: string, 
     return { ok: false, error: "Pick a time in the future." };
   const count = await audienceCount(ctx, { segmentId: r.row.b.segmentId, tag: r.row.b.tag });
   if (!count) return { ok: false, error: "This audience has no subscribed contacts." };
+  const blocked = await enforce(ctx.membership.organizationId, "emailsPerMonth", count);
+  if (blocked) return { ok: false, error: blocked };
   await inWorkspace(ctx, (tx) =>
     tx
       .update(broadcasts)

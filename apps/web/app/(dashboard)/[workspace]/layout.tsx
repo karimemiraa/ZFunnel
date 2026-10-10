@@ -6,6 +6,7 @@ import { MobileNav } from "@/components/mobile-nav";
 import { SidebarNav } from "@/components/sidebar-nav";
 import { UserMenu } from "@/components/user-menu";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
+import { getBillingState } from "@/lib/billing";
 import { requireWorkspace } from "@/lib/context";
 import { listUserWorkspaces } from "@/lib/workspaces";
 
@@ -16,7 +17,8 @@ export default async function WorkspaceLayout({
   children: React.ReactNode;
   params: Promise<{ workspace: string }>;
 }) {
-  const { user, workspace } = await requireWorkspace(params);
+  const { user, workspace, membership } = await requireWorkspace(params);
+  const billing = await getBillingState(membership.organizationId);
   const groups = (await listUserWorkspaces(user.id)).map((g) => ({
     organizationName: g.membership.organizationName,
     workspaces: g.workspaces.map((w) => ({ slug: w.slug, name: w.name })),
@@ -40,6 +42,26 @@ export default async function WorkspaceLayout({
           <ThemeToggle />
           <UserMenu name={user.name} email={user.email} />
         </header>
+        {(billing.status === "expired" ||
+          billing.status === "past_due" ||
+          (billing.status === "trial" && (billing.daysLeft ?? 99) <= 3)) && (
+          <div
+            className={
+              billing.status === "trial"
+                ? "border-b bg-violet-500/10 px-4 py-2 text-center text-sm text-violet-900 dark:text-violet-200"
+                : "border-b bg-amber-500/15 px-4 py-2 text-center text-sm text-amber-900 dark:text-amber-200"
+            }
+          >
+            {billing.status === "expired"
+              ? "Your free trial has ended. Your live funnels keep working, but you can't create or send anything new."
+              : billing.status === "past_due"
+                ? "Your last payment failed. Update your card to keep your account active."
+                : `Your free trial ends in ${billing.daysLeft} ${billing.daysLeft === 1 ? "day" : "days"}.`}{" "}
+            <Link href={`/${workspace.slug}/settings/billing`} className="font-semibold underline underline-offset-2">
+              {billing.status === "past_due" ? "Update payment" : "Choose a plan"}
+            </Link>
+          </div>
+        )}
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 lg:px-8">{children}</main>
         <Toaster />
       </div>

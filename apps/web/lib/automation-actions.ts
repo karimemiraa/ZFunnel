@@ -17,6 +17,7 @@ import { enqueue } from "@zfunnel/queue";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { enforce } from "./billing";
 import { inWorkspace } from "./funnels";
 import { ruleSchema } from "./rule-schema";
 import { requireUser } from "./session";
@@ -178,6 +179,10 @@ export async function setWorkflowStatus(
   status: "active" | "paused",
 ): Promise<Result> {
   const { user, ctx } = await ctxFor(workspaceSlug);
+  if (status === "active") {
+    const blocked = await enforce(ctx.membership.organizationId, "automations");
+    if (blocked) return { ok: false, error: blocked };
+  }
   const err = await inWorkspace(ctx, async (tx) => {
     const [w] = await tx.select().from(workflows).where(eq(workflows.id, workflowId));
     if (!w) return "Automation not found";

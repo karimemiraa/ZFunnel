@@ -18,6 +18,7 @@ import {
 import { parseCsv, slugify } from "@zfunnel/shared";
 import { enqueueMany } from "@zfunnel/queue";
 import { revalidatePath } from "next/cache";
+import { enforce } from "./billing";
 import { ruleSchema } from "./rule-schema";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -70,6 +71,8 @@ export async function createContact(
   const parsed = contactSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]!.message };
   const tags = (input.tags ?? []).map((t) => tagSchema.safeParse(t)).flatMap((r) => (r.success ? [r.data] : []));
+  const blocked = await enforce(ctx.membership.organizationId, "contacts");
+  if (blocked) return { ok: false, error: blocked };
   const id = await inWorkspace(ctx, async (tx) => {
     const [c] = await tx
       .insert(contacts)
@@ -228,6 +231,8 @@ export async function importContacts(workspaceSlug: string, csvText: string, tag
     ];
   });
   if (!values.length) return { ok: false, error: "No valid email addresses found." };
+  const blocked = await enforce(ctx.membership.organizationId, "contacts", values.length);
+  if (blocked) return { ok: false, error: blocked };
   let created = 0;
   await inWorkspace(ctx, async (tx) => {
     for (let i = 0; i < values.length; i += 500) {

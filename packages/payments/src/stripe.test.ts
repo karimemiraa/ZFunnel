@@ -100,6 +100,31 @@ describe.skipIf(!enabled)("stripe requests (stripe-mock)", () => {
     expect(r.id).toMatch(/^sub_/);
   });
 
+  it("sells ZFunnel plans: price, customer, checkout and billing portal", async () => {
+    const price = await s.ensurePlatformPrice({
+      lookupKey: "zfunnel_pro_monthly",
+      productName: "ZFunnel Pro",
+      amount: 9900,
+    });
+    expect(price).toMatch(/^price_/);
+    const customer = await s.createPlatformCustomer({
+      email: "owner@example.com",
+      name: "Acme",
+      organizationId: "org_1",
+    });
+    expect(customer).toMatch(/^cus_/);
+    const url = await s.createPlanCheckout({
+      customerId: customer,
+      priceId: price,
+      organizationId: "org_1",
+      plan: "pro",
+      successUrl: "https://app.example.com/ok",
+      cancelUrl: "https://app.example.com/cancel",
+    });
+    expect(url).toMatch(/^https:/);
+    expect(await s.createBillingPortal(customer, "https://app.example.com/billing")).toMatch(/^https:/);
+  });
+
   it("refunds", async () => {
     const r = await s.refundPayment("acct_1", "pi_1", 500);
     expect(r.id).toMatch(/^re_/);

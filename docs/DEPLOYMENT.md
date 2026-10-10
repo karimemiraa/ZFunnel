@@ -75,7 +75,12 @@ sudo ./infra/deploy/deploy.sh
    - **Listen to: Events on Connected accounts**
    - Events: `account.updated`, `payment_intent.succeeded`, `payment_intent.payment_failed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `charge.refunded`
    - Copy the signing secret into `STRIPE_WEBHOOK_SECRET`.
-4. Run `deploy.sh` again. Each workspace then connects its own Stripe under **Settings → Payments**.
+4. A **second** webhook endpoint for ZFunnel's own subscriptions (plans your users pay you):
+   - Same URL, **Listen to: Events on your account**
+   - Events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`
+   - Copy its signing secret into `STRIPE_PLATFORM_WEBHOOK_SECRET`.
+5. Turn on the **Customer portal** (Settings → Billing → Customer portal) and allow switching between the ZFunnel plans, so users can upgrade, downgrade, cancel and update their card.
+6. Run `deploy.sh` again. Each workspace then connects its own Stripe under **Settings → Payments**. Plan prices are created in Stripe automatically from `packages/shared/src/plans.ts`.
 
 `PAYMENTS_TEST_MODE=true` enables a fake card gateway for workspaces without Stripe (ADR-011). Keep it `false` once you have real customers.
 
