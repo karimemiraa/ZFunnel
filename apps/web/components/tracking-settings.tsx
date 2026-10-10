@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@zfun
 import { Input } from "@zfunnel/ui/input";
 import { Label } from "@zfunnel/ui/label";
 import { toast } from "@zfunnel/ui/toaster";
+import { useT } from "@zfunnel/i18n/react";
 import { CheckCircle2Icon, Loader2Icon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -12,37 +13,8 @@ import { disconnectTrackingPlatform, saveTrackingPlatform, type Platform } from 
 
 type Current = { id: string | null; hasToken: boolean; testCode: string | null };
 
-const COPY: Record<
-  Platform,
-  { title: string; description: string; idLabel: string; idHint: string; tokenLabel: string; test: boolean }
-> = {
-  meta: {
-    title: "Meta Conversions API",
-    description:
-      "Sends Lead and Purchase to Facebook and Instagram ads from the server, so ad blockers can't hide sales.",
-    idLabel: "Pixel (dataset) ID",
-    idHint: "Events Manager → Data sources → your pixel",
-    tokenLabel: "Access token",
-    test: true,
-  },
-  tiktok: {
-    title: "TikTok Events API",
-    description: "Sends SubmitForm and CompletePayment to TikTok Ads.",
-    idLabel: "Pixel code",
-    idHint: "TikTok Ads Manager → Events → Web events",
-    tokenLabel: "Access token",
-    test: true,
-  },
-  ga4: {
-    title: "Google Analytics 4",
-    description:
-      "Sends generate_lead and purchase through the Measurement Protocol. Import them into Google Ads as conversions.",
-    idLabel: "Measurement ID",
-    idHint: "Admin → Data streams → your web stream",
-    tokenLabel: "Measurement Protocol API secret",
-    test: false,
-  },
-};
+/** Platforms with a test event code. Copy lives in the `tracking.platforms.*` messages. */
+const HAS_TEST: Record<Platform, boolean> = { meta: true, tiktok: true, ga4: false };
 
 function PlatformCard({
   workspaceSlug,
@@ -53,7 +25,15 @@ function PlatformCard({
   platform: Platform;
   current: Current;
 }) {
-  const c = COPY[platform];
+  const t = useT();
+  const c = {
+    title: t(`tracking.platforms.${platform}.title`),
+    description: t(`tracking.platforms.${platform}.description`),
+    idLabel: t(`tracking.platforms.${platform}.idLabel`),
+    idHint: t(`tracking.platforms.${platform}.idHint`),
+    tokenLabel: t(`tracking.platforms.${platform}.tokenLabel`),
+    test: HAS_TEST[platform],
+  };
   const connected = Boolean(current.id && current.hasToken);
   const [id, setId] = useState(current.id ?? "");
   const [token, setToken] = useState("");
@@ -64,7 +44,7 @@ function PlatformCard({
     start(async () => {
       const r = await fn();
       if (!r.ok) return void toast.error(r.error);
-      toast.success(r.message ?? "Saved");
+      toast.success(r.message ?? t("common.saved"));
       setToken("");
       router.refresh();
     });
@@ -75,7 +55,7 @@ function PlatformCard({
           {c.title}
           {connected && (
             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
-              <CheckCircle2Icon className="size-3" /> Connected
+              <CheckCircle2Icon className="size-3" /> {t("tracking.connected")}
             </span>
           )}
         </CardTitle>
@@ -91,7 +71,7 @@ function PlatformCard({
         >
           <div className="space-y-2">
             <Label htmlFor={`${platform}-id`}>{c.idLabel}</Label>
-            <Input id={`${platform}-id`} value={id} onChange={(e) => setId(e.target.value)} />
+            <Input id={`${platform}-id`} dir="ltr" value={id} onChange={(e) => setId(e.target.value)} />
             <p className="text-xs text-muted-foreground">{c.idHint}</p>
           </div>
           <div className="space-y-2">
@@ -100,19 +80,17 @@ function PlatformCard({
               id={`${platform}-token`}
               type="password"
               autoComplete="off"
-              placeholder={current.hasToken ? "•••••••• saved (leave empty to keep)" : ""}
+              placeholder={current.hasToken ? t("tracking.keepPlaceholder") : ""}
               value={token}
               onChange={(e) => setToken(e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">Stored encrypted. Never shown again.</p>
+            <p className="text-xs text-muted-foreground">{t("tracking.storedEncrypted")}</p>
           </div>
           {c.test && (
             <div className="space-y-2">
-              <Label htmlFor={`${platform}-test`}>Test event code (optional)</Label>
-              <Input id={`${platform}-test`} value={testCode} onChange={(e) => setTestCode(e.target.value)} />
-              <p className="text-xs text-muted-foreground">
-                Events then show under “Test events”. Remove it to go live.
-              </p>
+              <Label htmlFor={`${platform}-test`}>{t("tracking.testCode")}</Label>
+              <Input id={`${platform}-test`} dir="ltr" value={testCode} onChange={(e) => setTestCode(e.target.value)} />
+              <p className="text-xs text-muted-foreground">{t("tracking.testCodeHint")}</p>
             </div>
           )}
           <div className="flex items-end justify-end gap-2 sm:col-span-2">
@@ -122,15 +100,15 @@ function PlatformCard({
                 variant="ghost"
                 disabled={busy}
                 onClick={() => {
-                  if (confirm(`Disconnect ${c.title}? Conversions stop being sent.`))
+                  if (confirm(t("tracking.disconnectConfirm", { name: c.title })))
                     run(() => disconnectTrackingPlatform(workspaceSlug, platform));
                 }}
               >
-                Disconnect
+                {t("tracking.disconnect")}
               </Button>
             )}
             <Button type="submit" disabled={busy}>
-              {busy && <Loader2Icon className="animate-spin" />} {connected ? "Save" : "Connect"}
+              {busy && <Loader2Icon className="animate-spin" />} {connected ? t("common.save") : t("tracking.connect")}
             </Button>
           </div>
         </form>

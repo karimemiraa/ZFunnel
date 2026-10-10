@@ -2,12 +2,15 @@ import { domains as domainsTable } from "@zfunnel/db";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@zfunnel/ui/card";
 import { DomainsManager } from "@/components/domains-manager";
 import { requireWorkspace } from "@/lib/context";
+import { getT } from "@/lib/i18n";
 import { SITES_CNAME_TARGET, SITES_IPV4 } from "@/lib/domains";
 import { inWorkspace, listFunnels } from "@/lib/funnels";
 import { siteOrigin } from "@/lib/urls";
 import { canManage } from "@/lib/workspaces";
 
-export const metadata = { title: "Domains" };
+export async function generateMetadata() {
+  return { title: (await getT())("settings.tabs.domains") };
+}
 
 export default async function DomainsPage({ params }: { params: Promise<{ workspace: string }> }) {
   const ctx = await requireWorkspace(params);
@@ -15,26 +18,25 @@ export default async function DomainsPage({ params }: { params: Promise<{ worksp
     inWorkspace(ctx, (tx) => tx.select().from(domainsTable).orderBy(domainsTable.createdAt)),
     listFunnels(ctx),
   ]);
+  const t = await getT();
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Free subdomain</CardTitle>
-          <CardDescription>Always available, with SSL included.</CardDescription>
+          <CardTitle>{t("domains.freeSubdomain")}</CardTitle>
+          <CardDescription>{t("domains.freeSubdomainHint")}</CardDescription>
         </CardHeader>
         <CardContent>
-          <code className="rounded bg-muted px-2 py-1 text-sm">
+          <code dir="ltr" className="rounded bg-muted px-2 py-1 text-sm">
             {siteOrigin(ctx.workspace.slug).replace(/^https?:\/\//, "")}
           </code>
         </CardContent>
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Custom domains</CardTitle>
-          <CardDescription>
-            Serve your funnels on your own domain. SSL certificates are issued and renewed automatically.
-          </CardDescription>
+          <CardTitle>{t("domains.custom")}</CardTitle>
+          <CardDescription>{t("domains.customHint")}</CardDescription>
         </CardHeader>
         <CardContent>
           {canManage(ctx.membership.role) ? (
@@ -53,7 +55,7 @@ export default async function DomainsPage({ params }: { params: Promise<{ worksp
               ipv4={SITES_IPV4}
             />
           ) : (
-            <p className="text-sm text-muted-foreground">Only owners and admins can manage domains.</p>
+            <p className="text-sm text-muted-foreground">{t("domains.onlyAdmins")}</p>
           )}
         </CardContent>
       </Card>

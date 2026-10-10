@@ -2,6 +2,7 @@
 
 import { Button } from "@zfunnel/ui/button";
 import { toast } from "@zfunnel/ui/toaster";
+import { useT } from "@zfunnel/i18n/react";
 import { Loader2Icon } from "lucide-react";
 import { useTransition } from "react";
 import { choosePlan, openBillingPortal } from "@/lib/billing-actions";
@@ -37,6 +38,7 @@ export function PlanButton({
 }
 
 export function PortalButton({ workspaceSlug }: { workspaceSlug: string }) {
+  const t = useT();
   const [pending, start] = useTransition();
   return (
     <Button
@@ -49,7 +51,7 @@ export function PortalButton({ workspaceSlug }: { workspaceSlug: string }) {
         })
       }
     >
-      {pending && <Loader2Icon className="animate-spin" />} Manage billing
+      {pending && <Loader2Icon className="animate-spin" />} {t("billing.manageBilling")}
     </Button>
   );
 }

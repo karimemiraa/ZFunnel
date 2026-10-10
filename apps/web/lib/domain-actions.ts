@@ -7,6 +7,7 @@ import { checkDomainDns } from "./domains";
 import { ROOT_DOMAIN } from "./env";
 import { inWorkspace } from "./funnels";
 import { enforce } from "./billing";
+import { getT } from "./i18n";
 import { requireUser } from "./session";
 import { canManage, getWorkspaceForUser, recordAudit } from "./workspaces";
 
@@ -15,24 +16,25 @@ type Result = { ok: true; message?: string } | { ok: false; error: string };
 async function ctxFor(workspaceSlug: string) {
   const user = await requireUser();
   const ctx = await getWorkspaceForUser(user.id, workspaceSlug);
-  if (!ctx) throw new Error("Workspace not found");
-  if (!canManage(ctx.membership.role)) throw new Error("Only owners and admins can manage domains.");
-  return { user, ctx };
+  const t = await getT();
+  if (!ctx) throw new Error(t("domains.workspaceNotFound"));
+  if (!canManage(ctx.membership.role)) throw new Error(t("domains.onlyAdmins"));
+  return { user, ctx, t };
 }
 
 export async function addDomain(workspaceSlug: string, input: string): Promise<Result> {
-  const { user, ctx } = await ctxFor(workspaceSlug);
+  const { user, ctx, t } = await ctxFor(workspaceSlug);
   const blocked = await enforce(ctx.membership.organizationId, "domains");
   if (blocked) return { ok: false, error: blocked };
   const hostname = normalizeHostname(input);
-  if (!hostname) return { ok: false, error: "That doesn't look like a valid domain, e.g. offer.yourbrand.com" };
+  if (!hostname) return { ok: false, error: t("domains.invalid") };
   if (isUnderDomain(hostname, ROOT_DOMAIN))
-    return { ok: false, error: `You already get ${workspaceSlug}.${ROOT_DOMAIN} for free; add your own domain here.` };
+    return { ok: false, error: t("domains.alreadyFree", { free: `${workspaceSlug}.${ROOT_DOMAIN}` }) };
   // Domains are a platform-wide namespace: check across tenants, returning only a boolean.
   const [taken] = await withSystem(getDb(), (tx) =>
     tx.select({ id: domains.id }).from(domains).where(eq(domains.hostname, hostname)),
   );
-  if (taken) return { ok: false, error: "This domain is already connected to a workspace." };
+  if (taken) return { ok: false, error: t("domains.taken") };
   const token = `zf-${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`;
   await inWorkspace(ctx, (tx) =>
     tx.insert(domains).values({ workspaceId: ctx.workspace.id, hostname, verificationToken: token }),
@@ -43,10 +45,10 @@ export async function addDomain(workspaceSlug: string, input: string): Promise<R
 }
 
 export async function verifyDomain(workspaceSlug: string, domainId: string): Promise<Result> {
-  const { user, ctx } = await ctxFor(workspaceSlug);
+  const { user, ctx, t } = await ctxFor(workspaceSlug);
   const [d] = await inWorkspace(ctx, (tx) => tx.select().from(domains).where(eq(domains.id, domainId)));
-  if (!d) return { ok: false, error: "Domain not found." };
-  const check = await checkDomainDns(d.hostname, d.verificationToken);
+  if (!d) return { ok: false, error: t("domains.notFound") };
+  const check = await checkDomainDns(d.hostname, d.verificationToken, undefined, t);
   const active = check.ownership && check.routing;
   await inWorkspace(ctx, (tx) =>
     tx
@@ -67,7 +69,7 @@ export async function verifyDomain(workspaceSlug: string, domainId: string): Pro
     });
   revalidatePath(`/${workspaceSlug}/settings/domains`);
   return active
-    ? { ok: true, message: `${d.hostname} is connected. SSL is issued automatically on the first visit.` }
+    ? { ok: true, message: t("domains.connectedMessage", { hostname: d.hostname }) }
     : { ok: false, error: check.problems.join(" ") };
 }
 

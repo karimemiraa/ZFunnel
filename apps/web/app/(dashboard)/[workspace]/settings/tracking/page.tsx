@@ -3,10 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@zfun
 import { cn } from "@zfunnel/ui/lib/utils";
 import { TrackingSettings } from "@/components/tracking-settings";
 import { requireWorkspace } from "@/lib/context";
-import { timeAgo } from "@/lib/format";
 import { inWorkspace } from "@/lib/funnels";
+import { getFmt, getT } from "@/lib/i18n";
 
-export const metadata = { title: "Tracking" };
+export async function generateMetadata() {
+  return { title: (await getT())("settings.tabs.tracking") };
+}
 
 const PLATFORM: Record<string, string> = { meta: "Meta", tiktok: "TikTok", ga4: "GA4" };
 
@@ -29,6 +31,7 @@ export default async function TrackingPage({ params }: { params: Promise<{ works
       .limit(25);
     return { s, log };
   });
+  const [t, f] = await Promise.all([getT(), getFmt()]);
   return (
     <div className="space-y-6">
       <TrackingSettings
@@ -49,24 +52,21 @@ export default async function TrackingPage({ params }: { params: Promise<{ works
       />
       <Card>
         <CardHeader>
-          <CardTitle>Recent server events</CardTitle>
-          <CardDescription>
-            Opt-ins and purchases sent to your ad platforms. Emails and phone numbers are hashed (SHA-256) before they
-            leave ZFunnel.
-          </CardDescription>
+          <CardTitle>{t("tracking.recent")}</CardTitle>
+          <CardDescription>{t("tracking.recentHint")}</CardDescription>
         </CardHeader>
         <CardContent>
           {log.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nothing sent yet.</p>
+            <p className="text-sm text-muted-foreground">{t("tracking.nothing")}</p>
           ) : (
             <table className="w-full text-sm">
               <thead className="text-start text-xs text-muted-foreground uppercase">
                 <tr>
-                  <th className="py-2">Platform</th>
-                  <th className="py-2">Event</th>
-                  <th className="py-2 max-sm:hidden">Event ID</th>
-                  <th className="py-2">Status</th>
-                  <th className="py-2 text-end">When</th>
+                  <th className="py-2">{t("tracking.colPlatform")}</th>
+                  <th className="py-2">{t("tracking.colEvent")}</th>
+                  <th className="py-2 max-sm:hidden">{t("tracking.colEventId")}</th>
+                  <th className="py-2">{t("tracking.colStatus")}</th>
+                  <th className="py-2 text-end">{t("tracking.colWhen")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -74,7 +74,9 @@ export default async function TrackingPage({ params }: { params: Promise<{ works
                   <tr key={d.id}>
                     <td className="py-2 font-medium">{PLATFORM[d.platform]}</td>
                     <td className="py-2">{d.event}</td>
-                    <td className="py-2 font-mono text-xs text-muted-foreground max-sm:hidden">{d.eventId}</td>
+                    <td dir="ltr" className="py-2 text-start font-mono text-xs text-muted-foreground max-sm:hidden">
+                      {d.eventId}
+                    </td>
                     <td className="py-2">
                       <span
                         title={d.error ?? undefined}
@@ -85,10 +87,14 @@ export default async function TrackingPage({ params }: { params: Promise<{ works
                           d.status === "failed" && "bg-red-500/10 text-red-700 dark:text-red-400",
                         )}
                       >
-                        {d.status === "sent" ? "Sent" : d.status === "pending" ? "Retrying" : "Failed"}
+                        {d.status === "sent"
+                          ? t("tracking.sent")
+                          : d.status === "pending"
+                            ? t("tracking.retrying")
+                            : t("tracking.failed")}
                       </span>
                     </td>
-                    <td className="py-2 text-end text-muted-foreground">{timeAgo(d.createdAt)}</td>
+                    <td className="py-2 text-end text-muted-foreground">{f.timeAgo(d.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>

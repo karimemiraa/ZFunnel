@@ -9,7 +9,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { isLocale } from "@zfunnel/i18n";
 import { enforce } from "./billing";
-import { getT } from "./i18n";
+import { getT, localizeMessage } from "./i18n";
 import { requireUser } from "./session";
 import {
   canManage,
@@ -27,10 +27,13 @@ export type ActionState = {
   fieldErrors?: Record<string, string[] | undefined>;
 } | null;
 
-const SLUG_TAKEN = "That subdomain is already taken — try another.";
-
-function fieldErrors(error: z.ZodError) {
-  return z.flattenError(error).fieldErrors as Record<string, string[] | undefined>;
+/** Zod field errors with i18n-key messages translated for the current user. */
+async function fieldErrors(error: z.ZodError) {
+  const t = await getT();
+  const errors = z.flattenError(error).fieldErrors as Record<string, string[] | undefined>;
+  return Object.fromEntries(
+    Object.entries(errors).map(([k, v]) => [k, v?.map((m) => localizeMessage(t, m) ?? m)]),
+  ) as Record<string, string[] | undefined>;
 }
 
 async function insertWorkspace(membership: Membership, actorUserId: string, input: { name: string; slug: string }) {
@@ -54,11 +57,13 @@ async function insertWorkspace(membership: Membership, actorUserId: string, inpu
 /** Onboarding: creates the user's organization and its first workspace. */
 export async function createFirstWorkspace(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await requireUser();
+  const t = await getT();
+  const SLUG_TAKEN = t("workspace.slugTaken");
   const parsed = createWorkspaceSchema.safeParse({
     name: formData.get("name"),
     slug: formData.get("slug"),
   });
-  if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error) };
+  if (!parsed.success) return { fieldErrors: await fieldErrors(parsed.error) };
 
   const orgName = String(formData.get("organization") || parsed.data.name).trim();
   const org = createOrganizationSchema.safeParse({
@@ -66,12 +71,12 @@ export async function createFirstWorkspace(_prev: ActionState, formData: FormDat
     // Org slugs are internal; a random suffix avoids collisions between businesses with the same name.
     slug: `${slugify(orgName).slice(0, 40) || "org"}-${crypto.randomUUID().slice(0, 6)}`,
   });
-  if (!org.success) return { fieldErrors: { organization: fieldErrors(org.error).name } };
+  if (!org.success) return { fieldErrors: { organization: (await fieldErrors(org.error)).name } };
 
   if (!(await isSlugAvailable(parsed.data.slug))) return { fieldErrors: { slug: [SLUG_TAKEN] } };
 
   const created = await auth.api.createOrganization({ body: org.data, headers: await headers() });
-  if (!created) return { error: "Could not create your organization. Please try again." };
+  if (!created) return { error: t("workspace.orgCreateFailed") };
 
   try {
     await insertWorkspace(
@@ -93,12 +98,14 @@ export async function createFirstWorkspace(_prev: ActionState, formData: FormDat
 /** Adds another workspace to an organization the user manages. */
 export async function createWorkspace(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await requireUser();
+  const t = await getT();
+  const SLUG_TAKEN = t("workspace.slugTaken");
   const parsed = createWorkspaceSchema.safeParse({ name: formData.get("name"), slug: formData.get("slug") });
-  if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error) };
+  if (!parsed.success) return { fieldErrors: await fieldErrors(parsed.error) };
 
   const organizationId = String(formData.get("organizationId") ?? "");
   const membership = (await getMemberships(user.id)).find((m) => m.organizationId === organizationId);
-  if (!membership || !canManage(membership.role)) return { error: "You don't have permission to add workspaces here." };
+  if (!membership || !canManage(membership.role)) return { error: t("workspace.noPermission") };
   const blocked = await enforce(organizationId, "workspaces");
   if (blocked) return { error: blocked };
   if (!(await isSlugAvailable(parsed.data.slug))) return { fieldErrors: { slug: [SLUG_TAKEN] } };
@@ -117,11 +124,12 @@ const renameSchema = z.object({ name: createWorkspaceSchema.shape.name });
 export async function renameWorkspace(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await requireUser();
   const ctx = await getWorkspaceForUser(user.id, slug);
-  if (!ctx) return { error: "Workspace not found." };
-  if (!canManage(ctx.membership.role)) return { error: "Only owners and admins can rename a workspace." };
+  const t = await getT();
+  if (!ctx) return { error: t("workspace.notFound") };
+  if (!canManage(ctx.membership.role)) return { error: t("workspace.onlyAdminsRename") };
 
   const parsed = renameSchema.safeParse({ name: formData.get("name") });
-  if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error) };
+  if (!parsed.success) return { fieldErrors: await fieldErrors(parsed.error) };
 
   await withOrganization(getDb(), ctx.membership.organizationId, (tx) =>
     tx.update(workspaces).set({ name: parsed.data.name }).where(eq(workspaces.id, ctx.workspace.id)),
@@ -133,7 +141,7 @@ export async function renameWorkspace(slug: string, _prev: ActionState, formData
     data: { from: ctx.workspace.name, to: parsed.data.name },
   });
   revalidatePath(`/${slug}`, "layout");
-  return { success: "Saved." };
+  return { success: t("settings.renamed") };
 }
 
 const brandingSchema = z.object({
@@ -141,8 +149,8 @@ const brandingSchema = z.object({
     .string()
     .trim()
     .max(500)
-    .refine((v) => v === "" || /^https:\/\/\S+$/.test(v), "Use an https:// image link"),
-  brandColor: z.string().regex(/^#[0-9a-f]{6}$/i, "Pick a color"),
+    .refine((v) => v === "" || /^https:\/\/\S+$/.test(v), "workspace.branding.httpsLogo"),
+  brandColor: z.string().regex(/^#[0-9a-f]{6}$/i, "workspace.branding.pickColor"),
   hideBadge: z.boolean(),
 });
 
@@ -153,10 +161,11 @@ export async function saveBranding(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const user = await requireUser();
   const ctx = await getWorkspaceForUser(user.id, slug);
-  if (!ctx) return { ok: false, error: "Workspace not found." };
-  if (!canManage(ctx.membership.role)) return { ok: false, error: "Only owners and admins can change branding." };
+  const t = await getT();
+  if (!ctx) return { ok: false, error: t("workspace.notFound") };
+  if (!canManage(ctx.membership.role)) return { ok: false, error: t("workspace.branding.onlyAdmins") };
   const d = brandingSchema.safeParse(input);
-  if (!d.success) return { ok: false, error: d.error.issues[0]!.message };
+  if (!d.success) return { ok: false, error: localizeMessage(t, d.error.issues[0]!.message)! };
   if (d.data.hideBadge) {
     const blocked = await enforce(ctx.membership.organizationId, "whiteLabel");
     if (blocked) return { ok: false, error: blocked };

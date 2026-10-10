@@ -4,6 +4,7 @@ import { Button } from "@zfunnel/ui/button";
 import { Input } from "@zfunnel/ui/input";
 import { Label } from "@zfunnel/ui/label";
 import { toast } from "@zfunnel/ui/toaster";
+import { useT } from "@zfunnel/i18n/react";
 import { Loader2Icon, MessageSquareIcon } from "lucide-react";
 import { useState, useTransition } from "react";
 import { saveSmsSettings } from "@/lib/sms-actions";
@@ -15,6 +16,7 @@ export function SmsSettingsForm({
   workspaceSlug: string;
   current: { accountSid: string; fromNumber: string } | null;
 }) {
+  const t = useT();
   const [pending, start] = useTransition();
   const [v, setV] = useState({
     accountSid: current?.accountSid ?? "",
@@ -29,7 +31,7 @@ export function SmsSettingsForm({
         start(async () => {
           const r = await saveSmsSettings(workspaceSlug, v);
           if (r.ok) {
-            toast.success(r.message ?? "Saved");
+            toast.success(r.message ?? t("common.saved"));
             setV({ ...v, authToken: "" });
           } else toast.error(r.error);
         });
@@ -38,50 +40,47 @@ export function SmsSettingsForm({
       <div className="flex items-start gap-3">
         <MessageSquareIcon className="mt-0.5 size-5 text-primary" />
         <div>
-          <h2 className="font-semibold">SMS (Twilio)</h2>
-          <p className="text-sm text-muted-foreground">
-            Connect your Twilio account to send text messages from automations. Your auth token is encrypted and never
-            shown again.
-          </p>
+          <h2 className="font-semibold">{t("sms.heading")}</h2>
+          <p className="text-sm text-muted-foreground">{t("sms.intro")}</p>
         </div>
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="sms-sid">Account SID</Label>
+        <Label htmlFor="sms-sid">{t("sms.accountSid")}</Label>
         <Input
           id="sms-sid"
           value={v.accountSid}
           onChange={(e) => setV({ ...v, accountSid: e.target.value })}
           placeholder="AC…"
+          dir="ltr"
         />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="sms-token">Auth token</Label>
+        <Label htmlFor="sms-token">{t("sms.authToken")}</Label>
         <Input
           id="sms-token"
           type="password"
           autoComplete="off"
           value={v.authToken}
           onChange={(e) => setV({ ...v, authToken: e.target.value })}
-          placeholder={current ? "•••••••• (leave empty to keep)" : ""}
+          placeholder={current ? t("sms.keepPlaceholder") : ""}
         />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="sms-from">From number</Label>
+        <Label htmlFor="sms-from">{t("sms.fromNumber")}</Label>
         <Input
           id="sms-from"
           value={v.fromNumber}
           onChange={(e) => setV({ ...v, fromNumber: e.target.value })}
           placeholder="+14155550100"
+          dir="ltr"
         />
       </div>
       <div>
         <Button type="submit" disabled={pending}>
-          {pending && <Loader2Icon className="animate-spin" />} Save
+          {pending && <Loader2Icon className="animate-spin" />} {t("common.save")}
         </Button>
       </div>
-      <p className="text-xs text-muted-foreground">
-        Only contacts with a phone number get texts. Follow local SMS consent rules (for example TCPA in the US).
-      </p>
+      <p className="text-xs text-muted-foreground">{t("sms.consent")}</p>
     </form>
   );
 }

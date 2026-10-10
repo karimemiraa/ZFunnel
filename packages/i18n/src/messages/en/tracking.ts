@@ -1,0 +1,58 @@
+export const tracking = {
+  platforms: {
+    meta: {
+      title: "Meta Conversions API",
+      description:
+        "Sends Lead and Purchase to Facebook and Instagram ads from the server, so ad blockers can't hide sales.",
+      idLabel: "Pixel (dataset) ID",
+      idHint: "Events Manager → Data sources → your pixel",
+      tokenLabel: "Access token",
+    },
+    tiktok: {
+      title: "TikTok Events API",
+      description: "Sends SubmitForm and CompletePayment to TikTok Ads.",
+      idLabel: "Pixel code",
+      idHint: "TikTok Ads Manager → Events → Web events",
+      tokenLabel: "Access token",
+    },
+    ga4: {
+      title: "Google Analytics 4",
+      description:
+        "Sends generate_lead and purchase through the Measurement Protocol. Import them into Google Ads as conversions.",
+      idLabel: "Measurement ID",
+      idHint: "Admin → Data streams → your web stream",
+      tokenLabel: "Measurement Protocol API secret",
+    },
+  },
+  connected: "Connected",
+  keepPlaceholder: "•••••••• saved (leave empty to keep)",
+  storedEncrypted: "Stored encrypted. Never shown again.",
+  testCode: "Test event code (optional)",
+  testCodeHint: "Events then show under “Test events”. Remove it to go live.",
+  disconnectConfirm: "Disconnect {name}? Conversions stop being sent.",
+  disconnect: "Disconnect",
+  connect: "Connect",
+  recent: "Recent server events",
+  recentHint:
+    "Opt-ins and purchases sent to your ad platforms. Emails and phone numbers are hashed (SHA-256) before they leave ZFunnel.",
+  nothing: "Nothing sent yet.",
+  colPlatform: "Platform",
+  colEvent: "Event",
+  colEventId: "Event ID",
+  colStatus: "Status",
+  colWhen: "When",
+  sent: "Sent",
+  retrying: "Retrying",
+  failed: "Failed",
+  onlyAdmins: "Only owners and admins can change tracking.",
+  checkFields: "Check the fields and try again.",
+  idRules: {
+    meta: "The Meta pixel (dataset) ID is a 15–16 digit number.",
+    tiktok: "The TikTok pixel code looks like CABCDEFG1234567890.",
+    ga4: "The GA4 measurement ID looks like G-ABC123XYZ.",
+  },
+  enterSecret: "Enter the Measurement Protocol API secret.",
+  enterToken: "Enter the access token.",
+  connectedMessage: "{name} connected",
+  disconnectedMessage: "{name} disconnected",
+};

@@ -1,15 +1,8 @@
 import "server-only";
 
 import { eq, getDb, orgBilling, sql, withSystem, type OrgBilling } from "@zfunnel/db";
-import {
-  FEATURE_LABELS,
-  LIMIT_LABELS,
-  PLANS,
-  TRIAL_DAYS,
-  type FeatureKey,
-  type LimitKey,
-  type Plan,
-} from "@zfunnel/shared";
+import { FEATURE_LABELS, PLANS, TRIAL_DAYS, type FeatureKey, type LimitKey, type Plan } from "@zfunnel/shared";
+import { getT } from "./i18n";
 
 export type BillingState = {
   plan: Plan;
@@ -65,26 +58,23 @@ export async function getUsage(organizationId: string): Promise<Record<LimitKey,
   return r!;
 }
 
-const UPGRADE = "Upgrade in Settings → Billing.";
-
 /**
- * Gate for anything that consumes plan resources. Returns an error message to show,
- * or null when allowed. Published pages, opt-ins and checkouts are never blocked.
+ * Gate for anything that consumes plan resources. Returns an error message to show (in the
+ * user's language), or null when allowed. Published pages, opt-ins and checkouts are never blocked.
  */
 export async function enforce(organizationId: string, key: LimitKey | FeatureKey, adding = 1): Promise<string | null> {
   const state = await getBillingState(organizationId);
-  if (state.status === "expired")
-    return "Your free trial has ended. Choose a plan in Settings → Billing to keep building. Your live funnels keep working.";
+  const t = await getT();
+  if (state.status === "expired") return t("billing.enforce.expired");
+  const plan = t(`billing.planNames.${state.plan.id}`);
   if (key in FEATURE_LABELS) {
     const f = key as FeatureKey;
-    return state.plan.features[f]
-      ? null
-      : `${FEATURE_LABELS[f]} isn't included in the ${state.plan.name} plan. ${UPGRADE}`;
+    return state.plan.features[f] ? null : t("billing.enforce.feature", { feature: t(`billing.features.${f}`), plan });
   }
   const k = key as LimitKey;
   const limit = state.plan.limits[k];
   if (limit === null) return null;
   const used = (await getUsage(organizationId))[k];
   if (used + adding <= limit) return null;
-  return `Your ${state.plan.name} plan includes ${limit.toLocaleString()} ${LIMIT_LABELS[k].toLowerCase()} (you have ${used.toLocaleString()}). ${UPGRADE}`;
+  return t("billing.enforce.limit", { plan, limit, used, label: t(`billing.limitsLower.${k}`) });
 }

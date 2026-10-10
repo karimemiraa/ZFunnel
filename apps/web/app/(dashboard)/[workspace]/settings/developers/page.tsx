@@ -1,15 +1,18 @@
 import { apiKeys, desc, eq, webhookDeliveries, webhookEndpoints } from "@zfunnel/db";
 import { Developers } from "@/components/developers/developers-ui";
 import { requireWorkspace } from "@/lib/context";
+import { getT } from "@/lib/i18n";
 import { inWorkspace } from "@/lib/funnels";
 import { canManage } from "@/lib/workspaces";
 
-export const metadata = { title: "Developers" };
+export async function generateMetadata() {
+  return { title: (await getT())("settings.tabs.developers") };
+}
 
 export default async function DevelopersPage({ params }: { params: Promise<{ workspace: string }> }) {
   const ctx = await requireWorkspace(params);
   if (!canManage(ctx.membership.role))
-    return <p className="text-sm text-muted-foreground">Only owners and admins can manage API keys and webhooks.</p>;
+    return <p className="text-sm text-muted-foreground">{(await getT())("developers.onlyAdmins")}</p>;
   const { keys, hooks } = await inWorkspace(ctx, async (tx) => {
     const keys = await tx.select().from(apiKeys).orderBy(desc(apiKeys.createdAt));
     const endpoints = await tx.select().from(webhookEndpoints).orderBy(desc(webhookEndpoints.createdAt));

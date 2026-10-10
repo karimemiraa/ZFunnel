@@ -1,6 +1,7 @@
 import "server-only";
 
 import { Resolver } from "node:dns/promises";
+import { getTranslator, type T } from "@zfunnel/i18n";
 
 /** Where customers point their domains (shown in the DNS instructions). */
 export const SITES_CNAME_TARGET =
@@ -20,16 +21,17 @@ const swallow = async <T>(p: Promise<T>, fallback: T) => {
   }
 };
 
-/** Checks the TXT ownership record and that the domain actually points at us. */
+/** Checks the TXT ownership record and that the domain actually points at us. `t` localizes the problems. */
 export async function checkDomainDns(
   hostname: string,
   token: string,
   resolver: Lookup = defaultResolver(),
+  t: T = getTranslator("en"),
 ): Promise<DnsCheck> {
   const problems: string[] = [];
   const txt = (await swallow(resolver.resolveTxt(`_zfunnel.${hostname}`), [] as string[][])).map((r) => r.join(""));
   const ownership = txt.includes(token);
-  if (!ownership) problems.push(`TXT record _zfunnel.${hostname} with value ${token} not found yet.`);
+  if (!ownership) problems.push(t("domains.txtMissing", { hostname, token }));
 
   const cnames = (await swallow(resolver.resolveCname(hostname), [] as string[])).map((c) =>
     c.replace(/\.$/, "").toLowerCase(),
@@ -42,8 +44,8 @@ export async function checkDomainDns(
   if (!routing)
     problems.push(
       SITES_IPV4
-        ? `Point ${hostname} to ${SITES_CNAME_TARGET} (CNAME) or ${SITES_IPV4} (A record).`
-        : `Point ${hostname} to ${SITES_CNAME_TARGET} with a CNAME record.`,
+        ? t("domains.pointBoth", { hostname, target: SITES_CNAME_TARGET, ip: SITES_IPV4 })
+        : t("domains.pointCname", { hostname, target: SITES_CNAME_TARGET }),
     );
   return { ownership, routing, problems };
 }

@@ -5,6 +5,7 @@ import { Button } from "@zfunnel/ui/button";
 import { FormMessage } from "@zfunnel/ui/form-message";
 import { Input } from "@zfunnel/ui/input";
 import { Label } from "@zfunnel/ui/label";
+import { useT } from "@zfunnel/i18n/react";
 import { Loader2Icon } from "lucide-react";
 import { useActionState, useState } from "react";
 import type { ActionState } from "@/lib/actions";
@@ -19,6 +20,7 @@ type Props = {
 };
 
 export function WorkspaceForm({ action, rootDomain, submitLabel, askOrganization, organizations }: Props) {
+  const t = useT();
   const [state, formAction, pending] = useActionState(action, null);
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
@@ -29,14 +31,20 @@ export function WorkspaceForm({ action, rootDomain, submitLabel, askOrganization
     <form action={formAction} className="space-y-5">
       {askOrganization && (
         <div className="space-y-2">
-          <Label htmlFor="organization">Business name</Label>
-          <Input id="organization" name="organization" placeholder="Acme Coaching LLC" required minLength={2} />
+          <Label htmlFor="organization">{t("workspace.businessName")}</Label>
+          <Input
+            id="organization"
+            name="organization"
+            placeholder={t("workspace.businessPlaceholder")}
+            required
+            minLength={2}
+          />
           <FormMessage message={errors.organization?.[0]} />
         </div>
       )}
       {organizations && organizations.length > 1 && (
         <div className="space-y-2">
-          <Label htmlFor="organizationId">Organization</Label>
+          <Label htmlFor="organizationId">{t("workspace.organization")}</Label>
           <select
             id="organizationId"
             name="organizationId"
@@ -52,11 +60,11 @@ export function WorkspaceForm({ action, rootDomain, submitLabel, askOrganization
       )}
       {organizations?.length === 1 && <input type="hidden" name="organizationId" value={organizations[0]!.id} />}
       <div className="space-y-2">
-        <Label htmlFor="name">Workspace name</Label>
+        <Label htmlFor="name">{t("workspace.workspaceName")}</Label>
         <Input
           id="name"
           name="name"
-          placeholder="Acme Coaching"
+          placeholder={t("workspace.namePlaceholder")}
           required
           minLength={2}
           value={name}
@@ -65,12 +73,15 @@ export function WorkspaceForm({ action, rootDomain, submitLabel, askOrganization
             if (!slugEdited) setSlug(slugify(e.target.value));
           }}
         />
-        <p className="text-xs text-muted-foreground">One workspace per brand or business. You can add more later.</p>
+        <p className="text-xs text-muted-foreground">{t("workspace.nameHint")}</p>
         <FormMessage message={errors.name?.[0]} />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="slug">Free subdomain</Label>
-        <div className="flex items-center rounded-md border border-input focus-within:ring-[3px] focus-within:ring-ring/50">
+        <Label htmlFor="slug">{t("workspace.freeSubdomain")}</Label>
+        <div
+          dir="ltr"
+          className="flex items-center rounded-md border border-input focus-within:ring-[3px] focus-within:ring-ring/50"
+        >
           <input
             id="slug"
             name="slug"

@@ -1,21 +1,23 @@
 import { z } from "zod";
 import { RESERVED_SLUGS } from "./slug";
 
+// Messages are i18n keys (workspace.validation.*); the app translates them with localizeMessage().
+
 export const slugSchema = z
   .string()
-  .min(3, "At least 3 characters")
-  .max(48, "At most 48 characters")
-  .regex(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/, "Lowercase letters, numbers and dashes only")
-  .refine((s) => !RESERVED_SLUGS.has(s), "This name is reserved");
+  .min(3, "workspace.validation.minThree")
+  .max(48, "workspace.validation.maxLength")
+  .regex(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/, "workspace.validation.slugChars")
+  .refine((s) => !RESERVED_SLUGS.has(s), "workspace.validation.reserved");
 
 export const createWorkspaceSchema = z.object({
-  name: z.string().trim().min(2, "At least 2 characters").max(80),
+  name: z.string().trim().min(2, "workspace.validation.minTwo").max(80),
   slug: slugSchema,
 });
 export type CreateWorkspaceInput = z.infer<typeof createWorkspaceSchema>;
 
 export const createOrganizationSchema = z.object({
-  name: z.string().trim().min(2, "At least 2 characters").max(80),
+  name: z.string().trim().min(2, "workspace.validation.minTwo").max(80),
   slug: slugSchema,
 });
 

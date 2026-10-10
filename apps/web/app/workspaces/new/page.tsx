@@ -7,13 +7,17 @@ import { Logo } from "@/components/logo";
 import { WorkspaceForm } from "@/components/workspace-form";
 import { createWorkspace } from "@/lib/actions";
 import { ROOT_DOMAIN } from "@/lib/env";
+import { getT } from "@/lib/i18n";
 import { requireUser } from "@/lib/session";
 import { canManage, getMemberships } from "@/lib/workspaces";
 
-export const metadata = { title: "New workspace" };
+export async function generateMetadata() {
+  return { title: (await getT())("workspace.newWorkspace") };
+}
 
 export default async function NewWorkspacePage() {
   const user = await requireUser();
+  const t = await getT();
   const manageable = (await getMemberships(user.id)).filter((m) => canManage(m.role));
 
   return (
@@ -23,25 +27,25 @@ export default async function NewWorkspacePage() {
       </Link>
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-xl">New workspace</CardTitle>
-          <CardDescription>Workspaces keep each brand&apos;s funnels, contacts and products separate.</CardDescription>
+          <CardTitle className="text-xl">{t("workspace.newWorkspace")}</CardTitle>
+          <CardDescription>{t("workspace.newIntro")}</CardDescription>
         </CardHeader>
         <CardContent>
           {manageable.length ? (
             <WorkspaceForm
               action={createWorkspace}
               rootDomain={ROOT_DOMAIN}
-              submitLabel="Create workspace"
+              submitLabel={t("workspace.createWorkspace")}
               organizations={manageable.map((m) => ({ id: m.organizationId, name: m.organizationName }))}
             />
           ) : (
             <EmptyState
               icon={<LockIcon />}
-              title="Ask an admin"
-              description="Only owners and admins can add workspaces to an organization."
+              title={t("workspace.askAdmin")}
+              description={t("workspace.askAdminBody")}
               action={
                 <Button asChild variant="outline">
-                  <Link href="/">Back</Link>
+                  <Link href="/">{t("common.back")}</Link>
                 </Button>
               }
             />

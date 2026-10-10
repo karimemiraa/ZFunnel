@@ -56,6 +56,7 @@ export const PLANS: Record<PlanId, Plan> = {
 
 export const PAID_PLANS = [PLANS.starter, PLANS.pro, PLANS.scale];
 
+/** English labels; the dashboard shows the localized `billing.limits.*` / `billing.features.*` keys. */
 export const LIMIT_LABELS: Record<LimitKey, string> = {
   workspaces: "Workspaces",
   funnels: "Funnels",

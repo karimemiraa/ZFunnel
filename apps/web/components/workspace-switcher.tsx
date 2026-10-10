@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@zfunnel/ui/dropdown-menu";
+import { useT } from "@zfunnel/i18n/react";
 import { CheckIcon, ChevronsUpDownIcon, PlusIcon } from "lucide-react";
 import Link from "next/link";
 
@@ -29,10 +30,15 @@ export function WorkspaceSwitcher({
   current: { slug: string; name: string };
   groups: SwitcherGroup[];
 }) {
+  const t = useT();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="h-10 w-full justify-start gap-2 px-2" aria-label="Switch workspace">
+        <Button
+          variant="ghost"
+          className="h-10 w-full justify-start gap-2 px-2"
+          aria-label={t("shell.switchWorkspace")}
+        >
           <Initial name={current.name} />
           <span className="flex-1 truncate text-start">{current.name}</span>
           <ChevronsUpDownIcon className="text-muted-foreground" />
@@ -56,7 +62,7 @@ export function WorkspaceSwitcher({
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link href="/workspaces/new">
-            <PlusIcon /> New workspace
+            <PlusIcon /> {t("shell.newWorkspace")}
           </Link>
         </DropdownMenuItem>
       </DropdownMenuContent>
