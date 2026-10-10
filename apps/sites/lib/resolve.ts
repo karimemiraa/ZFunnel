@@ -1,7 +1,19 @@
 import "server-only";
 
 import type { PageData } from "@zfunnel/blocks";
-import { and, asc, eq, funnels, funnelSteps, getDb, isNull, pageVersions, withSystem, workspaces } from "@zfunnel/db";
+import {
+  and,
+  asc,
+  domains,
+  eq,
+  funnels,
+  funnelSteps,
+  getDb,
+  isNull,
+  pageVersions,
+  withSystem,
+  workspaces,
+} from "@zfunnel/db";
 
 /**
  * Public lookups. The renderer has no user session, so it uses the trusted system
@@ -45,6 +57,29 @@ export function resolveWorkspace(slug: string) {
         .limit(1),
     );
     return (row ?? null) as SiteWorkspace | null;
+  });
+}
+
+/** Workspace for an active custom domain; the domain may pick its own homepage funnel. */
+export function resolveCustomDomain(hostname: string) {
+  return cached(`dom:${hostname}`, async () => {
+    const [row] = await withSystem(getDb(), (tx) =>
+      tx
+        .select({
+          id: workspaces.id,
+          name: workspaces.name,
+          slug: workspaces.slug,
+          homeFunnelId: workspaces.homeFunnelId,
+          domainFunnelId: domains.funnelId,
+        })
+        .from(domains)
+        .innerJoin(workspaces, eq(workspaces.id, domains.workspaceId))
+        .where(and(eq(domains.hostname, hostname), eq(domains.status, "active")))
+        .limit(1),
+    );
+    if (!row) return null;
+    const { domainFunnelId, ...ws } = row;
+    return { ...ws, homeFunnelId: domainFunnelId ?? ws.homeFunnelId } as SiteWorkspace;
   });
 }
 
@@ -105,32 +140,33 @@ export function resolvePage(ws: SiteWorkspace, segments: string[]): Promise<Reso
   );
 }
 
-/** For API routes: the step must be published and belong to the workspace serving this host. */
+/** For API routes: the step must belong to the workspace serving this host. */
 export async function resolveStepForWorkspace(workspaceId: string, stepId: string) {
   if (!/^[0-9a-f-]{36}$/i.test(stepId)) return null;
-  const [row] = await withSystem(getDb(), (tx) =>
-    tx
+  return withSystem(getDb(), async (tx) => {
+    const [row] = await tx
       .select({
         id: funnelSteps.id,
         funnelId: funnelSteps.funnelId,
+        type: funnelSteps.type,
         nextStepId: funnelSteps.nextStepId,
+        declineStepId: funnelSteps.declineStepId,
         funnelSlug: funnels.slug,
+        published: funnelSteps.publishedVersionId,
       })
       .from(funnelSteps)
       .innerJoin(funnels, eq(funnels.id, funnelSteps.funnelId))
       .where(and(eq(funnelSteps.id, stepId), eq(funnelSteps.workspaceId, workspaceId), isNull(funnels.archivedAt)))
-      .limit(1),
-  );
-  if (!row) return null;
-  let nextPath: string | null = null;
-  if (row.nextStepId) {
-    const [next] = await withSystem(getDb(), (tx) =>
-      tx
+      .limit(1);
+    if (!row?.published) return null;
+    const pathOf = async (id: string | null) => {
+      if (!id) return null;
+      const [s] = await tx
         .select({ slug: funnelSteps.slug, published: funnelSteps.publishedVersionId })
         .from(funnelSteps)
-        .where(eq(funnelSteps.id, row.nextStepId!)),
-    );
-    if (next?.published) nextPath = `/${row.funnelSlug}/${next.slug}`;
-  }
-  return { ...row, nextPath };
+        .where(eq(funnelSteps.id, id));
+      return s?.published ? `/${row.funnelSlug}/${s.slug}` : null;
+    };
+    return { ...row, nextPath: await pathOf(row.nextStepId), declinePath: await pathOf(row.declineStepId) };
+  });
 }

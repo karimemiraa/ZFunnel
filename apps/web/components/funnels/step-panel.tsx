@@ -49,12 +49,14 @@ export function StepPanel({
   workspaceSlug,
   liveUrl,
   base,
+  offersSlot,
 }: {
   step: Step;
   others: { id: string; name: string }[];
   workspaceSlug: string;
   liveUrl: string;
   base: string;
+  offersSlot?: React.ReactNode;
 }) {
   const router = useRouter();
   const [busy, start] = useTransition();
@@ -184,6 +186,8 @@ export function StepPanel({
           </span>
         </span>
       </Link>
+
+      {offersSlot}
 
       <form
         action={action}

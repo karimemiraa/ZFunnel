@@ -121,6 +121,19 @@ describe.skipIf(!url)("row-level security", () => {
     ).rejects.toThrow();
   });
 
+  it("enforces RLS on every table that has a workspace_id column", async () => {
+    const rows = (await db.execute(sql`
+      select c.relname as table, c.relrowsecurity as enabled, c.relforcerowsecurity as forced,
+             (select count(*) from pg_policy p where p.polrelid = c.oid)::int as policies
+      from pg_class c
+      join pg_namespace n on n.oid = c.relnamespace and n.nspname = 'public'
+      join pg_attribute a on a.attrelid = c.oid and a.attname = 'workspace_id' and not a.attisdropped
+      where c.relkind = 'r'`)) as unknown as { table: string; enabled: boolean; forced: boolean; policies: number }[];
+    expect(rows.length).toBeGreaterThanOrEqual(15);
+    const unprotected = rows.filter((r) => !r.enabled || !r.forced || r.policies === 0).map((r) => r.table);
+    expect(unprotected).toEqual([]);
+  });
+
   it("lets trusted system code see across tenants", async () => {
     const rows = await withSystem(db, (tx) => tx.select().from(workspaces));
     expect(rows).toHaveLength(2);

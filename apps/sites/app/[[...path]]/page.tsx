@@ -1,5 +1,6 @@
 import { Render } from "@puckeditor/core/rsc";
 import { config, type BlockRuntime } from "@zfunnel/blocks";
+import { getPaymentSetup, getStepOffers, system, toRuntimeOffers } from "@zfunnel/payments";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { resolvePage } from "@/lib/resolve";
@@ -47,8 +48,22 @@ export default async function SitePage(props: Params) {
     notFound();
   }
 
+  const selling = ["checkout", "upsell", "downsell", "sales", "page"].includes(r.page.step.type);
+  const commerce = selling
+    ? await system(async (tx) => {
+        const [offers, setup] = await Promise.all([getStepOffers(tx, r.page!.step.id), getPaymentSetup(tx, r.ws.id)]);
+        return { offers: toRuntimeOffers(offers), setup };
+      })
+    : null;
+
   const runtime: BlockRuntime = {
     mode: "live",
+    offers: commerce?.offers,
+    payments: commerce?.setup
+      ? commerce.setup.provider === "stripe"
+        ? { provider: "stripe", publishableKey: commerce.setup.publishableKey, accountId: commerce.setup.accountId }
+        : { provider: "test" }
+      : null,
     nextUrl: r.page.nextPath ?? undefined,
     declineUrl: r.page.declinePath ?? undefined,
     stepId: r.page.step.id,

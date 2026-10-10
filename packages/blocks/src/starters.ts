@@ -101,17 +101,7 @@ export function starterPage(
           section({ background: "subtle", padding: "lg" }, [
             block("ProgressBar", { percent: 90, label: "Almost done: complete your order" }),
             columns({ ratio: "wide-left", valign: "top", reverseOnMobile: true }, [
-              [
-                block("Heading", { text: "Complete your order", size: "md", align: "left" }),
-                text(
-                  "<p>The secure checkout form appears here once you add an <strong>Order form</strong> (Phase 1.7).</p>",
-                  {
-                    align: "left",
-                    size: "md",
-                    maxWidth: "full",
-                  },
-                ),
-              ],
+              [block("Heading", { text: "Complete your order", size: "md", align: "left" }), block("OrderForm", {})],
               [
                 block("Heading", { text: "Here's what you get", size: "sm", align: "left" }),
                 block("Checklist", {}),
@@ -147,12 +137,8 @@ export function starterPage(
             }),
             block("Video", {}),
             block("Checklist", {}),
-            block("Button", {
-              label: "Yes, add this to my order",
-              sublabel: "One click: no need to re-enter your card",
-              size: "xl",
-            }),
             block("Countdown", { minutes: 10 }),
+            block("UpsellOffer", {}),
           ]),
         ],
         theme,

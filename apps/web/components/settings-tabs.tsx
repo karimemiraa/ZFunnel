@@ -8,6 +8,8 @@ export function SettingsTabs({ base }: { base: string }) {
   const pathname = usePathname();
   const tabs = [
     { href: base, label: "General" },
+    { href: `${base}/payments`, label: "Payments" },
+    { href: `${base}/domains`, label: "Domains" },
     { href: `${base}/team`, label: "Team" },
     { href: `${base}/activity`, label: "Activity" },
   ];

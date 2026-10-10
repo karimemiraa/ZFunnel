@@ -5,7 +5,14 @@ import type { NextConfig } from "next";
 loadEnvConfig(`${process.cwd()}/../..`, process.env.NODE_ENV !== "production", undefined, true);
 
 const config: NextConfig = {
-  transpilePackages: ["@zfunnel/ui", "@zfunnel/shared", "@zfunnel/auth", "@zfunnel/db", "@zfunnel/blocks"],
+  transpilePackages: [
+    "@zfunnel/ui",
+    "@zfunnel/shared",
+    "@zfunnel/auth",
+    "@zfunnel/db",
+    "@zfunnel/blocks",
+    "@zfunnel/payments",
+  ],
   poweredByHeader: false,
 };
 

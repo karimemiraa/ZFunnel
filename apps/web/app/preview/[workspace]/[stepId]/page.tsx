@@ -1,6 +1,7 @@
 import { Render } from "@puckeditor/core/rsc";
 import { config, type BlockRuntime } from "@zfunnel/blocks";
 import { notFound } from "next/navigation";
+import { getEditorOffers } from "@/lib/commerce";
 import { getStepWithDraft } from "@/lib/funnels";
 import { requireUser } from "@/lib/session";
 import { getWorkspaceForUser } from "@/lib/workspaces";
@@ -27,6 +28,8 @@ export default async function PreviewPage({
     nextUrl: link(row.step.nextStepId),
     declineUrl: link(row.step.declineStepId),
     stepId,
+    offers: await getEditorOffers(ctx, stepId),
+    payments: { provider: "test" },
   };
 
   return (

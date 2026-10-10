@@ -47,6 +47,7 @@ import {
   type TestimonialsProps,
 } from "./components/marketing";
 import { Countdown, OptInForm, type CountdownProps, type OptInFormProps } from "./components/interactive";
+import { OrderForm, UpsellOffer, type OrderFormProps, type UpsellOfferProps } from "./components/checkout";
 import { DEFAULT_THEME, FONTS, RADII, THEME_PRESETS, themeVars, type PageTheme } from "./theme";
 
 export type Components = {
@@ -72,6 +73,8 @@ export type Components = {
   Countdown: CountdownProps;
   OptInForm: OptInFormProps;
   CustomHtml: CustomHtmlProps;
+  OrderForm: OrderFormProps;
+  UpsellOffer: UpsellOfferProps;
 };
 
 export type RootProps = PageTheme & {
@@ -92,11 +95,12 @@ const radiusOptions = Object.keys(RADII).map((value) => ({
 export const config: Config<{
   components: Components;
   root: RootProps;
-  categories: ["layout", "content", "conversion", "proof", "advanced"];
+  categories: ["layout", "content", "checkout", "conversion", "proof", "advanced"];
 }> = {
   categories: {
     layout: { title: "Layout", components: ["Section", "Columns", "Spacer", "Divider"] },
     content: { title: "Content", components: ["Heading", "Text", "Badge", "Button", "Image", "Video", "Checklist"] },
+    checkout: { title: "Checkout", components: ["OrderForm", "UpsellOffer"] },
     conversion: { title: "Conversion", components: ["OptInForm", "Countdown", "Pricing", "Guarantee", "ProgressBar"] },
     proof: { title: "Social proof", components: ["Testimonials", "Stats", "LogoBar", "Features", "Faq"] },
     advanced: { title: "Advanced", components: ["CustomHtml"], defaultExpanded: false },
@@ -166,6 +170,8 @@ export const config: Config<{
     Countdown,
     OptInForm,
     CustomHtml,
+    OrderForm,
+    UpsellOffer,
   },
 };
 

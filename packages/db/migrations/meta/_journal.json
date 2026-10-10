@@ -43,6 +43,41 @@
       "when": 1791630947138,
       "tag": "0005_contacts_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791631566405,
+      "tag": "0006_commerce",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791631567411,
+      "tag": "0007_commerce_rls",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791632226624,
+      "tag": "0008_domains",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791632227612,
+      "tag": "0009_domains_rls",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791632365697,
+      "tag": "0010_payment_refunds",
+      "breakpoints": true
     }
   ]
 }

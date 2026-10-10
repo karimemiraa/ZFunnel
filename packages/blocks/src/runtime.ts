@@ -22,13 +22,60 @@ export type RuntimeOffer = {
   id: string;
   role: "main" | "bump" | "upsell" | "downsell";
   name: string;
+  label?: string | null;
   description?: string | null;
+  type: "one_time" | "recurring" | "payment_plan";
   amount: number;
   currency: string;
   interval?: "month" | "year" | null;
+  trialDays?: number | null;
+  installments?: number | null;
   /** Bump copy shown in the checkbox box. */
   headline?: string | null;
 };
+
+/** "$47", "$29/month", "3 × $99/month", "7-day free trial, then $29/month". */
+export function describePrice(
+  o: Pick<RuntimeOffer, "amount" | "currency" | "type" | "interval" | "trialDays" | "installments">,
+) {
+  const money = formatMoney(o.amount, o.currency);
+  if (o.type === "one_time") return money;
+  const per = `${money}/${o.interval ?? "month"}`;
+  const base = o.type === "payment_plan" && o.installments ? `${o.installments} × ${per}` : per;
+  return o.trialDays ? `${o.trialDays}-day free trial, then ${base}` : base;
+}
+
+/** Placeholder offers so checkout blocks look real in the editor before products are attached. */
+export const SAMPLE_OFFERS: RuntimeOffer[] = [
+  {
+    id: "sample-main",
+    role: "main",
+    name: "Complete Course",
+    description: "Lifetime access",
+    type: "one_time",
+    amount: 9700,
+    currency: "usd",
+  },
+  {
+    id: "sample-bump",
+    role: "bump",
+    name: "Done-for-you templates",
+    headline: "Yes! Add the templates",
+    description: "Save 20+ hours with ready-made swipe files.",
+    type: "one_time",
+    amount: 2700,
+    currency: "usd",
+  },
+  {
+    id: "sample-upsell",
+    role: "upsell",
+    name: "VIP Coaching",
+    description: "4 private calls",
+    type: "one_time",
+    amount: 19700,
+    currency: "usd",
+  },
+];
 
 export function getRuntime(metadata: unknown): BlockRuntime {
   const m = (metadata ?? {}) as Partial<BlockRuntime>;

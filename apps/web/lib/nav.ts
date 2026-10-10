@@ -35,14 +35,12 @@ export const NAV_MODULES: NavModule[] = [
     segment: "products",
     label: "Products",
     icon: PackageIcon,
-    phase: 1,
     description: "Sell one-time offers, subscriptions and payment plans with order bumps and one-click upsells.",
   },
   {
     segment: "orders",
     label: "Orders",
     icon: ReceiptIcon,
-    phase: 1,
     description: "Track purchases, refunds and subscriptions.",
   },
   {
@@ -56,7 +54,6 @@ export const NAV_MODULES: NavModule[] = [
     segment: "contacts",
     label: "Contacts",
     icon: ContactIcon,
-    phase: 2,
     description: "Your CRM: contacts, tags, segments and pipelines.",
   },
   {

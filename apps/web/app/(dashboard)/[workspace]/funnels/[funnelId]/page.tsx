@@ -6,7 +6,10 @@ import { AddStepDialog } from "@/components/funnels/add-step-dialog";
 import { FunnelActionsBar } from "@/components/funnels/funnel-actions-bar";
 import { FunnelMap } from "@/components/funnels/funnel-map";
 import { StepList } from "@/components/funnels/step-list";
+import { StepOffers } from "@/components/funnels/step-offers";
 import { StepPanel } from "@/components/funnels/step-panel";
+import { formatMoney } from "@zfunnel/payments/money";
+import { getStepOfferList, listProducts } from "@/lib/commerce";
 import { requireWorkspace } from "@/lib/context";
 import { getFunnel, type StepSummary } from "@/lib/funnels";
 import { siteOrigin, stepUrl } from "@/lib/urls";
@@ -40,6 +43,16 @@ export default async function FunnelPage({
   const base = `/${ws}/funnels/${funnel.id}`;
   const selected = steps.find((s) => s.id === stepParam) ?? steps[0];
   const isMap = view === "map";
+  const sells = selected && ["checkout", "upsell", "downsell"].includes(selected.type);
+  const [offers, productList] = sells
+    ? await Promise.all([getStepOfferList(ctx, selected.id), listProducts(ctx)])
+    : [[], []];
+  const productOptions = productList.flatMap((p) => {
+    const price = p.prices.at(-1);
+    if (!price) return [];
+    const suffix = price.type === "one_time" ? "" : `/${price.interval}`;
+    return [{ priceId: price.id, label: `${p.name}: ${formatMoney(price.amount, price.currency)}${suffix}` }];
+  });
 
   return (
     <>
@@ -125,6 +138,17 @@ export default async function FunnelPage({
                 liveUrl={stepUrl(ws, funnel.slug, selected.slug)}
                 step={{ ...selected, status: status(selected) }}
                 others={steps.filter((s) => s.id !== selected.id).map((s) => ({ id: s.id, name: s.name }))}
+                offersSlot={
+                  sells ? (
+                    <StepOffers
+                      workspaceSlug={ws}
+                      stepId={selected.id}
+                      stepType={selected.type}
+                      offers={offers}
+                      products={productOptions}
+                    />
+                  ) : null
+                }
               />
             ) : (
               <p className="text-muted-foreground">This funnel has no steps yet. Add one to get started.</p>

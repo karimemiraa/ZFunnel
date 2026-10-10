@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { PageEditor } from "@/components/editor/page-editor";
+import { getEditorOffers } from "@/lib/commerce";
 import { getFunnel, getStepWithDraft } from "@/lib/funnels";
 import { requireUser } from "@/lib/session";
 import { getWorkspaceForUser } from "@/lib/workspaces";
@@ -12,7 +13,7 @@ export default async function EditorPage({ params }: { params: Promise<{ workspa
   if (!ctx) notFound();
   const row = await getStepWithDraft(ctx, stepId);
   if (!row) notFound();
-  const funnel = await getFunnel(ctx, row.funnel.id);
+  const [funnel, offers] = await Promise.all([getFunnel(ctx, row.funnel.id), getEditorOffers(ctx, stepId)]);
 
   return (
     <PageEditor
@@ -23,6 +24,7 @@ export default async function EditorPage({ params }: { params: Promise<{ workspa
       steps={(funnel?.steps ?? []).map((s) => ({ id: s.id, name: s.name, type: s.type }))}
       initialData={row.step.draft as never}
       savedAt={row.step.draftUpdatedAt.toISOString()}
+      offers={offers}
     />
   );
 }

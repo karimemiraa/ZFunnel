@@ -2,7 +2,7 @@
 
 import { createUsePuck, Puck, type Data } from "@puckeditor/core";
 import "@puckeditor/core/puck.css";
-import { config, type BlockRuntime } from "@zfunnel/blocks";
+import { config, type BlockRuntime, type RuntimeOffer } from "@zfunnel/blocks";
 import { Button } from "@zfunnel/ui/button";
 import {
   DropdownMenu,
@@ -46,10 +46,10 @@ type Props = {
   steps: { id: string; name: string; type: StepType }[];
   initialData: Data;
   savedAt: string;
+  offers: RuntimeOffer[];
 };
 
 const AUTOSAVE_MS = 1200;
-const metadata: BlockRuntime = { mode: "editor" };
 
 function SaveIndicator({ state }: { state: SaveState }) {
   const map = {
@@ -215,6 +215,10 @@ export function PageEditor(props: Props) {
     };
   }, [flush]);
 
+  const metadata = useMemo<BlockRuntime>(
+    () => ({ mode: "editor", offers: props.offers, payments: { provider: "test" } }),
+    [props.offers],
+  );
   const overrides = useMemo(
     () => ({
       header: () => <EditorHeader props={props} saveState={saveState} onPublish={onPublish} publishing={publishing} />,
