@@ -4,6 +4,7 @@ import { Button } from "@zfunnel/ui/button";
 import { Input } from "@zfunnel/ui/input";
 import { Label } from "@zfunnel/ui/label";
 import { toast } from "@zfunnel/ui/toaster";
+import { useT } from "@zfunnel/i18n/react";
 import { Loader2Icon, SparklesIcon } from "lucide-react";
 import Link from "next/link";
 import { useState, useTransition } from "react";
@@ -22,36 +23,36 @@ export function BrandingForm({
   canWhiteLabel: boolean;
   disabled: boolean;
 }) {
+  const t = useT();
   const [v, setV] = useState(initial);
   const [busy, start] = useTransition();
   const save = () =>
     start(async () => {
       const r = await saveBranding(slug, v);
-      if (r.ok) toast.success("Branding saved");
+      if (r.ok) toast.success(t("workspace.branding.saved"));
       else toast.error(r.error);
     });
   return (
     <div className="grid gap-6 md:grid-cols-[1fr_260px]">
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="brand-logo">Logo URL</Label>
+          <Label htmlFor="brand-logo">{t("workspace.branding.logoUrl")}</Label>
           <Input
             id="brand-logo"
             placeholder="https://…/logo.png"
+            dir="ltr"
             value={v.logoUrl}
             disabled={disabled}
             onChange={(e) => setV({ ...v, logoUrl: e.target.value })}
           />
-          <p className="text-xs text-muted-foreground">
-            Shown instead of your name on the customer center, courses, store, blog and in emails.
-          </p>
+          <p className="text-xs text-muted-foreground">{t("workspace.branding.logoHint")}</p>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="brand-color">Brand color</Label>
+          <Label htmlFor="brand-color">{t("workspace.branding.brandColor")}</Label>
           <div className="flex max-w-xs items-center gap-2">
             <input
               type="color"
-              aria-label="Pick a brand color"
+              aria-label={t("workspace.branding.pickBrandColor")}
               value={v.brandColor}
               disabled={disabled}
               onChange={(e) => setV({ ...v, brandColor: e.target.value })}
@@ -59,6 +60,7 @@ export function BrandingForm({
             />
             <Input
               id="brand-color"
+              dir="ltr"
               value={v.brandColor}
               disabled={disabled}
               onChange={(e) => setV({ ...v, brandColor: e.target.value })}
@@ -74,15 +76,15 @@ export function BrandingForm({
             onChange={(e) => setV({ ...v, hideBadge: e.target.checked })}
           />
           <span>
-            <span className="font-medium">Remove “Powered by ZFunnel”</span>
+            <span className="font-medium">{t("workspace.branding.removeBadge")}</span>
             <span className="block text-muted-foreground">
               {canWhiteLabel ? (
-                "Hide the small badge on your public pages."
+                t("workspace.branding.removeBadgeHint")
               ) : (
                 <>
-                  Available on Pro and Scale.{" "}
+                  {t("workspace.branding.availableOn")}{" "}
                   <Link href={`/${slug}/settings/billing`} className="font-medium text-primary hover:underline">
-                    <SparklesIcon className="inline size-3.5" /> Upgrade
+                    <SparklesIcon className="inline size-3.5" /> {t("workspace.branding.upgrade")}
                   </Link>
                 </>
               )}
@@ -90,11 +92,13 @@ export function BrandingForm({
           </span>
         </label>
         <Button onClick={save} disabled={busy || disabled}>
-          {busy && <Loader2Icon className="animate-spin" />} Save branding
+          {busy && <Loader2Icon className="animate-spin" />} {t("workspace.branding.save")}
         </Button>
       </div>
       <div className="space-y-2">
-        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Preview</p>
+        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          {t("workspace.branding.preview")}
+        </p>
         <div className="overflow-hidden rounded-xl border bg-white text-zinc-900 shadow-sm">
           <div className="flex h-12 items-center border-b px-4 text-sm font-semibold">
             {/^https:\/\/\S+$/.test(v.logoUrl) ? (
@@ -111,7 +115,7 @@ export function BrandingForm({
               className="inline-block rounded-lg px-3 py-1.5 text-xs font-semibold text-white"
               style={{ background: /^#[0-9a-f]{6}$/i.test(v.brandColor) ? v.brandColor : "#4f46e5" }}
             >
-              Sign in
+              {t("workspace.branding.previewButton")}
             </span>
           </div>
         </div>

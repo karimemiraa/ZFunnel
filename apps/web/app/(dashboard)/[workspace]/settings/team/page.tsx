@@ -1,8 +1,11 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@zfunnel/ui/card";
 import { asc, eq, getDb, schema } from "@zfunnel/db";
 import { requireWorkspace } from "@/lib/context";
+import { getT } from "@/lib/i18n";
 
-export const metadata = { title: "Team" };
+export async function generateMetadata() {
+  return { title: (await getT())("settings.tabs.team") };
+}
 
 export default async function TeamPage({ params }: { params: Promise<{ workspace: string }> }) {
   const { membership } = await requireWorkspace(params);
@@ -12,14 +15,13 @@ export default async function TeamPage({ params }: { params: Promise<{ workspace
     .innerJoin(schema.user, eq(schema.member.userId, schema.user.id))
     .where(eq(schema.member.organizationId, membership.organizationId))
     .orderBy(asc(schema.user.name));
+  const t = await getT();
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Team members</CardTitle>
-        <CardDescription>
-          Everyone in {membership.organizationName}. Email invitations arrive with email sending in Phase 2.
-        </CardDescription>
+        <CardTitle>{t("team.members")}</CardTitle>
+        <CardDescription>{t("team.description", { organization: membership.organizationName })}</CardDescription>
       </CardHeader>
       <CardContent>
         <ul className="divide-y">
@@ -27,9 +29,13 @@ export default async function TeamPage({ params }: { params: Promise<{ workspace
             <li key={m.id} className="flex items-center justify-between gap-4 py-3">
               <div className="min-w-0">
                 <div className="truncate text-sm font-medium">{m.name}</div>
-                <div className="truncate text-xs text-muted-foreground">{m.email}</div>
+                <div dir="ltr" className="truncate text-start text-xs text-muted-foreground">
+                  {m.email}
+                </div>
               </div>
-              <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium capitalize">{m.role}</span>
+              <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium capitalize">
+                {m.role === "owner" || m.role === "admin" || m.role === "member" ? t(`team.roles.${m.role}`) : m.role}
+              </span>
             </li>
           ))}
         </ul>

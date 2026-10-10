@@ -1,6 +1,9 @@
 import { AuthForm } from "@/components/auth-form";
+import { getT } from "@/lib/i18n";
 
-export const metadata = { title: "Sign in" };
+export async function generateMetadata() {
+  return { title: (await getT())("auth.signInTitle") };
+}
 
 export default function SignInPage() {
   return <AuthForm mode="sign-in" />;

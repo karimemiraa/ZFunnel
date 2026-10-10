@@ -12,6 +12,7 @@ import {
 import { PLANS, type PlanId } from "@zfunnel/shared";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getT } from "./i18n";
 import { requireUser } from "./session";
 import { canManage, getWorkspaceForUser, recordAudit } from "./workspaces";
 
@@ -21,21 +22,22 @@ const appUrl = () => (process.env.BETTER_AUTH_URL ?? "http://localhost:3000").re
 async function ownerCtx(workspaceSlug: string) {
   const user = await requireUser();
   const ctx = await getWorkspaceForUser(user.id, workspaceSlug);
-  if (!ctx) throw new Error("Workspace not found");
-  return { user, ctx, allowed: canManage(ctx.membership.role) };
+  const t = await getT();
+  if (!ctx) throw new Error(t("billing.errors.workspaceNotFound"));
+  return { user, ctx, t, allowed: canManage(ctx.membership.role) };
 }
 
 /** Starts Stripe Checkout for a plan (or, in test mode without Stripe, activates it directly). */
 export async function choosePlan(workspaceSlug: string, planId: PlanId): Promise<Result> {
-  const { user, ctx, allowed } = await ownerCtx(workspaceSlug);
-  if (!allowed) return { ok: false, error: "Only owners and admins can change the plan." };
+  const { user, ctx, t, allowed } = await ownerCtx(workspaceSlug);
+  if (!allowed) return { ok: false, error: t("billing.errors.onlyAdminsPlan") };
   const plan = PLANS[planId];
-  if (!plan || plan.id === "trial") return { ok: false, error: "Unknown plan" };
+  if (!plan || plan.id === "trial") return { ok: false, error: t("billing.errors.unknownPlan") };
   const orgId = ctx.membership.organizationId;
   const back = `${appUrl()}/${workspaceSlug}/settings/billing`;
 
   if (!stripeConfigured()) {
-    if (!testModeEnabled()) return { ok: false, error: "Billing isn't set up on this server yet (Stripe keys)." };
+    if (!testModeEnabled()) return { ok: false, error: t("billing.errors.notSetUp") };
     await withOrganization(getDb(), orgId, (tx) =>
       tx
         .insert(orgBilling)
@@ -62,7 +64,7 @@ export async function choosePlan(workspaceSlug: string, planId: PlanId): Promise
     existing.stripeSubscriptionId &&
     (existing.status === "active" || existing.status === "past_due")
   )
-    return { ok: false, error: "Use “Manage billing” to switch plans on an active subscription." };
+    return { ok: false, error: t("billing.errors.useManage") };
   const customerId =
     existing?.stripeCustomerId ??
     (await createPlatformCustomer({ email: user.email, name: ctx.membership.organizationName, organizationId: orgId }));
@@ -96,12 +98,12 @@ export async function choosePlan(workspaceSlug: string, planId: PlanId): Promise
 }
 
 export async function openBillingPortal(workspaceSlug: string): Promise<Result> {
-  const { ctx, allowed } = await ownerCtx(workspaceSlug);
-  if (!allowed) return { ok: false, error: "Only owners and admins can manage billing." };
+  const { ctx, t, allowed } = await ownerCtx(workspaceSlug);
+  if (!allowed) return { ok: false, error: t("billing.errors.onlyAdminsBilling") };
   const orgId = ctx.membership.organizationId;
   const [row] = await withOrganization(getDb(), orgId, (tx) =>
     tx.select().from(orgBilling).where(eq(orgBilling.organizationId, orgId)),
   );
-  if (!row?.stripeCustomerId || !stripeConfigured()) return { ok: false, error: "There's no billing account yet." };
+  if (!row?.stripeCustomerId || !stripeConfigured()) return { ok: false, error: t("billing.errors.noAccount") };
   redirect(await createBillingPortal(row.stripeCustomerId, `${appUrl()}/${workspaceSlug}/settings/billing`));
 }

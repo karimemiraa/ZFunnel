@@ -8,6 +8,7 @@ import { UserMenu } from "@/components/user-menu";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
 import { getBillingState } from "@/lib/billing";
 import { requireWorkspace } from "@/lib/context";
+import { getT } from "@/lib/i18n";
 import { listUserWorkspaces } from "@/lib/workspaces";
 
 export default async function WorkspaceLayout({
@@ -19,6 +20,7 @@ export default async function WorkspaceLayout({
 }) {
   const { user, workspace, membership } = await requireWorkspace(params);
   const billing = await getBillingState(membership.organizationId);
+  const t = await getT();
   const groups = (await listUserWorkspaces(user.id)).map((g) => ({
     organizationName: g.membership.organizationName,
     workspaces: g.workspaces.map((w) => ({ slug: w.slug, name: w.name })),
@@ -53,12 +55,12 @@ export default async function WorkspaceLayout({
             }
           >
             {billing.status === "expired"
-              ? "Your free trial has ended. Your live funnels keep working, but you can't create or send anything new."
+              ? t("billing.banner.trialEnded")
               : billing.status === "past_due"
-                ? "Your last payment failed. Update your card to keep your account active."
-                : `Your free trial ends in ${billing.daysLeft} ${billing.daysLeft === 1 ? "day" : "days"}.`}{" "}
+                ? t("billing.banner.pastDue")
+                : t("billing.banner.trialEndsIn", { count: billing.daysLeft ?? 0 })}{" "}
             <Link href={`/${workspace.slug}/settings/billing`} className="font-semibold underline underline-offset-2">
-              {billing.status === "past_due" ? "Update payment" : "Choose a plan"}
+              {billing.status === "past_due" ? t("billing.banner.updatePayment") : t("billing.banner.choosePlan")}
             </Link>
           </div>
         )}

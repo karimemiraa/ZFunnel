@@ -4,13 +4,17 @@ import { Logo } from "@/components/logo";
 import { WorkspaceForm } from "@/components/workspace-form";
 import { createFirstWorkspace } from "@/lib/actions";
 import { ROOT_DOMAIN } from "@/lib/env";
+import { getT } from "@/lib/i18n";
 import { requireUser } from "@/lib/session";
 import { getMemberships } from "@/lib/workspaces";
 
-export const metadata = { title: "Set up your workspace" };
+export async function generateMetadata() {
+  return { title: (await getT())("workspace.onboardingTitle") };
+}
 
 export default async function OnboardingPage() {
   const user = await requireUser();
+  const t = await getT();
   if ((await getMemberships(user.id)).length > 0) redirect("/workspaces/new");
 
   return (
@@ -18,14 +22,14 @@ export default async function OnboardingPage() {
       <Logo className="text-xl" />
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-xl">Welcome, {user.name.split(" ")[0]}!</CardTitle>
-          <CardDescription>Let&apos;s set up your first workspace. This takes 30 seconds.</CardDescription>
+          <CardTitle className="text-xl">{t("workspace.welcome", { name: user.name.split(" ")[0] ?? "" })}</CardTitle>
+          <CardDescription>{t("workspace.onboardingIntro")}</CardDescription>
         </CardHeader>
         <CardContent>
           <WorkspaceForm
             action={createFirstWorkspace}
             rootDomain={ROOT_DOMAIN}
-            submitLabel="Create workspace"
+            submitLabel={t("workspace.createWorkspace")}
             askOrganization
           />
         </CardContent>
