@@ -3,6 +3,8 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createDb, type Db } from "./client";
 import { organization } from "./schema/auth";
+import { contacts } from "./schema/contacts";
+import { funnels, funnelSteps, pageVersions } from "./schema/funnels";
 import { auditLogs, workspaces } from "./schema/tenancy";
 import { withOrganization, withSystem, withWorkspace } from "./tenant";
 
@@ -95,6 +97,28 @@ describe.skipIf(!url)("row-level security", () => {
     await withOrganization(db, orgA, (tx) => tx.delete(workspaces).where(eq(workspaces.id, wsB)));
     const [b] = await withOrganization(db, orgB, (tx) => tx.select().from(workspaces));
     expect(b?.name).toBe("B1");
+  });
+
+  it("isolates every workspace-scoped table", async () => {
+    const page = { root: {}, content: [] };
+    const ctxB = { organizationId: orgB, workspaceId: wsB };
+    await withWorkspace(db, ctxB, async (tx) => {
+      const [f] = await tx.insert(funnels).values({ workspaceId: wsB, name: "F", slug: "f" }).returning();
+      const [s] = await tx
+        .insert(funnelSteps)
+        .values({ workspaceId: wsB, funnelId: f!.id, name: "Opt-in", type: "optin", slug: "optin", draft: page })
+        .returning();
+      await tx.insert(pageVersions).values({ workspaceId: wsB, stepId: s!.id, data: page });
+      await tx.insert(contacts).values({ workspaceId: wsB, email: "lead@example.com" });
+    });
+    const ctxA = { organizationId: orgA, workspaceId: wsA };
+    for (const table of [funnels, funnelSteps, pageVersions, contacts]) {
+      expect(await withWorkspace(db, ctxA, (tx) => tx.select().from(table))).toHaveLength(0);
+      expect(await withWorkspace(db, ctxB, (tx) => tx.select().from(table))).toHaveLength(1);
+    }
+    await expect(
+      withWorkspace(db, ctxA, (tx) => tx.insert(funnels).values({ workspaceId: wsB, name: "x", slug: "x" })),
+    ).rejects.toThrow();
   });
 
   it("lets trusted system code see across tenants", async () => {

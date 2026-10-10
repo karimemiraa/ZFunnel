@@ -1,4 +1,5 @@
 import { ThemeToggle } from "@zfunnel/ui/theme";
+import { Toaster } from "@zfunnel/ui/toaster";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { MobileNav } from "@/components/mobile-nav";
@@ -39,7 +40,8 @@ export default async function WorkspaceLayout({
           <ThemeToggle />
           <UserMenu name={user.name} email={user.email} />
         </header>
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 lg:px-8">{children}</main>
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 lg:px-8">{children}</main>
+        <Toaster />
       </div>
     </div>
   );

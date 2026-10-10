@@ -11,12 +11,16 @@
     "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@puckeditor/core": "0.23.0",
+    "@xyflow/react": "12.12.0",
     "@zfunnel/auth": "workspace:*",
+    "@zfunnel/blocks": "workspace:*",
     "@zfunnel/db": "workspace:*",
     "@zfunnel/shared": "workspace:*",
     "@zfunnel/ui": "workspace:*",
     "lucide-react": "1.48.0",
     "next": "16.3.6",
+    "next-themes": "0.4.6",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "server-only": "0.0.1",

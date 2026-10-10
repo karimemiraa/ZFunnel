@@ -15,6 +15,34 @@
       "when": 1791628539811,
       "tag": "0001_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791630341578,
+      "tag": "0002_funnels",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791630354209,
+      "tag": "0003_funnels_rls",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791630946097,
+      "tag": "0004_contacts",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791630947138,
+      "tag": "0005_contacts_rls",
+      "breakpoints": true
     }
   ]
 }

@@ -81,6 +81,7 @@ Format: **ID — Title** · Status (Proposed / Accepted / Superseded) · Date. S
 **Context.** The owner hosts on an Oracle Cloud VPS that already runs other apps. Those apps must not be affected.
 
 **Decision.**
+
 - Everything runs in its own Docker Compose project, `zfunnel`, on its own network. Containers and volumes are prefixed so they can't collide with anything else on the server.
 - Inside, there is a Caddy container with **on-demand TLS** for customer domains, which asks the app whether a domain is allowed before issuing a certificate.
 - App ports bind to `127.0.0.1` only.
@@ -91,4 +92,3 @@ Format: **ID — Title** · Status (Proposed / Accepted / Superseded) · Date. S
 - Deploy access uses an SSH key provided through the environment's secret settings, never pasted into chat.
 
 **Consequences.** Docker images, a production compose file and a deploy script become part of the repo. File storage can use local disk or Oracle Object Storage (S3-compatible).
-

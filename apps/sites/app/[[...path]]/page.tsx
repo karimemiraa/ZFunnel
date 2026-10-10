@@ -1,34 +1,58 @@
-import { headers } from "next/headers";
+import { Render } from "@puckeditor/core/rsc";
+import { config, type BlockRuntime } from "@zfunnel/blocks";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { subdomainFromHost } from "@/lib/host";
-import { resolveWorkspace } from "@/lib/resolve";
+import { resolvePage } from "@/lib/resolve";
+import { currentWorkspace } from "@/lib/site";
 
-/**
- * Phase 0: proves host → workspace routing. Phase 1.4 replaces the body with
- * rendering of the published page snapshot for the requested path.
- */
-export default async function SitePage() {
-  const host = (await headers()).get("host");
-  const slug = subdomainFromHost(host, process.env.ROOT_DOMAIN ?? "zfunnel.app");
-  if (!slug) notFound();
-  const workspace = await resolveWorkspace(slug);
-  if (!workspace) notFound();
+type Params = { params: Promise<{ path?: string[] }> };
 
-  return (
-    <main
-      style={{
-        minHeight: "100dvh",
-        display: "grid",
-        placeItems: "center",
-        padding: 24,
-        textAlign: "center",
-        color: "#18181b",
-      }}
-    >
-      <div>
-        <h1 style={{ fontSize: 28, margin: 0 }}>{workspace.name}</h1>
-        <p style={{ color: "#71717a" }}>Nothing has been published here yet.</p>
-      </div>
-    </main>
-  );
+async function load({ params }: Params) {
+  const ws = await currentWorkspace();
+  if (!ws) return null;
+  const { path = [] } = await params;
+  return { ws, page: await resolvePage(ws, path) };
+}
+
+export async function generateMetadata(props: Params): Promise<Metadata> {
+  const r = await load(props);
+  if (!r?.page) return { title: r?.ws?.name ?? "Not found" };
+  const root = (r.page.data.root?.props ?? {}) as { title?: string; seoDescription?: string; ogImage?: string };
+  const title = root.title || r.page.step.name;
+  return {
+    title,
+    description: root.seoDescription || undefined,
+    openGraph: {
+      title,
+      description: root.seoDescription || undefined,
+      images: root.ogImage ? [root.ogImage] : undefined,
+    },
+  };
+}
+
+export default async function SitePage(props: Params) {
+  const r = await load(props);
+  if (!r) notFound();
+  if (!r.page) {
+    // Root of a workspace without a homepage yet: a friendly placeholder instead of a bare 404.
+    if ((await props.params).path === undefined)
+      return (
+        <main className="flex min-h-dvh items-center justify-center p-6 text-center text-zinc-900">
+          <div>
+            <h1 className="text-3xl font-bold">{r.ws.name}</h1>
+            <p className="mt-2 text-zinc-500">Nothing has been published here yet.</p>
+          </div>
+        </main>
+      );
+    notFound();
+  }
+
+  const runtime: BlockRuntime = {
+    mode: "live",
+    nextUrl: r.page.nextPath ?? undefined,
+    declineUrl: r.page.declinePath ?? undefined,
+    stepId: r.page.step.id,
+    apiBase: "/api",
+  };
+  return <Render config={config} data={r.page.data as never} metadata={runtime} />;
 }

@@ -1,0 +1,58 @@
+/* Typography for rich text produced by the editor. Plain CSS so it works in every app. */
+.zf-prose p {
+  margin: 0 0 0.85em;
+  line-height: 1.7;
+}
+.zf-prose p:last-child {
+  margin-bottom: 0;
+}
+.zf-prose strong {
+  font-weight: 700;
+  color: var(--zf-fg);
+}
+.zf-prose a {
+  color: var(--zf-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.zf-prose ul,
+.zf-prose ol {
+  margin: 0 0 0.85em;
+  padding-left: 1.4em;
+  text-align: left;
+}
+.zf-prose ul {
+  list-style: disc;
+}
+.zf-prose ol {
+  list-style: decimal;
+}
+.zf-prose li {
+  margin: 0.3em 0;
+}
+.zf-prose h1,
+.zf-prose h2,
+.zf-prose h3 {
+  font-family: var(--zf-heading-font);
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 1em 0 0.5em;
+  color: var(--zf-fg);
+}
+.zf-prose blockquote {
+  border-left: 3px solid var(--zf-primary);
+  padding-left: 1em;
+  font-style: italic;
+}
+.zf-page h1,
+.zf-page h2,
+.zf-page h3,
+.zf-page h4 {
+  color: inherit;
+}
+.zf-page ::selection {
+  background: color-mix(in srgb, var(--zf-primary) 30%, transparent);
+}
+.zf-section[data-align="center"] .zf-checklist:not(.zf-cols .zf-checklist) {
+  margin-inline: auto;
+}

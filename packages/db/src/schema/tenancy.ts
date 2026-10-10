@@ -15,6 +15,8 @@ export const workspaces = pgTable(
       .references(() => organization.id, { onDelete: "cascade" }),
     name: text().notNull(),
     slug: text().notNull().unique(),
+    /** Funnel served at the root path "/" of this workspace's domains. */
+    homeFunnelId: uuid(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true })
       .notNull()

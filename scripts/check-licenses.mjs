@@ -12,6 +12,8 @@ const ALLOWED = new Set([
   "ISC",
   "0BSD",
   "BlueOak-1.0.0",
+  // Font files (not code): the SIL Open Font License allows bundling in commercial products.
+  "OFL-1.1",
   "Python-2.0",
   "Unlicense",
   "CC0-1.0",

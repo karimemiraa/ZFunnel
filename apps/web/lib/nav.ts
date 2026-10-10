@@ -29,7 +29,6 @@ export const NAV_MODULES: NavModule[] = [
     segment: "funnels",
     label: "Funnels",
     icon: FilterIcon,
-    phase: 1,
     description: "Build opt-in, sales, checkout and upsell funnels with the drag-and-drop editor.",
   },
   {

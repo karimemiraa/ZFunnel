@@ -1,4 +1,7 @@
 @import "@zfunnel/ui/globals.css";
+@import "@zfunnel/blocks/fonts.css";
+@import "@zfunnel/blocks/styles.css";
 @source "../app";
 @source "../components";
 @source "../../../packages/ui/src";
+@source "../../../packages/blocks/src";
