@@ -7,6 +7,7 @@ import { currentWorkspace } from "@/lib/site";
 import { track } from "@/lib/track";
 import { logActivity } from "@zfunnel/payments";
 import { enqueue } from "@zfunnel/queue";
+import { conversionContext } from "@/lib/conversion-context";
 
 const bodySchema = z.object({
   stepId: z.string().uuid(),
@@ -77,6 +78,7 @@ export async function POST(req: Request) {
     contactId,
     type: "optin",
     data: { funnelId: step.funnelId, stepId: step.id },
+    ctx: conversionContext(req),
   });
 
   await track(req.headers, {

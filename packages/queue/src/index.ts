@@ -12,6 +12,7 @@ export const QUEUES = {
   workflowEvents: "workflow-events",
   workflowRuns: "workflow-runs",
   webhooks: "webhooks",
+  conversions: "conversions",
 } as const;
 
 export type SystemJob = { type: "ping"; sentAt: string };
@@ -23,7 +24,26 @@ export type WorkflowEvent = {
   type: "optin" | "purchase" | "tag_added" | "form_submitted" | "booked" | "manual";
   /** Matching hints: funnel/step ids, tag name, product/price ids… */
   data?: Record<string, string | undefined>;
+  /**
+   * Visitor context for server-side ad conversions (IP, user agent, click ids). Kept apart from
+   * `data` so it never reaches customer webhooks.
+   */
+  ctx?: ConversionContext;
 };
+export type ConversionContext = {
+  ip?: string;
+  ua?: string;
+  url?: string;
+  /** Meta _fbp / _fbc cookies. */
+  fbp?: string;
+  fbc?: string;
+  /** TikTok _ttp cookie and ttclid. */
+  ttp?: string;
+  ttclid?: string;
+  /** GA4 client id from the _ga cookie. */
+  gaClientId?: string;
+};
+export type ConversionJob = { deliveryId: string };
 export type WorkflowRunJob = { runId: string };
 export type WebhookJob = { deliveryId: string };
 
@@ -34,6 +54,7 @@ type Payloads = {
   "workflow-events": WorkflowEvent;
   "workflow-runs": WorkflowRunJob;
   webhooks: WebhookJob;
+  conversions: ConversionJob;
 };
 export type QueueName = keyof Payloads;
 

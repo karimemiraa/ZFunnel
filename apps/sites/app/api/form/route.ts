@@ -7,6 +7,7 @@ import { z } from "zod";
 import { jsonError, publicPost } from "@/lib/api";
 import { resolveStepForWorkspace } from "@/lib/resolve";
 import { track } from "@/lib/track";
+import { conversionContext } from "@/lib/conversion-context";
 
 const bodySchema = z.object({
   stepId: z.string().uuid(),
@@ -136,6 +137,7 @@ export async function POST(req: Request) {
       contactId,
       type: "optin",
       data: { funnelId: step.funnelId, stepId },
+      ctx: conversionContext(req),
     });
     if (tags.length)
       await enqueueMany(

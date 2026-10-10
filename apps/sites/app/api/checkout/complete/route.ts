@@ -20,6 +20,7 @@ import { z } from "zod";
 import { jsonError, publicPost, sessionCookie } from "@/lib/api";
 import { resolveStepForWorkspace } from "@/lib/resolve";
 import { track } from "@/lib/track";
+import { conversionContext } from "@/lib/conversion-context";
 
 const bodySchema = z.object({
   orderId: z.string().uuid(),
@@ -150,6 +151,7 @@ export async function POST(req: Request) {
           funnelId: order.funnelId ?? undefined,
           productIds: items.flatMap((i) => (i.productId ? [i.productId] : [])).join(","),
         },
+        ctx: conversionContext(req),
       });
     });
   if (payment.status !== "succeeded" && order.funnelId && order.stepId)

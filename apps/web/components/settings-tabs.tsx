@@ -13,6 +13,7 @@ export function SettingsTabs({ base }: { base: string }) {
     { href: `${base}/team`, label: "Team" },
     { href: `${base}/billing`, label: "Billing" },
     { href: `${base}/sms`, label: "SMS" },
+    { href: `${base}/tracking`, label: "Tracking" },
     { href: `${base}/developers`, label: "Developers" },
     { href: `${base}/activity`, label: "Activity" },
   ];

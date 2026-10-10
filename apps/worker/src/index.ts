@@ -1,5 +1,6 @@
 import { Worker, type Processor } from "bullmq";
 import { QUEUES, redis, type SystemJob } from "@zfunnel/queue";
+import { fanOutConversions, processConversion } from "./jobs/conversions";
 import { processBroadcast, processEmail } from "./jobs/email";
 import { fanOutWebhooks, processWebhook } from "./jobs/webhooks";
 import { processWorkflowEvent, processWorkflowRun } from "./jobs/workflows";
@@ -36,9 +37,16 @@ const workers = [
     const hooks = await fanOutWebhooks(job.data as never, id).catch(
       (err) => (console.error("[webhooks] fan-out", err), 0),
     );
-    return { ...(await processWorkflowEvent(job.data as never, id)), webhooks: hooks };
+    // Ad-platform conversions are a side channel too.
+    const conversions = await fanOutConversions(job.data as never, id).catch(
+      (err) => (console.error("[conversions] fan-out", err), 0),
+    );
+    return { ...(await processWorkflowEvent(job.data as never, id)), webhooks: hooks, conversions };
   }),
   start(QUEUES.webhooks, (job) => processWebhook(job.data as never, job.attemptsMade, job.opts.attempts ?? 1), {
+    concurrency: 10,
+  }),
+  start(QUEUES.conversions, (job) => processConversion(job.data as never, job.attemptsMade, job.opts.attempts ?? 1), {
     concurrency: 10,
   }),
   start(QUEUES.workflowRuns, (job) => processWorkflowRun(job.data as never), { concurrency: 10 }),

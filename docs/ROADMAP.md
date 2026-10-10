@@ -157,6 +157,7 @@ Live & evergreen webinars (LiveKit) · AI conversion coach (analyses funnel stat
 **Build order.** 5.4 (small, touches money code everyone uses) → 5.3 → 5.2 → 5.1.
 
 - **5.4 Multi-currency: done.** 30 currencies with correct minor units: JPY and KRW have no decimals; KWD, BHD, OMR and JOD have three. Money helpers now live in `@zfunnel/shared` and are used by the dashboard, payments and checkout blocks. A funnel sells in one currency (checked when attaching an offer). Revenue stats and analytics show the main currency, list others separately, and never add them together. Checkout prices use the visitor's locale. Also fixed: the product dialog no longer clears the form after a validation error. Covered by `e2e/tests/currency.spec.ts`.
+- **5.3 Conversion postbacks: done.** Settings → Tracking connects Meta CAPI, TikTok Events API and GA4 Measurement Protocol (tokens encrypted). Lead and Purchase go out from the worker with hashed identifiers, click ids and deterministic event ids. A delivery log shows the status of each (ADR-021). Payload builders are unit-tested; `e2e/tests/tracking.spec.ts` verifies the whole path against a recording mock.
 
 ---
 
