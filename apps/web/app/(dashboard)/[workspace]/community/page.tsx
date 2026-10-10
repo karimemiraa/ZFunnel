@@ -4,13 +4,17 @@ import { Button } from "@zfunnel/ui/button";
 import { ModerationFeed, SpacesPanel } from "@/components/community/community-admin";
 import { PageHeader } from "@/components/page-header";
 import { requireWorkspace } from "@/lib/context";
+import { getT } from "@/lib/i18n";
 import { inWorkspace } from "@/lib/funnels";
 import { siteOrigin } from "@/lib/urls";
 
-export const metadata = { title: "Community" };
+export async function generateMetadata() {
+  return { title: (await getT())("communityAdmin.title") };
+}
 
 export default async function CommunityAdmin({ params }: { params: Promise<{ workspace: string }> }) {
   const ctx = await requireWorkspace(params);
+  const t = await getT();
   const ws = ctx.workspace.slug;
   const data = await inWorkspace(ctx, async (tx) => {
     const spaces = await tx
@@ -55,7 +59,7 @@ export default async function CommunityAdmin({ params }: { params: Promise<{ wor
       id: c.id,
       space,
       author: c.authorName,
-      title: `Re: ${title}`,
+      title: t("communityAdmin.replyTitle", { title }),
       body: c.body,
       hidden: c.hidden,
       pinned: false,
@@ -65,12 +69,12 @@ export default async function CommunityAdmin({ params }: { params: Promise<{ wor
   return (
     <>
       <PageHeader
-        title="Community"
-        description="A private space for your members and students to learn together. You moderate everything here."
+        title={t("communityAdmin.title")}
+        description={t("communityAdmin.description")}
         actions={
           <Button variant="outline" asChild>
             <a href={`${siteOrigin(ws)}/community`} target="_blank" rel="noreferrer">
-              <ExternalLinkIcon /> Open community
+              <ExternalLinkIcon /> {t("communityAdmin.openCommunity")}
             </a>
           </Button>
         }
@@ -90,7 +94,7 @@ export default async function CommunityAdmin({ params }: { params: Promise<{ wor
           }))}
         />
         <section>
-          <h2 className="mb-3 font-semibold">Latest activity</h2>
+          <h2 className="mb-3 font-semibold">{t("communityAdmin.latestActivity")}</h2>
           <ModerationFeed workspaceSlug={ws} items={items} />
         </section>
       </div>

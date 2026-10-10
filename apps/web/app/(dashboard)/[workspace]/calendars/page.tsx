@@ -7,31 +7,35 @@ import { NewCalendar } from "@/components/calendars/calendar-ui";
 import { PageHeader } from "@/components/page-header";
 import { listBookings, listCalendars } from "@/lib/calendars";
 import { requireWorkspace } from "@/lib/context";
+import { getT } from "@/lib/i18n";
 import { siteOrigin } from "@/lib/urls";
 
-export const metadata = { title: "Calendars" };
+export async function generateMetadata() {
+  return { title: (await getT())("calendarsAdmin.title") };
+}
 
 export default async function CalendarsPage({ params }: { params: Promise<{ workspace: string }> }) {
   const ctx = await requireWorkspace(params);
+  const t = await getT();
   const ws = ctx.workspace.slug;
   const [cals, upcoming] = await Promise.all([listCalendars(ctx), listBookings(ctx)]);
   const button = (
     <Button>
-      <PlusIcon /> New calendar
+      <PlusIcon /> {t("calendarsAdmin.newCalendar")}
     </Button>
   );
   return (
     <>
       <PageHeader
-        title="Calendars"
-        description="Let people book calls with you. Bookings land in your CRM and can start automations."
+        title={t("calendarsAdmin.title")}
+        description={t("calendarsAdmin.description")}
         actions={<NewCalendar workspaceSlug={ws} trigger={button} />}
       />
       {cals.length === 0 ? (
         <EmptyState
           icon={<CalendarDaysIcon />}
-          title="Create a booking calendar"
-          description="Set your weekly hours, share the link, and let leads book a time. No back-and-forth emails."
+          title={t("calendarsAdmin.emptyTitle")}
+          description={t("calendarsAdmin.emptyDescription")}
           action={<NewCalendar workspaceSlug={ws} trigger={button} />}
         />
       ) : (
@@ -50,20 +54,20 @@ export default async function CalendarsPage({ params }: { params: Promise<{ work
                   <div className="min-w-0 flex-1">
                     <h3 className="truncate font-semibold group-hover:underline">{c.name}</h3>
                     <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <ClockIcon className="size-3" /> {c.durationMinutes} min ·{" "}
-                      {c.status === "active" ? "Accepting bookings" : "Paused"}
+                      <ClockIcon className="size-3" /> {t("calendarsAdmin.minutesShort", { count: c.durationMinutes })}{" "}
+                      · {c.status === "active" ? t("calendarsAdmin.accepting") : t("calendarsAdmin.paused")}
                     </p>
                   </div>
                 </div>
-                <p className="mt-4 truncate text-xs text-muted-foreground">
+                <p className="mt-4 truncate text-xs text-muted-foreground" dir="ltr">
                   {`${siteOrigin(ws)}/book/${c.slug}`.replace(/^https?:\/\//, "")}
                 </p>
-                <p className="mt-1 text-sm font-medium">{n} upcoming</p>
+                <p className="mt-1 text-sm font-medium">{t("calendarsAdmin.upcomingCount", { count: n })}</p>
               </Link>
             ))}
           </div>
           <section>
-            <h2 className="mb-3 font-semibold">Upcoming bookings</h2>
+            <h2 className="mb-3 font-semibold">{t("calendarsAdmin.upcomingBookings")}</h2>
             <BookingsTable rows={upcoming} workspaceSlug={ws} showCalendar />
           </section>
         </div>

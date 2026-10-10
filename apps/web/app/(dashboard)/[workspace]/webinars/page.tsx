@@ -5,32 +5,36 @@ import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { NewWebinar } from "@/components/webinars/webinar-ui";
 import { requireWorkspace } from "@/lib/context";
+import { getT } from "@/lib/i18n";
 import { siteOrigin } from "@/lib/urls";
 import { listWebinars } from "@/lib/webinars";
 
-export const metadata = { title: "Webinars" };
+export async function generateMetadata() {
+  return { title: (await getT())("webinarsAdmin.title") };
+}
 
 export default async function WebinarsPage({ params }: { params: Promise<{ workspace: string }> }) {
   const ctx = await requireWorkspace(params);
+  const t = await getT();
   const ws = ctx.workspace.slug;
   const list = await listWebinars(ctx);
   const button = (
     <Button>
-      <PlusIcon /> New webinar
+      <PlusIcon /> {t("webinarsAdmin.newWebinar")}
     </Button>
   );
   return (
     <>
       <PageHeader
-        title="Webinars"
-        description="Automated and live webinars with registration, reminders, replays and a timed offer."
+        title={t("webinarsAdmin.title")}
+        description={t("webinarsAdmin.description")}
         actions={<NewWebinar workspaceSlug={ws} trigger={button} />}
       />
       {list.length === 0 ? (
         <EmptyState
           icon={<PresentationIcon />}
-          title="Run your first webinar"
-          description="Record once, sell every day: evergreen sessions run on a schedule while you sleep."
+          title={t("webinarsAdmin.emptyTitle")}
+          description={t("webinarsAdmin.emptyDescription")}
           action={<NewWebinar workspaceSlug={ws} trigger={button} />}
         />
       ) : (
@@ -48,16 +52,18 @@ export default async function WebinarsPage({ params }: { params: Promise<{ works
                 <div className="min-w-0 flex-1">
                   <h3 className="truncate font-semibold group-hover:underline">{w.title}</h3>
                   <p className="text-xs text-muted-foreground">
-                    {w.schedule.kind === "live" ? "Live event" : "Evergreen"} · {w.durationMinutes} min ·{" "}
-                    {w.status === "published" ? "Published" : "Draft"}
+                    {w.schedule.kind === "live" ? t("webinarsAdmin.liveEvent") : t("webinarsAdmin.evergreen")} ·{" "}
+                    {t("webinarsAdmin.minutesShort", { count: w.durationMinutes })} ·{" "}
+                    {w.status === "published" ? t("webinarsAdmin.published") : t("webinarsAdmin.draft")}
                   </p>
                 </div>
               </div>
-              <p className="mt-4 truncate text-xs text-muted-foreground">
+              <p className="mt-4 truncate text-xs text-muted-foreground" dir="ltr">
                 {`${siteOrigin(ws)}/webinar/${w.slug}`.replace(/^https?:\/\//, "")}
               </p>
               <p className="mt-1 text-sm font-medium">
-                {registrants} registered · {attended} attended
+                {t("webinarsAdmin.registeredCount", { count: registrants })} ·{" "}
+                {t("webinarsAdmin.attendedCount", { count: attended })}
                 {registrants ? ` (${Math.round((attended / registrants) * 100)}%)` : ""}
               </p>
             </Link>

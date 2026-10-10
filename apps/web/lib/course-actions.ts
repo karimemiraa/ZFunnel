@@ -17,6 +17,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { inWorkspace } from "./funnels";
+import { getT, localizeMessage } from "./i18n";
 import { requireUser } from "./session";
 import { getWorkspaceForUser, recordAudit } from "./workspaces";
 
@@ -34,8 +35,9 @@ const refresh = (ws: string, courseId?: string) =>
 
 export async function createCourse(workspaceSlug: string, title: string): Promise<Result> {
   const { user, ctx } = await ctxFor(workspaceSlug);
-  const t = z.string().trim().min(2, "Give your course a title").max(120).safeParse(title);
-  if (!t.success) return { ok: false, error: t.error.issues[0]!.message };
+  const tr = await getT();
+  const t = z.string().trim().min(2).max(120).safeParse(title);
+  if (!t.success) return { ok: false, error: tr("coursesAdmin.errTitle") };
   const id = await inWorkspace(ctx, async (tx) => {
     const taken = new Set((await tx.select({ slug: courses.slug }).from(courses)).map((c) => c.slug));
     const root = slugify(t.data) || "course";
@@ -47,15 +49,15 @@ export async function createCourse(workspaceSlug: string, title: string): Promis
       .returning({ id: courses.id });
     const [m] = await tx
       .insert(courseModules)
-      .values({ workspaceId: ctx.workspace.id, courseId: c!.id, title: "Getting started", position: 0 })
+      .values({ workspaceId: ctx.workspace.id, courseId: c!.id, title: tr("coursesAdmin.seedModule"), position: 0 })
       .returning({ id: courseModules.id });
     await tx.insert(courseLessons).values({
       workspaceId: ctx.workspace.id,
       courseId: c!.id,
       moduleId: m!.id,
-      title: "Welcome",
+      title: tr("coursesAdmin.seedLesson"),
       position: 0,
-      content: "<p>Welcome to the course! Start here.</p>",
+      content: tr("coursesAdmin.seedContent"),
       freePreview: true,
     });
     return c!.id;
@@ -66,18 +68,18 @@ export async function createCourse(workspaceSlug: string, title: string): Promis
 }
 
 const settingsSchema = z.object({
-  title: z.string().trim().min(2).max(120),
+  title: z.string().trim().min(2, "coursesAdmin.errTitle").max(120, "coursesAdmin.errTitle"),
   slug: z
     .string()
     .trim()
     .toLowerCase()
-    .regex(/^[a-z0-9-]{1,64}$/, "Use lowercase letters, numbers and dashes"),
+    .regex(/^[a-z0-9-]{1,64}$/, "coursesAdmin.errSlug"),
   description: z.string().trim().max(2000),
   imageUrl: z
     .string()
     .trim()
     .max(500)
-    .refine((v) => !v || /^https:\/\//.test(v), "Image must be an https:// URL"),
+    .refine((v) => !v || /^https:\/\//.test(v), "coursesAdmin.errImage"),
   status: z.enum(["draft", "published"]),
   productIds: z.array(uuid).max(50),
 });
@@ -88,14 +90,15 @@ export async function saveCourseSettings(
   input: z.input<typeof settingsSchema>,
 ): Promise<Result> {
   const { ctx } = await ctxFor(workspaceSlug);
+  const t = await getT();
   const d = settingsSchema.safeParse(input);
-  if (!d.success) return { ok: false, error: d.error.issues[0]!.message };
+  if (!d.success) return { ok: false, error: localizeMessage(t, d.error.issues[0]!.message)! };
   const err = await inWorkspace(ctx, async (tx) => {
     const [clash] = await tx
       .select({ id: courses.id })
       .from(courses)
       .where(and(eq(courses.slug, d.data.slug), sql`${courses.id} <> ${courseId}`));
-    if (clash) return "Another course already uses that URL.";
+    if (clash) return t("coursesAdmin.errSlugTaken");
     await tx
       .update(courses)
       .set({
@@ -115,13 +118,13 @@ export async function saveCourseSettings(
   });
   if (err) return { ok: false, error: err };
   refresh(workspaceSlug, courseId);
-  return { ok: true, message: "Course saved" };
+  return { ok: true, message: t("coursesAdmin.courseSaved") };
 }
 
 export async function addModule(workspaceSlug: string, courseId: string, title: string): Promise<Result> {
   const { ctx } = await ctxFor(workspaceSlug);
   const t = z.string().trim().min(1).max(120).safeParse(title);
-  if (!t.success) return { ok: false, error: "Name the module" };
+  if (!t.success) return { ok: false, error: (await getT())("coursesAdmin.errModuleName") };
   await inWorkspace(ctx, async (tx) => {
     const [{ n }] = (await tx
       .select({ n: sql<number>`coalesce(max(${courseModules.position}), -1)::int + 1` })
@@ -136,7 +139,7 @@ export async function addModule(workspaceSlug: string, courseId: string, title: 
 export async function renameModule(workspaceSlug: string, moduleId: string, title: string): Promise<Result> {
   const { ctx } = await ctxFor(workspaceSlug);
   const t = z.string().trim().min(1).max(120).safeParse(title);
-  if (!t.success) return { ok: false, error: "Name the module" };
+  if (!t.success) return { ok: false, error: (await getT())("coursesAdmin.errModuleName") };
   await inWorkspace(ctx, (tx) => tx.update(courseModules).set({ title: t.data }).where(eq(courseModules.id, moduleId)));
   return { ok: true };
 }
@@ -145,11 +148,12 @@ export async function deleteModule(workspaceSlug: string, courseId: string, modu
   const { ctx } = await ctxFor(workspaceSlug);
   await inWorkspace(ctx, (tx) => tx.delete(courseModules).where(eq(courseModules.id, moduleId)));
   refresh(workspaceSlug, courseId);
-  return { ok: true, message: "Module deleted" };
+  return { ok: true, message: (await getT())("coursesAdmin.moduleDeleted") };
 }
 
 export async function addLesson(workspaceSlug: string, courseId: string, moduleId: string): Promise<Result> {
   const { ctx } = await ctxFor(workspaceSlug);
+  const t = await getT();
   const id = await inWorkspace(ctx, async (tx) => {
     const [{ n }] = (await tx
       .select({ n: sql<number>`coalesce(max(${courseLessons.position}), -1)::int + 1` })
@@ -157,7 +161,7 @@ export async function addLesson(workspaceSlug: string, courseId: string, moduleI
       .where(eq(courseLessons.moduleId, moduleId))) as [{ n: number }];
     const [l] = await tx
       .insert(courseLessons)
-      .values({ workspaceId: ctx.workspace.id, courseId, moduleId, title: "New lesson", position: n })
+      .values({ workspaceId: ctx.workspace.id, courseId, moduleId, title: t("coursesAdmin.newLesson"), position: n })
       .returning({ id: courseLessons.id });
     return l!.id;
   });
@@ -166,12 +170,12 @@ export async function addLesson(workspaceSlug: string, courseId: string, moduleI
 }
 
 const lessonSchema = z.object({
-  title: z.string().trim().min(1, "Give the lesson a title").max(160),
+  title: z.string().trim().min(1, "coursesAdmin.errLessonTitle").max(160),
   videoUrl: z
     .string()
     .trim()
     .max(500)
-    .refine((v) => !v || /^https:\/\//.test(v), "Video must be an https:// link"),
+    .refine((v) => !v || /^https:\/\//.test(v), "coursesAdmin.errVideo"),
   content: z.string().max(100_000),
   dripDays: z.number().int().min(0).max(3650),
   freePreview: z.boolean(),
@@ -184,8 +188,9 @@ export async function saveLesson(
   input: z.input<typeof lessonSchema>,
 ): Promise<Result> {
   const { ctx } = await ctxFor(workspaceSlug);
+  const t = await getT();
   const d = lessonSchema.safeParse(input);
-  if (!d.success) return { ok: false, error: d.error.issues[0]!.message };
+  if (!d.success) return { ok: false, error: localizeMessage(t, d.error.issues[0]!.message)! };
   const content = toSafeHtml(d.data.content);
   await inWorkspace(ctx, (tx) =>
     tx
@@ -194,14 +199,14 @@ export async function saveLesson(
       .where(eq(courseLessons.id, lessonId)),
   );
   refresh(workspaceSlug, courseId);
-  return { ok: true, message: "Lesson saved" };
+  return { ok: true, message: t("coursesAdmin.lessonSaved") };
 }
 
 export async function deleteLesson(workspaceSlug: string, courseId: string, lessonId: string): Promise<Result> {
   const { ctx } = await ctxFor(workspaceSlug);
   await inWorkspace(ctx, (tx) => tx.delete(courseLessons).where(eq(courseLessons.id, lessonId)));
   refresh(workspaceSlug, courseId);
-  return { ok: true, message: "Lesson deleted" };
+  return { ok: true, message: (await getT())("coursesAdmin.lessonDeleted") };
 }
 
 /** Moves a module or lesson one place up or down among its siblings. */
@@ -242,8 +247,9 @@ export async function moveItem(
 
 export async function enrollByEmail(workspaceSlug: string, courseId: string, email: string): Promise<Result> {
   const { ctx } = await ctxFor(workspaceSlug);
-  const e = z.string().trim().toLowerCase().email("Enter a valid email").safeParse(email);
-  if (!e.success) return { ok: false, error: e.error.issues[0]!.message };
+  const t = await getT();
+  const e = z.string().trim().toLowerCase().email().safeParse(email);
+  if (!e.success) return { ok: false, error: t("coursesAdmin.errEmail") };
   await inWorkspace(ctx, async (tx) => {
     const [c] = await tx
       .insert(contacts)
@@ -259,7 +265,7 @@ export async function enrollByEmail(workspaceSlug: string, courseId: string, ema
       });
   });
   refresh(workspaceSlug, courseId);
-  return { ok: true, message: `Enrolled ${e.data}` };
+  return { ok: true, message: t("coursesAdmin.enrolled", { email: e.data }) };
 }
 
 export async function setEnrollmentAccess(
@@ -276,7 +282,8 @@ export async function setEnrollmentAccess(
       .where(eq(courseEnrollments.id, enrollmentId)),
   );
   refresh(workspaceSlug, courseId);
-  return { ok: true, message: revoke ? "Access removed" : "Access restored" };
+  const t = await getT();
+  return { ok: true, message: revoke ? t("coursesAdmin.accessRemoved") : t("coursesAdmin.accessRestored") };
 }
 
 export async function deleteCourse(workspaceSlug: string, courseId: string) {

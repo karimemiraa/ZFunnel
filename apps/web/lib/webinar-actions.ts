@@ -5,6 +5,7 @@ import { isValidTimezone, parseVideoUrl, slugify } from "@zfunnel/shared";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { inWorkspace } from "./funnels";
+import { getT, localizeMessage } from "./i18n";
 import { requireUser } from "./session";
 import { getWorkspaceForUser, recordAudit } from "./workspaces";
 
@@ -21,7 +22,7 @@ const refresh = (ws: string) => revalidatePath(`/${ws}/webinars`, "layout");
 export async function createWebinar(workspaceSlug: string, title: string, timezone: string): Promise<Result> {
   const { user, ctx } = await ctxFor(workspaceSlug);
   const t = title.trim();
-  if (t.length < 3 || t.length > 120) return { ok: false, error: "Give the webinar a title (3–120 characters)." };
+  if (t.length < 3 || t.length > 120) return { ok: false, error: (await getT())("webinarsAdmin.errTitleLength") };
   const tz = isValidTimezone(timezone) ? timezone : "UTC";
   const id = await inWorkspace(ctx, async (tx) => {
     const taken = new Set((await tx.select({ slug: webinars.slug }).from(webinars)).map((w) => w.slug));
@@ -48,15 +49,15 @@ export async function createWebinar(workspaceSlug: string, title: string, timezo
 const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 const schema = z
   .object({
-    title: z.string().trim().min(3, "Give the webinar a title").max(120),
+    title: z.string().trim().min(3, "webinarsAdmin.errTitle").max(120, "webinarsAdmin.errTitleLength"),
     slug: z
       .string()
       .trim()
       .toLowerCase()
-      .regex(/^[a-z0-9-]{2,60}$/, "Use lowercase letters, numbers and dashes"),
+      .regex(/^[a-z0-9-]{2,60}$/, "webinarsAdmin.errSlug"),
     description: z.string().trim().max(3000),
     videoUrl: z.string().trim().max(500),
-    timezone: z.string().refine(isValidTimezone, "Pick a valid timezone"),
+    timezone: z.string().refine(isValidTimezone, "webinarsAdmin.errTimezone"),
     durationMinutes: z.number().int().min(5).max(600),
     replayHours: z
       .number()
@@ -78,7 +79,7 @@ const schema = z
   })
   .superRefine((v, c) => {
     if (v.videoUrl && !parseVideoUrl(v.videoUrl))
-      c.addIssue({ code: "custom", path: ["videoUrl"], message: "Use a YouTube, Vimeo or https .mp4 link" });
+      c.addIssue({ code: "custom", path: ["videoUrl"], message: "webinarsAdmin.errVideo" });
     if (
       v.schedule.kind === "evergreen" &&
       !v.schedule.justInTime &&
@@ -87,20 +88,21 @@ const schema = z
       c.addIssue({
         code: "custom",
         path: ["schedule"],
-        message: "Pick at least one day and time, or turn on “just in time”",
+        message: "webinarsAdmin.errSchedule",
       });
     if (v.offerLabel && !/^https:\/\/\S+$/.test(v.offerUrl))
-      c.addIssue({ code: "custom", path: ["offerUrl"], message: "The offer link must start with https://" });
+      c.addIssue({ code: "custom", path: ["offerUrl"], message: "webinarsAdmin.errOfferUrl" });
   });
 
 export async function saveWebinar(workspaceSlug: string, id: string, input: z.input<typeof schema>): Promise<Result> {
   const { ctx } = await ctxFor(workspaceSlug);
+  const tr = await getT();
   const d = schema.safeParse(input);
-  if (!d.success) return { ok: false, error: d.error.issues[0]!.message };
+  if (!d.success) return { ok: false, error: localizeMessage(tr, d.error.issues[0]!.message)! };
   const v = d.data;
   const err = await inWorkspace(ctx, async (tx) => {
     const [clash] = await tx.select({ id: webinars.id }).from(webinars).where(eq(webinars.slug, v.slug));
-    if (clash && clash.id !== id) return "Another webinar already uses this link.";
+    if (clash && clash.id !== id) return tr("webinarsAdmin.errSlugTaken");
     const res = await tx
       .update(webinars)
       .set({
@@ -111,11 +113,11 @@ export async function saveWebinar(workspaceSlug: string, id: string, input: z.in
       })
       .where(eq(webinars.id, id))
       .returning({ id: webinars.id });
-    return res.length ? null : "Webinar not found.";
+    return res.length ? null : tr("webinarsAdmin.errNotFound");
   });
   if (err) return { ok: false, error: err };
   refresh(workspaceSlug);
-  return { ok: true, message: "Webinar saved" };
+  return { ok: true, message: tr("webinarsAdmin.webinarSaved") };
 }
 
 export async function setWebinarStatus(
@@ -124,16 +126,20 @@ export async function setWebinarStatus(
   status: "draft" | "published",
 ): Promise<Result> {
   const { ctx } = await ctxFor(workspaceSlug);
+  const tr = await getT();
   const err = await inWorkspace(ctx, async (tx) => {
     const [w] = await tx.select().from(webinars).where(eq(webinars.id, id));
-    if (!w) return "Webinar not found.";
-    if (status === "published" && !parseVideoUrl(w.videoUrl)) return "Add a video link before publishing.";
+    if (!w) return tr("webinarsAdmin.errNotFound");
+    if (status === "published" && !parseVideoUrl(w.videoUrl)) return tr("webinarsAdmin.errNoVideo");
     await tx.update(webinars).set({ status }).where(eq(webinars.id, id));
     return null;
   });
   if (err) return { ok: false, error: err };
   refresh(workspaceSlug);
-  return { ok: true, message: status === "published" ? "Registration page is live" : "Webinar unpublished" };
+  return {
+    ok: true,
+    message: status === "published" ? tr("webinarsAdmin.live") : tr("webinarsAdmin.unpublished"),
+  };
 }
 
 export async function deleteWebinar(workspaceSlug: string, id: string): Promise<Result> {
@@ -141,5 +147,5 @@ export async function deleteWebinar(workspaceSlug: string, id: string): Promise<
   await inWorkspace(ctx, (tx) => tx.delete(webinars).where(eq(webinars.id, id)));
   await recordAudit(ctx, user.id, { action: "webinar.deleted", entityType: "webinar", entityId: id });
   refresh(workspaceSlug);
-  return { ok: true, message: "Webinar deleted" };
+  return { ok: true, message: (await getT())("webinarsAdmin.deleted") };
 }

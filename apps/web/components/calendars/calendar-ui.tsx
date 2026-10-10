@@ -16,13 +16,16 @@ import { NativeSelect } from "@zfunnel/ui/select";
 import { Textarea } from "@zfunnel/ui/textarea";
 import { toast } from "@zfunnel/ui/toaster";
 import type { Availability, Weekday } from "@zfunnel/shared";
+import { intlLocale } from "@zfunnel/i18n";
+import { useLocale, useT } from "@zfunnel/i18n/react";
 import { Loader2Icon, PlusIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { cancelBooking, createCalendar, saveCalendar } from "@/lib/calendar-actions";
 
 export function NewCalendar({ workspaceSlug, trigger }: { workspaceSlug: string; trigger: React.ReactNode }) {
   const router = useRouter();
+  const t = useT();
   const [error, setError] = useState("");
   const [pending, start] = useTransition();
   return (
@@ -30,10 +33,8 @@ export function NewCalendar({ workspaceSlug, trigger }: { workspaceSlug: string;
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>New booking calendar</DialogTitle>
-          <DialogDescription>
-            Starts with Monday to Friday, 9:00 to 17:00. You can change everything after.
-          </DialogDescription>
+          <DialogTitle>{t("calendarsAdmin.newDialogTitle")}</DialogTitle>
+          <DialogDescription>{t("calendarsAdmin.newDialogDescription")}</DialogDescription>
         </DialogHeader>
         <form
           className="grid gap-4"
@@ -48,8 +49,14 @@ export function NewCalendar({ workspaceSlug, trigger }: { workspaceSlug: string;
           }}
         >
           <div className="grid gap-2">
-            <Label htmlFor="cal-name">Name</Label>
-            <Input id="cal-name" name="name" placeholder="e.g. 30-minute strategy call" required maxLength={80} />
+            <Label htmlFor="cal-name">{t("calendarsAdmin.name")}</Label>
+            <Input
+              id="cal-name"
+              name="name"
+              placeholder={t("calendarsAdmin.namePlaceholder")}
+              required
+              maxLength={80}
+            />
           </div>
           {error && (
             <p className="text-sm text-destructive" role="alert">
@@ -58,7 +65,7 @@ export function NewCalendar({ workspaceSlug, trigger }: { workspaceSlug: string;
           )}
           <DialogFooter>
             <Button type="submit" disabled={pending}>
-              {pending && <Loader2Icon className="animate-spin" />} Create calendar
+              {pending && <Loader2Icon className="animate-spin" />} {t("calendarsAdmin.createCalendar")}
             </Button>
           </DialogFooter>
         </form>
@@ -67,15 +74,16 @@ export function NewCalendar({ workspaceSlug, trigger }: { workspaceSlug: string;
   );
 }
 
-const DAYS: { key: Weekday; label: string }[] = [
-  { key: "mon", label: "Monday" },
-  { key: "tue", label: "Tuesday" },
-  { key: "wed", label: "Wednesday" },
-  { key: "thu", label: "Thursday" },
-  { key: "fri", label: "Friday" },
-  { key: "sat", label: "Saturday" },
-  { key: "sun", label: "Sunday" },
-];
+const DAY_KEYS: Weekday[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+
+/** Weekday names in the user's language (2024-01-01 was a Monday). */
+function useDays() {
+  const locale = useLocale();
+  return useMemo(() => {
+    const f = new Intl.DateTimeFormat(intlLocale(locale), { weekday: "long", timeZone: "UTC" });
+    return DAY_KEYS.map((key, i) => ({ key, label: f.format(new Date(Date.UTC(2024, 0, 1 + i))) }));
+  }, [locale]);
+}
 
 type Cal = {
   id: string;
@@ -102,6 +110,8 @@ export function CalendarSettings({
   bookingUrl: string;
 }) {
   const router = useRouter();
+  const t = useT();
+  const DAYS = useDays();
   const [v, setV] = useState(calendar);
   const [pending, start] = useTransition();
   const supported = typeof Intl.supportedValuesOf === "function" ? Intl.supportedValuesOf("timeZone") : [];
@@ -120,46 +130,46 @@ export function CalendarSettings({
           const { id: _id, ...rest } = v;
           const r = await saveCalendar(workspaceSlug, calendar.id, rest);
           if (!r.ok) return void toast.error(r.error);
-          toast.success(r.message ?? "Saved");
+          toast.success(r.message ?? t("calendarsAdmin.saved"));
           router.refresh();
         });
       }}
     >
       <section className="grid content-start gap-4 rounded-xl border bg-card p-5">
-        <h2 className="font-semibold">Details</h2>
+        <h2 className="font-semibold">{t("calendarsAdmin.details")}</h2>
         <div className="grid gap-2">
-          <Label htmlFor="c-name">Name</Label>
+          <Label htmlFor="c-name">{t("calendarsAdmin.name")}</Label>
           <Input id="c-name" value={v.name} onChange={(e) => setV({ ...v, name: e.target.value })} />
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="c-slug">Booking link</Label>
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+          <Label htmlFor="c-slug">{t("calendarsAdmin.bookingLink")}</Label>
+          <div className="flex items-center gap-1 text-sm text-muted-foreground" dir="ltr">
             <span className="shrink-0">{bookingUrl.replace(/[^/]+$/, "")}</span>
-            <Input id="c-slug" value={v.slug} onChange={(e) => setV({ ...v, slug: e.target.value })} />
+            <Input id="c-slug" dir="ltr" value={v.slug} onChange={(e) => setV({ ...v, slug: e.target.value })} />
           </div>
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="c-desc">Description</Label>
+          <Label htmlFor="c-desc">{t("calendarsAdmin.descriptionLabel")}</Label>
           <Textarea
             id="c-desc"
             rows={3}
             value={v.description}
             onChange={(e) => setV({ ...v, description: e.target.value })}
-            placeholder="What will you cover on this call?"
+            placeholder={t("calendarsAdmin.descriptionPlaceholder")}
           />
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="c-loc">Location or meeting link</Label>
+          <Label htmlFor="c-loc">{t("calendarsAdmin.location")}</Label>
           <Input
             id="c-loc"
             value={v.location}
             onChange={(e) => setV({ ...v, location: e.target.value })}
-            placeholder="Zoom link, phone or address"
+            placeholder={t("calendarsAdmin.locationPlaceholder")}
           />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="grid gap-2">
-            <Label htmlFor="c-dur">Duration (minutes)</Label>
+            <Label htmlFor="c-dur">{t("calendarsAdmin.duration")}</Label>
             <Input
               id="c-dur"
               type="number"
@@ -170,11 +180,11 @@ export function CalendarSettings({
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="c-buf">Buffer between (minutes)</Label>
+            <Label htmlFor="c-buf">{t("calendarsAdmin.buffer")}</Label>
             <Input id="c-buf" type="number" min={0} max={240} value={v.bufferMinutes} onChange={num("bufferMinutes")} />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="c-notice">Minimum notice (hours)</Label>
+            <Label htmlFor="c-notice">{t("calendarsAdmin.minNotice")}</Label>
             <Input
               id="c-notice"
               type="number"
@@ -185,29 +195,34 @@ export function CalendarSettings({
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="c-ahead">Book up to (days ahead)</Label>
+            <Label htmlFor="c-ahead">{t("calendarsAdmin.maxAhead")}</Label>
             <Input id="c-ahead" type="number" min={1} max={365} value={v.maxDaysAhead} onChange={num("maxDaysAhead")} />
           </div>
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="c-status">Status</Label>
+          <Label htmlFor="c-status">{t("calendarsAdmin.status")}</Label>
           <NativeSelect
             id="c-status"
             value={v.status}
             onChange={(e) => setV({ ...v, status: e.target.value as Cal["status"] })}
           >
-            <option value="active">Accepting bookings</option>
-            <option value="paused">Paused</option>
+            <option value="active">{t("calendarsAdmin.accepting")}</option>
+            <option value="paused">{t("calendarsAdmin.paused")}</option>
           </NativeSelect>
         </div>
       </section>
       <section className="grid content-start gap-4 rounded-xl border bg-card p-5">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="font-semibold">Weekly availability</h2>
+          <h2 className="font-semibold">{t("calendarsAdmin.weeklyAvailability")}</h2>
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="c-tz">Timezone</Label>
-          <NativeSelect id="c-tz" value={v.timezone} onChange={(e) => setV({ ...v, timezone: e.target.value })}>
+          <Label htmlFor="c-tz">{t("calendarsAdmin.timezone")}</Label>
+          <NativeSelect
+            id="c-tz"
+            dir="ltr"
+            value={v.timezone}
+            onChange={(e) => setV({ ...v, timezone: e.target.value })}
+          >
             {timezones.map((tz) => (
               <option key={tz}>{tz}</option>
             ))}
@@ -228,13 +243,15 @@ export function CalendarSettings({
                   {label}
                 </label>
                 <div className="grid flex-1 gap-1.5">
-                  {wins.length === 0 && <span className="pt-1.5 text-sm text-muted-foreground">Unavailable</span>}
+                  {wins.length === 0 && (
+                    <span className="pt-1.5 text-sm text-muted-foreground">{t("calendarsAdmin.unavailable")}</span>
+                  )}
                   {wins.map((w, i) => (
                     <div key={i} className="flex items-center gap-1.5">
                       <Input
                         type="time"
                         className="w-28"
-                        aria-label={`${label} start`}
+                        aria-label={t("calendarsAdmin.dayStart", { day: label })}
                         value={w.start}
                         onChange={(e) =>
                           setDay(
@@ -247,7 +264,7 @@ export function CalendarSettings({
                       <Input
                         type="time"
                         className="w-28"
-                        aria-label={`${label} end`}
+                        aria-label={t("calendarsAdmin.dayEnd", { day: label })}
                         value={w.end}
                         onChange={(e) =>
                           setDay(
@@ -261,7 +278,7 @@ export function CalendarSettings({
                         variant="ghost"
                         size="icon"
                         className="size-8"
-                        aria-label="Remove time"
+                        aria-label={t("calendarsAdmin.removeTime")}
                         onClick={() =>
                           setDay(
                             key,
@@ -280,7 +297,7 @@ export function CalendarSettings({
                     variant="ghost"
                     size="icon"
                     className="size-8"
-                    aria-label={`Add time on ${label}`}
+                    aria-label={t("calendarsAdmin.addTimeOn", { day: label })}
                     onClick={() => setDay(key, [...wins, { start: "13:00", end: "17:00" }])}
                   >
                     <PlusIcon />
@@ -291,7 +308,7 @@ export function CalendarSettings({
           })}
         </ul>
         <Button type="submit" disabled={pending}>
-          {pending && <Loader2Icon className="animate-spin" />} Save calendar
+          {pending && <Loader2Icon className="animate-spin" />} {t("calendarsAdmin.saveCalendar")}
         </Button>
       </section>
     </form>
@@ -300,6 +317,7 @@ export function CalendarSettings({
 
 export function CancelBookingButton({ workspaceSlug, id }: { workspaceSlug: string; id: string }) {
   const router = useRouter();
+  const t = useT();
   const [pending, start] = useTransition();
   return (
     <Button
@@ -307,15 +325,15 @@ export function CancelBookingButton({ workspaceSlug, id }: { workspaceSlug: stri
       size="sm"
       disabled={pending}
       onClick={() =>
-        confirm("Cancel this booking? The time slot opens up again.") &&
+        confirm(t("calendarsAdmin.confirmCancel")) &&
         start(async () => {
           const r = await cancelBooking(workspaceSlug, id);
-          if (r.ok) toast.success(r.message ?? "Cancelled");
+          if (r.ok) toast.success(r.message ?? t("calendarsAdmin.cancelledToast"));
           router.refresh();
         })
       }
     >
-      Cancel
+      {t("calendarsAdmin.cancel")}
     </Button>
   );
 }

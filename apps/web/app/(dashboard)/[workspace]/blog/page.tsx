@@ -6,31 +6,36 @@ import { PageHeader } from "@/components/page-header";
 import { createPost } from "@/lib/blog-actions";
 import { listPosts } from "@/lib/blog";
 import { requireWorkspace } from "@/lib/context";
+import { getFmt, getT } from "@/lib/i18n";
 import { siteOrigin } from "@/lib/urls";
 
-export const metadata = { title: "Blog" };
+export async function generateMetadata() {
+  return { title: (await getT())("blogAdmin.title") };
+}
 
 export default async function BlogPage({ params }: { params: Promise<{ workspace: string }> }) {
   const ctx = await requireWorkspace(params);
+  const t = await getT();
+  const f = await getFmt();
   const ws = ctx.workspace.slug;
   const list = await listPosts(ctx);
   const newButton = (
     <form action={createPost.bind(null, ws)}>
       <Button type="submit">
-        <PlusIcon /> New post
+        <PlusIcon /> {t("blogAdmin.newPost")}
       </Button>
     </form>
   );
   return (
     <>
       <PageHeader
-        title="Blog"
-        description="Publish articles that rank on Google and feed your funnels. Includes sitemap and RSS."
+        title={t("blogAdmin.title")}
+        description={t("blogAdmin.description")}
         actions={
           <div className="flex gap-2">
             <Button variant="outline" asChild>
               <a href={`${siteOrigin(ws)}/blog`} target="_blank" rel="noreferrer">
-                <ExternalLinkIcon /> View blog
+                <ExternalLinkIcon /> {t("blogAdmin.viewBlog")}
               </a>
             </Button>
             {newButton}
@@ -40,8 +45,8 @@ export default async function BlogPage({ params }: { params: Promise<{ workspace
       {list.length === 0 ? (
         <EmptyState
           icon={<NewspaperIcon />}
-          title="Write your first post"
-          description="Blog posts bring free traffic from search. Link them to your opt-in funnels to turn readers into leads."
+          title={t("blogAdmin.emptyTitle")}
+          description={t("blogAdmin.emptyDescription")}
           action={newButton}
         />
       ) : (
@@ -49,9 +54,9 @@ export default async function BlogPage({ params }: { params: Promise<{ workspace
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-start text-xs font-medium tracking-wide text-muted-foreground uppercase">
               <tr>
-                <th className="px-4 py-3">Post</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3 text-end max-sm:hidden">Updated</th>
+                <th className="px-4 py-3">{t("blogAdmin.colPost")}</th>
+                <th className="px-4 py-3">{t("blogAdmin.colStatus")}</th>
+                <th className="px-4 py-3 text-end max-sm:hidden">{t("blogAdmin.colUpdated")}</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -61,7 +66,9 @@ export default async function BlogPage({ params }: { params: Promise<{ workspace
                     <Link href={`/${ws}/blog/${p.id}`} className="font-medium hover:underline">
                       {p.title}
                     </Link>
-                    <p className="text-xs text-muted-foreground">/blog/{p.slug}</p>
+                    <p className="text-xs text-muted-foreground" dir="ltr">
+                      /blog/{p.slug}
+                    </p>
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -71,12 +78,10 @@ export default async function BlogPage({ params }: { params: Promise<{ workspace
                           : "rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground"
                       }
                     >
-                      {p.status === "published" ? "Published" : "Draft"}
+                      {p.status === "published" ? t("blogAdmin.published") : t("blogAdmin.draft")}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-end text-muted-foreground max-sm:hidden">
-                    {p.updatedAt.toLocaleDateString()}
-                  </td>
+                  <td className="px-4 py-3 text-end text-muted-foreground max-sm:hidden">{f.date(p.updatedAt)}</td>
                 </tr>
               ))}
             </tbody>

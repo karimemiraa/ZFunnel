@@ -8,9 +8,12 @@ import { listProducts } from "@/lib/commerce";
 import { requireWorkspace } from "@/lib/context";
 import { deleteCourse } from "@/lib/course-actions";
 import { getCourseEditor, listStudents } from "@/lib/courses";
+import { getT } from "@/lib/i18n";
 import { siteOrigin } from "@/lib/urls";
 
-export const metadata = { title: "Course" };
+export async function generateMetadata() {
+  return { title: (await getT())("coursesAdmin.courseTitle") };
+}
 
 export default async function CoursePage({
   params,
@@ -20,6 +23,7 @@ export default async function CoursePage({
   searchParams: Promise<{ tab?: string }>;
 }) {
   const ctx = await requireWorkspace(params);
+  const t = await getT();
   const { courseId } = await params;
   const { tab: rawTab } = await searchParams;
   const data = await getCourseEditor(ctx, courseId);
@@ -39,16 +43,16 @@ export default async function CoursePage({
         href={`/${ws}/courses`}
         className="mb-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeftIcon className="size-4 rtl:-scale-x-100" /> Courses
+        <ArrowLeftIcon className="size-4 rtl:-scale-x-100" /> {t("coursesAdmin.title")}
       </Link>
       <PageHeader
         title={data.course.title}
-        description={`${data.modules.length} modules · ${data.lessonCount} lessons · ${data.course.status === "published" ? "Published" : "Draft"}`}
+        description={`${t("coursesAdmin.modules", { count: data.modules.length })} · ${t("coursesAdmin.lessons", { count: data.lessonCount })} · ${data.course.status === "published" ? t("coursesAdmin.published") : t("coursesAdmin.draft")}`}
         actions={
           <div className="flex gap-2">
             <Button variant="outline" asChild>
               <a href={publicUrl} target="_blank" rel="noreferrer">
-                <ExternalLinkIcon /> View as student
+                <ExternalLinkIcon /> {t("coursesAdmin.viewAsStudent")}
               </a>
             </Button>
             <form action={deleteCourse.bind(null, ws, courseId)}>
@@ -56,7 +60,7 @@ export default async function CoursePage({
                 type="submit"
                 variant="ghost"
                 size="icon"
-                aria-label="Delete course"
+                aria-label={t("coursesAdmin.deleteCourse")}
                 className="hover:text-destructive"
               >
                 <Trash2Icon />
@@ -65,14 +69,14 @@ export default async function CoursePage({
           </div>
         }
       />
-      <nav className="mb-6 flex gap-1 border-b" aria-label="Course sections">
-        {(["curriculum", "settings", "students"] as const).map((t) => (
+      <nav className="mb-6 flex gap-1 border-b" aria-label={t("coursesAdmin.sections")}>
+        {(["curriculum", "settings", "students"] as const).map((k) => (
           <Link
-            key={t}
-            href={t === "curriculum" ? base : `${base}?tab=${t}`}
-            className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium capitalize ${tab === t ? "border-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+            key={k}
+            href={k === "curriculum" ? base : `${base}?tab=${k}`}
+            className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium ${tab === k ? "border-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
           >
-            {t}
+            {t(`coursesAdmin.tabs.${k}`)}
           </Link>
         ))}
       </nav>

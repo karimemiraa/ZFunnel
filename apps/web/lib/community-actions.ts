@@ -6,6 +6,7 @@ import { slugify } from "@zfunnel/shared";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { inWorkspace } from "./funnels";
+import { getT, localizeMessage } from "./i18n";
 import { requireUser } from "./session";
 import { getWorkspaceForUser, recordAudit } from "./workspaces";
 
@@ -20,7 +21,7 @@ async function ctxFor(workspaceSlug: string) {
 const refresh = (ws: string) => revalidatePath(`/${ws}/community`);
 
 const spaceSchema = z.object({
-  name: z.string().trim().min(2, "Name the space").max(60),
+  name: z.string().trim().min(2, "communityAdmin.errName").max(60, "communityAdmin.errName"),
   description: z.string().trim().max(300),
   access: z.enum(["members", "course"]),
   courseId: z.string().uuid().nullable(),
@@ -28,10 +29,10 @@ const spaceSchema = z.object({
 
 export async function createSpace(workspaceSlug: string, input: z.input<typeof spaceSchema>): Promise<Result> {
   const { ctx } = await ctxFor(workspaceSlug);
+  const t = await getT();
   const d = spaceSchema.safeParse(input);
-  if (!d.success) return { ok: false, error: d.error.issues[0]!.message };
-  if (d.data.access === "course" && !d.data.courseId)
-    return { ok: false, error: "Choose the course whose students can join." };
+  if (!d.success) return { ok: false, error: localizeMessage(t, d.error.issues[0]!.message)! };
+  if (d.data.access === "course" && !d.data.courseId) return { ok: false, error: t("communityAdmin.errCourse") };
   await inWorkspace(ctx, async (tx) => {
     const taken = new Set((await tx.select({ slug: communitySpaces.slug }).from(communitySpaces)).map((s) => s.slug));
     const root = slugify(d.data.name) || "space";
@@ -45,14 +46,14 @@ export async function createSpace(workspaceSlug: string, input: z.input<typeof s
     });
   });
   refresh(workspaceSlug);
-  return { ok: true, message: "Space created" };
+  return { ok: true, message: t("communityAdmin.spaceCreated") };
 }
 
 export async function deleteSpace(workspaceSlug: string, id: string): Promise<Result> {
   const { ctx } = await ctxFor(workspaceSlug);
   await inWorkspace(ctx, (tx) => tx.delete(communitySpaces).where(eq(communitySpaces.id, id)));
   refresh(workspaceSlug);
-  return { ok: true, message: "Space deleted" };
+  return { ok: true, message: (await getT())("communityAdmin.spaceDeleted") };
 }
 
 /** Announcement from the business, shown with the workspace name as author. */
@@ -69,7 +70,8 @@ export async function postAsOwner(
       pin: z.boolean(),
     })
     .safeParse(input);
-  if (!d.success) return { ok: false, error: "Add a title and a message." };
+  const t = await getT();
+  if (!d.success) return { ok: false, error: t("communityAdmin.errAnnouncement") };
   await inWorkspace(ctx, (tx) =>
     tx.insert(communityPosts).values({
       workspaceId: ctx.workspace.id,
@@ -81,7 +83,7 @@ export async function postAsOwner(
     }),
   );
   refresh(workspaceSlug);
-  return { ok: true, message: "Posted" };
+  return { ok: true, message: t("communityAdmin.posted") };
 }
 
 export async function moderate(

@@ -7,6 +7,7 @@ import { cn } from "@zfunnel/ui/lib/utils";
 import { NativeSelect } from "@zfunnel/ui/select";
 import { Textarea } from "@zfunnel/ui/textarea";
 import { toast } from "@zfunnel/ui/toaster";
+import { useT } from "@zfunnel/i18n/react";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -19,6 +20,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { useFmt } from "@/lib/use-fmt";
 import {
   addLesson,
   addModule,
@@ -67,8 +69,12 @@ type Props = {
   publicUrl: string;
 };
 
+const SOURCES = { purchase: 1, manual: 1, automation: 1, api: 1 };
+type Source = keyof typeof SOURCES;
+
 function useRun() {
   const router = useRouter();
+  const t = useT();
   const [pending, start] = useTransition();
   const run = (
     fn: () => Promise<{ ok: boolean; error?: string; message?: string; id?: string }>,
@@ -76,7 +82,7 @@ function useRun() {
   ) =>
     start(async () => {
       const r = await fn();
-      if (!r.ok) return void toast.error(r.error ?? "Something went wrong");
+      if (!r.ok) return void toast.error(r.error ?? t("coursesAdmin.somethingWrong"));
       if (r.message) toast.success(r.message);
       after?.(r);
       router.refresh();
@@ -105,6 +111,7 @@ function LessonPanel({
   onClose: () => void;
 }) {
   const { pending, run } = useRun();
+  const t = useT();
   const rich = /<(?!\/?(p|br)\b)[a-z]/i.test(lesson.content);
   const [v, setV] = useState({
     title: lesson.title,
@@ -122,19 +129,20 @@ function LessonPanel({
       }}
     >
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold">Edit lesson</h3>
+        <h3 className="font-semibold">{t("coursesAdmin.editLesson")}</h3>
         <Button type="button" variant="ghost" size="sm" onClick={onClose}>
-          Close
+          {t("coursesAdmin.close")}
         </Button>
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="l-title">Title</Label>
+        <Label htmlFor="l-title">{t("coursesAdmin.titleLabel")}</Label>
         <Input id="l-title" value={v.title} onChange={(e) => setV({ ...v, title: e.target.value })} required />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="l-video">Video link (YouTube, Vimeo, Wistia, Bunny or .mp4)</Label>
+        <Label htmlFor="l-video">{t("coursesAdmin.videoLabel")}</Label>
         <Input
           id="l-video"
+          dir="ltr"
           type="url"
           value={v.videoUrl}
           placeholder="https://"
@@ -142,21 +150,19 @@ function LessonPanel({
         />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="l-content">Lesson content</Label>
+        <Label htmlFor="l-content">{t("coursesAdmin.lessonContent")}</Label>
         <Textarea
           id="l-content"
           rows={10}
           value={v.content}
           onChange={(e) => setV({ ...v, content: e.target.value })}
-          placeholder="Write your lesson. Leave a blank line between paragraphs."
+          placeholder={t("coursesAdmin.lessonPlaceholder")}
         />
-        <p className="text-xs text-muted-foreground">
-          Plain text becomes paragraphs. Basic HTML (bold, lists, links) also works.
-        </p>
+        <p className="text-xs text-muted-foreground">{t("coursesAdmin.lessonHint")}</p>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="grid gap-2">
-          <Label htmlFor="l-drip">Unlock after (days)</Label>
+          <Label htmlFor="l-drip">{t("coursesAdmin.unlockAfter")}</Label>
           <Input
             id="l-drip"
             type="number"
@@ -173,20 +179,22 @@ function LessonPanel({
             checked={v.freePreview}
             onChange={(e) => setV({ ...v, freePreview: e.target.checked })}
           />
-          Free preview
+          {t("coursesAdmin.freePreview")}
         </label>
       </div>
       <div className="flex gap-2">
         <Button type="submit" disabled={pending}>
-          {pending && <Loader2Icon className="animate-spin" />} Save lesson
+          {pending && <Loader2Icon className="animate-spin" />} {t("coursesAdmin.saveLesson")}
         </Button>
         <Button
           type="button"
           variant="ghost"
           className="text-muted-foreground hover:text-destructive"
-          onClick={() => confirm("Delete this lesson?") && run(() => deleteLesson(ws, courseId, lesson.id), onClose)}
+          onClick={() =>
+            confirm(t("coursesAdmin.confirmDeleteLesson")) && run(() => deleteLesson(ws, courseId, lesson.id), onClose)
+          }
         >
-          <Trash2Icon /> Delete
+          <Trash2Icon /> {t("coursesAdmin.delete")}
         </Button>
       </div>
     </form>
@@ -195,6 +203,7 @@ function LessonPanel({
 
 function Curriculum({ p }: { p: Props }) {
   const { pending, run } = useRun();
+  const t = useT();
   const [selected, setSelected] = useState<string | null>(null);
   const [newModule, setNewModule] = useState("");
   const lesson = p.modules.flatMap((m) => m.lessons).find((l) => l.id === selected);
@@ -205,10 +214,12 @@ function Curriculum({ p }: { p: Props }) {
         {p.modules.map((m, mi) => (
           <section key={m.id} className="rounded-xl border bg-card">
             <div className="flex items-center gap-2 border-b px-4 py-2.5">
-              <span className="text-xs font-semibold text-muted-foreground">MODULE {mi + 1}</span>
+              <span className="text-xs font-semibold text-muted-foreground">
+                {t("coursesAdmin.moduleN", { n: mi + 1 })}
+              </span>
               <input
                 defaultValue={m.title}
-                aria-label="Module title"
+                aria-label={t("coursesAdmin.moduleTitle")}
                 className="min-w-0 flex-1 rounded bg-transparent px-1 py-0.5 font-semibold outline-none hover:bg-accent focus:bg-accent"
                 onBlur={(e) =>
                   e.target.value.trim() &&
@@ -220,7 +231,7 @@ function Curriculum({ p }: { p: Props }) {
                 variant="ghost"
                 size="icon"
                 className="size-7"
-                aria-label="Move module up"
+                aria-label={t("coursesAdmin.moveModuleUp")}
                 disabled={mi === 0 || pending}
                 onClick={() => run(() => moveItem(ws, p.course.id, "module", m.id, -1))}
               >
@@ -230,7 +241,7 @@ function Curriculum({ p }: { p: Props }) {
                 variant="ghost"
                 size="icon"
                 className="size-7"
-                aria-label="Move module down"
+                aria-label={t("coursesAdmin.moveModuleDown")}
                 disabled={mi === p.modules.length - 1 || pending}
                 onClick={() => run(() => moveItem(ws, p.course.id, "module", m.id, 1))}
               >
@@ -240,9 +251,10 @@ function Curriculum({ p }: { p: Props }) {
                 variant="ghost"
                 size="icon"
                 className="size-7 hover:text-destructive"
-                aria-label="Delete module"
+                aria-label={t("coursesAdmin.deleteModule")}
                 onClick={() =>
-                  confirm(`Delete “${m.title}” and its lessons?`) && run(() => deleteModule(ws, p.course.id, m.id))
+                  confirm(t("coursesAdmin.confirmDeleteModule", { title: m.title })) &&
+                  run(() => deleteModule(ws, p.course.id, m.id))
                 }
               >
                 <Trash2Icon />
@@ -268,19 +280,19 @@ function Curriculum({ p }: { p: Props }) {
                   </button>
                   {l.freePreview && (
                     <span className="rounded bg-sky-500/15 px-1.5 text-[10px] font-semibold text-sky-700 dark:text-sky-400">
-                      PREVIEW
+                      {t("coursesAdmin.previewBadge")}
                     </span>
                   )}
                   {l.dripDays > 0 && (
                     <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-                      <LockIcon className="size-3" /> day {l.dripDays}
+                      <LockIcon className="size-3" /> {t("coursesAdmin.dayN", { n: l.dripDays })}
                     </span>
                   )}
                   <Button
                     variant="ghost"
                     size="icon"
                     className="size-6"
-                    aria-label="Move lesson up"
+                    aria-label={t("coursesAdmin.moveLessonUp")}
                     disabled={li === 0 || pending}
                     onClick={() => run(() => moveItem(ws, p.course.id, "lesson", l.id, -1))}
                   >
@@ -290,7 +302,7 @@ function Curriculum({ p }: { p: Props }) {
                     variant="ghost"
                     size="icon"
                     className="size-6"
-                    aria-label="Move lesson down"
+                    aria-label={t("coursesAdmin.moveLessonDown")}
                     disabled={li === m.lessons.length - 1 || pending}
                     onClick={() => run(() => moveItem(ws, p.course.id, "lesson", l.id, 1))}
                   >
@@ -310,7 +322,7 @@ function Curriculum({ p }: { p: Props }) {
                 )
               }
             >
-              <PlusIcon className="size-4" /> Add lesson
+              <PlusIcon className="size-4" /> {t("coursesAdmin.addLesson")}
             </button>
           </section>
         ))}
@@ -328,11 +340,11 @@ function Curriculum({ p }: { p: Props }) {
           <Input
             value={newModule}
             onChange={(e) => setNewModule(e.target.value)}
-            placeholder="New module name"
-            aria-label="New module name"
+            placeholder={t("coursesAdmin.newModuleName")}
+            aria-label={t("coursesAdmin.newModuleName")}
           />
           <Button type="submit" variant="outline" disabled={pending || !newModule.trim()}>
-            <PlusIcon /> Add module
+            <PlusIcon /> {t("coursesAdmin.addModule")}
           </Button>
         </form>
       </div>
@@ -347,7 +359,7 @@ function Curriculum({ p }: { p: Props }) {
           />
         ) : (
           <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
-            Select a lesson to edit its video, content and drip schedule.
+            {t("coursesAdmin.selectLesson")}
           </div>
         )}
       </div>
@@ -357,6 +369,7 @@ function Curriculum({ p }: { p: Props }) {
 
 function Settings({ p }: { p: Props }) {
   const { pending, run } = useRun();
+  const t = useT();
   const [v, setV] = useState({ ...p.course, imageUrl: p.course.imageUrl ?? "", productIds: p.productIds });
   return (
     <form
@@ -367,18 +380,18 @@ function Settings({ p }: { p: Props }) {
       }}
     >
       <div className="grid gap-2">
-        <Label htmlFor="c-title">Title</Label>
+        <Label htmlFor="c-title">{t("coursesAdmin.titleLabel")}</Label>
         <Input id="c-title" value={v.title} onChange={(e) => setV({ ...v, title: e.target.value })} />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="c-slug">URL</Label>
-        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+        <Label htmlFor="c-slug">{t("coursesAdmin.url")}</Label>
+        <div className="flex items-center gap-1 text-sm text-muted-foreground" dir="ltr">
           <span className="shrink-0">{p.publicUrl.replace(/\/[^/]+$/, "/")}</span>
-          <Input id="c-slug" value={v.slug} onChange={(e) => setV({ ...v, slug: e.target.value })} />
+          <Input id="c-slug" dir="ltr" value={v.slug} onChange={(e) => setV({ ...v, slug: e.target.value })} />
         </div>
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="c-desc">Description</Label>
+        <Label htmlFor="c-desc">{t("coursesAdmin.descriptionLabel")}</Label>
         <Textarea
           id="c-desc"
           rows={3}
@@ -387,19 +400,18 @@ function Settings({ p }: { p: Props }) {
         />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="c-img">Cover image URL</Label>
+        <Label htmlFor="c-img">{t("coursesAdmin.coverImage")}</Label>
         <Input
           id="c-img"
+          dir="ltr"
           value={v.imageUrl}
           placeholder="https://"
           onChange={(e) => setV({ ...v, imageUrl: e.target.value })}
         />
       </div>
       <fieldset className="grid gap-2">
-        <legend className="mb-1 text-sm font-medium">Buying any of these products gives access</legend>
-        {p.products.length === 0 && (
-          <p className="text-sm text-muted-foreground">Create a product first (Products page).</p>
-        )}
+        <legend className="mb-1 text-sm font-medium">{t("coursesAdmin.productsAccess")}</legend>
+        {p.products.length === 0 && <p className="text-sm text-muted-foreground">{t("coursesAdmin.noProducts")}</p>}
         {p.products.map((pr) => (
           <label key={pr.id} className="flex items-center gap-2 text-sm">
             <input
@@ -418,19 +430,19 @@ function Settings({ p }: { p: Props }) {
         ))}
       </fieldset>
       <div className="grid gap-2">
-        <Label htmlFor="c-status">Status</Label>
+        <Label htmlFor="c-status">{t("coursesAdmin.status")}</Label>
         <NativeSelect
           id="c-status"
           value={v.status}
           onChange={(e) => setV({ ...v, status: e.target.value as "draft" | "published" })}
         >
-          <option value="draft">Draft: hidden from students</option>
-          <option value="published">Published: students can access it</option>
+          <option value="draft">{t("coursesAdmin.statusDraft")}</option>
+          <option value="published">{t("coursesAdmin.statusPublished")}</option>
         </NativeSelect>
       </div>
       <div>
         <Button type="submit" disabled={pending}>
-          {pending && <Loader2Icon className="animate-spin" />} Save settings
+          {pending && <Loader2Icon className="animate-spin" />} {t("coursesAdmin.saveSettings")}
         </Button>
       </div>
     </form>
@@ -439,6 +451,8 @@ function Settings({ p }: { p: Props }) {
 
 function Students({ p }: { p: Props }) {
   const { pending, run } = useRun();
+  const t = useT();
+  const f = useFmt();
   const [email, setEmail] = useState("");
   return (
     <div className="grid gap-4">
@@ -458,24 +472,25 @@ function Students({ p }: { p: Props }) {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="student@example.com"
-          aria-label="Student email"
+          dir="ltr"
+          aria-label={t("coursesAdmin.studentEmail")}
         />
         <Button type="submit" disabled={pending}>
-          Enroll
+          {t("coursesAdmin.enroll")}
         </Button>
       </form>
       {p.students.length === 0 ? (
         <p className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
-          No students yet. Link a product in Settings, or enroll someone above.
+          {t("coursesAdmin.noStudents")}
         </p>
       ) : (
         <div className="overflow-hidden rounded-xl border bg-card">
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-start text-xs font-medium tracking-wide text-muted-foreground uppercase">
               <tr>
-                <th className="px-4 py-3">Student</th>
-                <th className="px-4 py-3">Progress</th>
-                <th className="px-4 py-3 max-sm:hidden">Joined</th>
+                <th className="px-4 py-3">{t("coursesAdmin.colStudent")}</th>
+                <th className="px-4 py-3">{t("coursesAdmin.colProgress")}</th>
+                <th className="px-4 py-3 max-sm:hidden">{t("coursesAdmin.colJoined")}</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -495,7 +510,8 @@ function Students({ p }: { p: Props }) {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground max-sm:hidden">
-                    {new Date(s.since).toLocaleDateString()} · {s.source}
+                    {f.date(s.since)} ·{" "}
+                    {s.source in SOURCES ? t(`coursesAdmin.sources.${s.source as Source}`) : s.source}
                   </td>
                   <td className="px-4 py-3 text-end">
                     <Button
@@ -504,7 +520,7 @@ function Students({ p }: { p: Props }) {
                       disabled={pending}
                       onClick={() => run(() => setEnrollmentAccess(p.workspaceSlug, p.course.id, s.id, !s.revoked))}
                     >
-                      {s.revoked ? "Restore" : "Remove access"}
+                      {s.revoked ? t("coursesAdmin.restore") : t("coursesAdmin.removeAccess")}
                     </Button>
                   </td>
                 </tr>
