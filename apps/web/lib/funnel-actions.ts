@@ -15,15 +15,24 @@ import {
   withOrganization,
   workspaces,
 } from "@zfunnel/db";
-import { slugSchema } from "@zfunnel/shared";
+import { randomBytes } from "node:crypto";
+import { RESERVED_SLUGS, slugSchema } from "@zfunnel/shared";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { createFunnelWithSteps, FUNNEL_PRESETS, inWorkspace, uniqueSlug, type FunnelPreset } from "./funnels";
+import {
+  copySteps,
+  createFunnelWithSteps,
+  FUNNEL_PRESETS,
+  inWorkspace,
+  uniqueSlug,
+  type FunnelPreset,
+} from "./funnels";
 import { aiConfigured, takeAiQuota } from "./ai";
 import { writeFunnelCopy } from "./ai-funnel";
 import { enforce } from "./billing";
 import { requireUser } from "./session";
+import { getSharedFunnel } from "./share";
 import { canManage, getWorkspaceForUser, recordAudit, type WorkspaceContext } from "./workspaces";
 
 export type FormState = { error?: string; success?: string; fieldErrors?: Record<string, string[] | undefined> } | null;
@@ -170,32 +179,7 @@ export async function duplicateFunnel(workspaceSlug: string, funnelId: string): 
       })
       .returning();
     const steps = await tx.select().from(funnelSteps).where(eq(funnelSteps.funnelId, funnelId));
-    const idMap = new Map<string, string>();
-    for (const s of steps) {
-      const [n] = await tx
-        .insert(funnelSteps)
-        .values({
-          workspaceId: ctx.workspace.id,
-          funnelId: f!.id,
-          name: s.name,
-          type: s.type,
-          slug: s.slug,
-          position: s.position,
-          mapX: s.mapX,
-          mapY: s.mapY,
-          draft: s.draft,
-        })
-        .returning({ id: funnelSteps.id });
-      idMap.set(s.id, n!.id);
-    }
-    for (const s of steps)
-      await tx
-        .update(funnelSteps)
-        .set({
-          nextStepId: s.nextStepId ? (idMap.get(s.nextStepId) ?? null) : null,
-          declineStepId: s.declineStepId ? (idMap.get(s.declineStepId) ?? null) : null,
-        })
-        .where(eq(funnelSteps.id, idMap.get(s.id)!));
+    await copySteps(tx, steps, ctx.workspace.id, f!.id);
     return f!;
   });
   await recordAudit(ctx, user.id, {
@@ -614,4 +598,52 @@ export async function endSplitTest(workspaceSlug: string, stepId: string, winner
   });
   revalidateFunnel(workspaceSlug, funnelId);
   return { ok: true, message: winner === "a" ? "Kept the original page" : "The variant is now your live page" };
+}
+
+// ── Share funnels ────────────────────────────────────────────────────────────
+
+export async function setFunnelSharing(
+  workspaceSlug: string,
+  funnelId: string,
+  enabled: boolean,
+): Promise<Result & { token?: string | null }> {
+  const { user, ctx } = await ctxFor(workspaceSlug);
+  const token = enabled ? randomBytes(18).toString("base64url") : null;
+  await inWorkspace(ctx, (tx) => tx.update(funnels).set({ shareToken: token }).where(eq(funnels.id, funnelId)));
+  await recordAudit(ctx, user.id, {
+    action: enabled ? "funnel.share_enabled" : "funnel.share_disabled",
+    entityType: "funnel",
+    entityId: funnelId,
+  });
+  revalidatePath(`/${workspaceSlug}/funnels/${funnelId}`);
+  return { ok: true, token };
+}
+
+/** Imports a full copy of a shared funnel into a workspace the user can manage. */
+export async function importSharedFunnel(token: string, workspaceSlug: string): Promise<Result | void> {
+  const { user, ctx } = await ctxFor(workspaceSlug);
+  const shared = await getSharedFunnel(token);
+  if (!shared) return { ok: false, error: "This share link is no longer active." };
+  const blocked = await enforce(ctx.membership.organizationId, "funnels");
+  if (blocked) return { ok: false, error: blocked };
+  const f = await inWorkspace(ctx, async (tx) => {
+    const taken = new Set([
+      ...(await tx.select({ slug: funnels.slug }).from(funnels)).map((x) => x.slug),
+      ...RESERVED_SLUGS,
+    ]);
+    const [n] = await tx
+      .insert(funnels)
+      .values({ workspaceId: ctx.workspace.id, name: shared.funnel.name, slug: uniqueSlug(shared.funnel.slug, taken) })
+      .returning();
+    await copySteps(tx, shared.steps, ctx.workspace.id, n!.id);
+    return n!;
+  });
+  await recordAudit(ctx, user.id, {
+    action: "funnel.imported",
+    entityType: "funnel",
+    entityId: f.id,
+    data: { from: "share" },
+  });
+  revalidatePath(`/${workspaceSlug}/funnels`);
+  redirect(`/${workspaceSlug}/funnels/${f.id}`);
 }

@@ -103,6 +103,26 @@ The owner asked to build all remaining phases without stopping, so this plan was
 
 E-commerce store (catalog, variants, cart, shipping, inventory; re-evaluate Medusa) · Community (spaces, posts, comments, notifications) · Affiliate center (links, multi-tier commissions, payouts report) · Message Hub (unified inbox: email + site chat + WhatsApp/SMS) · Agency mode & full white-label · Template/funnel marketplace + share-funnel links · ClickHouse for analytics at scale.
 
+### Phase 4 plan (addendum, 2026-10-10)
+
+The owner asked to continue through all phases without check-ins. Scope is v1 of each item; anything that needs outside approval or heavy infrastructure is listed as deferred.
+
+| #   | Step               | Scope (v1)                                                                                                                                                                                                                           |
+| --- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 4.1 | Share funnels      | A public share link per funnel. Signed-in users preview it and import a full copy into any workspace they manage (counts toward the plan limit).                                                                                     |
+| 4.2 | Affiliate center   | Affiliates sign up on the site and get a referral link (`?aff=code`, 30-day cookie). Commission (percent) on paid orders, per-affiliate stats, a payouts report with mark-as-paid, and an affiliate portal using the customer login. |
+| 4.3 | Community          | Members-only spaces with posts and comments for signed-in customers (purchase- or course-gated). The owner can moderate and pin.                                                                                                     |
+| 4.4 | Store              | Public `/store` catalog of products and a product page with “Buy now” into the existing checkout. Optional shipping address and stock count.                                                                                         |
+| 4.5 | Message hub        | A site chat widget block. Visitor messages land in a unified inbox (chat + contact replies). Owner replies are emailed to the visitor.                                                                                               |
+| 4.6 | White-label        | Organization branding (name, logo, color) on the dashboard, customer center, member area and transactional emails. “Powered by ZFunnel” can be removed on paid plans.                                                                |
+| 4.7 | Analytics at scale | Decision record: stay on Postgres with partition-ready indexes until volume needs ClickHouse (ADR).                                                                                                                                  |
+
+**Status**
+
+- **4.1 Share funnels: done.** The Share dialog creates or revokes a random-token link. `/share/{token}` previews every page; signed-in users import a full copy (steps, drafts, flow links) into any workspace they manage, subject to plan limits. Products, contacts and settings are never copied. An e2e test covers import and revocation.
+
+**Deferred:** WhatsApp/Messenger channels (Meta business verification), payout automation (Stripe Connect transfers to affiliates need KYC), a public marketplace with paid templates (moderation and payments policy), custom dashboard domains per agency (needs on-demand TLS for the app host).
+
 ## Phase 5 — Differentiators (M–L)
 
 Live & evergreen webinars (LiveKit) · AI conversion coach (analyses funnel stats and suggests changes) · Server-side conversion API postbacks (Meta CAPI, Google Ads, TikTok) · Multi-currency + localized checkout.

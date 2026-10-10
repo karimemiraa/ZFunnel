@@ -30,6 +30,8 @@ export const funnels = pgTable(
     /** URL prefix on the workspace domain: /{slug}/{step-slug}. */
     slug: text().notNull(),
     archivedAt: timestamp({ withTimezone: true }),
+    /** Public share link token (null = not shared). Anyone with the link can import a copy. */
+    shareToken: text().unique(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true })
       .notNull()

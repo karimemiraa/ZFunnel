@@ -184,3 +184,39 @@ export async function createFunnelWithSteps(
     return funnel!;
   });
 }
+
+/** Copies steps (drafts, positions and next/decline links) into another funnel, possibly in another workspace. */
+export async function copySteps(
+  tx: Tx,
+  steps: (typeof funnelSteps.$inferSelect)[],
+  workspaceId: string,
+  funnelId: string,
+) {
+  const idMap = new Map<string, string>();
+  for (const s of steps) {
+    const [n] = await tx
+      .insert(funnelSteps)
+      .values({
+        workspaceId,
+        funnelId,
+        name: s.name,
+        type: s.type,
+        slug: s.slug,
+        position: s.position,
+        mapX: s.mapX,
+        mapY: s.mapY,
+        draft: s.draft,
+      })
+      .returning({ id: funnelSteps.id });
+    idMap.set(s.id, n!.id);
+  }
+  for (const s of steps)
+    await tx
+      .update(funnelSteps)
+      .set({
+        nextStepId: s.nextStepId ? (idMap.get(s.nextStepId) ?? null) : null,
+        declineStepId: s.declineStepId ? (idMap.get(s.declineStepId) ?? null) : null,
+      })
+      .where(eq(funnelSteps.id, idMap.get(s.id)!));
+  return idMap;
+}

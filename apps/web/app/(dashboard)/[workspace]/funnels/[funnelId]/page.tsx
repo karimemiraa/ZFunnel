@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AddStepDialog } from "@/components/funnels/add-step-dialog";
 import { FunnelActionsBar } from "@/components/funnels/funnel-actions-bar";
+import { ShareFunnel } from "@/components/funnels/share-funnel";
 import { FunnelMap } from "@/components/funnels/funnel-map";
 import { StepList } from "@/components/funnels/step-list";
 import { StepOffers } from "@/components/funnels/step-offers";
@@ -76,13 +77,16 @@ export default async function FunnelPage({
           </Link>
           <h1 className="truncate text-2xl font-semibold tracking-tight">{funnel.name}</h1>
         </div>
-        <FunnelActionsBar
-          workspaceSlug={ws}
-          funnel={{ id: funnel.id, name: funnel.name, slug: funnel.slug }}
-          isHome={ctx.workspace.homeFunnelId === funnel.id}
-          origin={siteOrigin(ws)}
-          canDelete={canManage(ctx.membership.role)}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <ShareFunnel workspaceSlug={ws} funnelId={funnel.id} token={funnel.shareToken} />
+          <FunnelActionsBar
+            workspaceSlug={ws}
+            funnel={{ id: funnel.id, name: funnel.name, slug: funnel.slug }}
+            isHome={ctx.workspace.homeFunnelId === funnel.id}
+            origin={siteOrigin(ws)}
+            canDelete={canManage(ctx.membership.role)}
+          />
+        </div>
       </div>
 
       <div className="mb-6 inline-flex rounded-lg bg-muted p-1 text-sm">
