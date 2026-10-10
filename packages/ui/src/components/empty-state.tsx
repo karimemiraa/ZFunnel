@@ -20,17 +20,17 @@ function EmptyState({
     <div
       data-slot="empty-state"
       className={cn(
-        "flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed px-6 py-16 text-center",
+        "flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed bg-card/60 px-6 py-16 text-center",
         className,
       )}
     >
       {icon && (
-        <div className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground [&_svg]:size-6">
+        <div className="flex size-14 items-center justify-center rounded-2xl bg-brand-orange/10 text-brand-orange-text ring-1 ring-brand-orange/20 [&_svg]:size-6">
           {icon}
         </div>
       )}
-      <div className="space-y-1">
-        <h3 className="text-base font-semibold">{title}</h3>
+      <div className="space-y-1.5">
+        <h3 className="text-lg font-semibold tracking-tight">{title}</h3>
         {description && <p className="mx-auto max-w-sm text-sm text-muted-foreground">{description}</p>}
       </div>
       {action && <div className="mt-2">{action}</div>}

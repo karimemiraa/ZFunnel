@@ -50,9 +50,11 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
   }
 
   return (
-    <Card>
+    <Card className="shadow-lg shadow-brand-navy/5">
       <CardHeader>
-        <CardTitle className="text-xl">{isSignUp ? t("auth.createYourAccount") : t("auth.welcomeBack")}</CardTitle>
+        <CardTitle className="text-2xl font-bold tracking-tight">
+          {isSignUp ? t("auth.createYourAccount") : t("auth.welcomeBack")}
+        </CardTitle>
         <CardDescription>{isSignUp ? t("auth.signUpSubtitle") : t("auth.signInSubtitle")}</CardDescription>
       </CardHeader>
       <form onSubmit={onSubmit}>

@@ -1,6 +1,8 @@
 /*
- * ZFunnel design tokens. Brand color is a placeholder (indigo) until the
- * brand palette is decided (PRD §9 Q7) — change --primary / --ring only.
+ * ZFunnel design tokens for the platform chrome (docs/brand/README.md).
+ * Brand: orange #F28A22, navy #001A57. On white, buttons and text use the darker
+ * orange #B85A06 (4.66:1 with white, WCAG AA). In dark mode the bright orange carries
+ * navy text (6.56:1). Published funnel pages use their own --zf-* theme, not these.
  * Apps must add `@source` for their own files; this file covers packages/ui.
  */
 @import "tailwindcss";
@@ -12,49 +14,53 @@
 
 :root {
   --background: hsl(0 0% 100%);
-  --foreground: hsl(240 10% 3.9%);
+  --foreground: hsl(224 40% 10%);
   --card: hsl(0 0% 100%);
-  --card-foreground: hsl(240 10% 3.9%);
+  --card-foreground: hsl(224 40% 10%);
   --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(240 10% 3.9%);
-  --primary: hsl(243 75% 59%);
+  --popover-foreground: hsl(224 40% 10%);
+  --primary: #b85a06;
   --primary-foreground: hsl(0 0% 100%);
-  --secondary: hsl(240 4.8% 95.9%);
-  --secondary-foreground: hsl(240 5.9% 10%);
-  --muted: hsl(240 4.8% 95.9%);
-  --muted-foreground: hsl(240 3.8% 46.1%);
-  --accent: hsl(240 4.8% 95.9%);
-  --accent-foreground: hsl(240 5.9% 10%);
+  --secondary: hsl(220 20% 95.5%);
+  --secondary-foreground: hsl(224 60% 14%);
+  --muted: hsl(220 20% 96%);
+  --muted-foreground: hsl(222 12% 42%);
+  --accent: hsl(28 90% 95%);
+  --accent-foreground: hsl(24 80% 22%);
   --destructive: hsl(0 72% 51%);
   --destructive-foreground: hsl(0 0% 98%);
-  --border: hsl(240 5.9% 90%);
-  --input: hsl(240 5.9% 90%);
-  --ring: hsl(243 75% 59%);
-  --sidebar: hsl(240 5% 97.5%);
+  --border: hsl(220 16% 89%);
+  --input: hsl(220 16% 87%);
+  --ring: #f28a22;
+  --sidebar: hsl(220 25% 97.5%);
   --radius: 0.6rem;
+  --brand-orange: #f28a22;
+  --brand-orange-text: #b85a06;
+  --brand-navy: #001a57;
 }
 
 .dark {
-  --background: hsl(240 10% 3.9%);
+  --background: hsl(224 45% 6%);
   --foreground: hsl(0 0% 98%);
-  --card: hsl(240 8% 6%);
+  --card: hsl(224 42% 8.5%);
   --card-foreground: hsl(0 0% 98%);
-  --popover: hsl(240 8% 6%);
+  --popover: hsl(224 42% 8.5%);
   --popover-foreground: hsl(0 0% 98%);
-  --primary: hsl(243 85% 68%);
-  --primary-foreground: hsl(0 0% 100%);
-  --secondary: hsl(240 3.7% 15.9%);
+  --primary: #f28a22;
+  --primary-foreground: #001a57;
+  --secondary: hsl(222 35% 15%);
   --secondary-foreground: hsl(0 0% 98%);
-  --muted: hsl(240 3.7% 15.9%);
-  --muted-foreground: hsl(240 5% 64.9%);
-  --accent: hsl(240 3.7% 15.9%);
+  --muted: hsl(222 35% 14%);
+  --muted-foreground: hsl(220 15% 68%);
+  --accent: hsl(222 35% 16%);
   --accent-foreground: hsl(0 0% 98%);
   --destructive: hsl(0 62.8% 50%);
   --destructive-foreground: hsl(0 0% 98%);
-  --border: hsl(240 3.7% 15.9%);
-  --input: hsl(240 3.7% 15.9%);
-  --ring: hsl(243 85% 68%);
-  --sidebar: hsl(240 8% 5%);
+  --border: hsl(222 30% 17%);
+  --input: hsl(222 30% 19%);
+  --ring: #f28a22;
+  --sidebar: hsl(224 60% 8%);
+  --brand-orange-text: #f28a22;
 }
 
 @theme inline {
@@ -78,6 +84,9 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-sidebar: var(--sidebar);
+  --color-brand-orange: var(--brand-orange);
+  --color-brand-orange-text: var(--brand-orange-text);
+  --color-brand-navy: var(--brand-navy);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);

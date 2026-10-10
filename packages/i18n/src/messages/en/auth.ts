@@ -20,4 +20,8 @@ export const auth = {
   notFoundTitle: "Page not found",
   notFoundBody: "It may have moved, or you may not have access to it.",
   goToDashboard: "Go to dashboard",
+  panelTitle: "Funnels that sell, built in minutes.",
+  panelPoint1: "Pages, checkout and upsells in one place",
+  panelPoint2: "Contacts, email and automations built in",
+  panelPoint3: "English and Arabic, right-to-left ready",
 };

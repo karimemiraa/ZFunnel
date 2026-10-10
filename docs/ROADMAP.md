@@ -274,6 +274,8 @@ Live & evergreen webinars (LiveKit) · AI conversion coach (analyses funnel stat
 3. Should admins be able to "view as" a customer for support (read-only, logged, with a visible banner), or not at all?
 4. About how many ClickFunnels funnels and pages, and do you have the ClickFunnels contacts CSV?
 
+**7.2 status: done (2026-10-10).** The mark is hand-drawn SVG from the source artwork in three variants (app icon, mark for dark and light backgrounds, wordmark), used for the favicon, the apple-touch icon, the dashboard and the "Powered by" badge. Brand tokens in light and dark mode only style the platform chrome; funnel pages keep their own themes. Primary is a darker orange (`#B85A06`, AA with white) on light backgrounds and the bright orange with navy text in dark mode. The auth screens have a branded navy panel, onboarding has a navy brand band, and the sidebar, workspace home, page headers and empty states were polished. Customer emails stay in the workspace's own brand, and the platform sends no emails of its own yet, so no email header changed. See `docs/brand/README.md`.
+
 ---
 
 ## Working agreement
