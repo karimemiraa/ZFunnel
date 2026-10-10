@@ -1,0 +1,32 @@
+{
+	email {$ACME_EMAIL}
+	# Certificates for customer domains are issued on first visit, but only for hosts
+	# the renderer confirms it serves (prevents abuse of Let's Encrypt limits).
+	on_demand_tls {
+		ask http://sites:3001/api/tls/ask
+	}
+}
+
+# Dashboard
+app.{$ROOT_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy web:3000
+}
+
+# Marketing root redirects to the dashboard until there's a marketing site.
+{$ROOT_DOMAIN} {
+	redir https://app.{$ROOT_DOMAIN}{uri}
+}
+
+# Workspace subdomains and customers' custom domains → public renderer.
+https:// {
+	tls {
+		on_demand
+	}
+	encode zstd gzip
+	reverse_proxy sites:3001
+}
+
+http:// {
+	redir https://{host}{uri} permanent
+}

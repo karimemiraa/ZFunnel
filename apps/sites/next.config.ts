@@ -7,6 +7,9 @@ loadEnvConfig(`${process.cwd()}/../..`, process.env.NODE_ENV !== "production", u
 const config: NextConfig = {
   transpilePackages: ["@zfunnel/db", "@zfunnel/blocks", "@zfunnel/payments"],
   poweredByHeader: false,
+  // Self-contained server bundle for Docker (traces the monorepo's workspace packages).
+  output: "standalone",
+  outputFileTracingRoot: `${process.cwd()}/../..`,
 };
 
 export default config;

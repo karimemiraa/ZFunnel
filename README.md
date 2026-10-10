@@ -54,4 +54,5 @@ pnpm dev                        # dashboard :3000 · public sites :3001 · worke
 | [docs/REPO_RESEARCH.md](docs/REPO_RESEARCH.md) | Verified open-source repos and what we take from each                                      |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)   | System design, stack, project structure, data model, tenancy                               |
 | [docs/ROADMAP.md](docs/ROADMAP.md)             | Phase-by-phase plan with acceptance tests and status                                       |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)       | Step-by-step production deployment (Oracle VPS, DNS, Stripe, backups)                      |
 | [docs/DECISIONS.md](docs/DECISIONS.md)         | Architecture decision log                                                                  |

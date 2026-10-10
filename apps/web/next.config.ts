@@ -14,6 +14,9 @@ const config: NextConfig = {
     "@zfunnel/payments",
   ],
   poweredByHeader: false,
+  // Self-contained server bundle for Docker (traces the monorepo's workspace packages).
+  output: "standalone",
+  outputFileTracingRoot: `${process.cwd()}/../..`,
 };
 
 export default config;
