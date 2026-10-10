@@ -115,9 +115,9 @@ See [`ROADMAP.md`](./ROADMAP.md) for the step-by-step plan with deliverables and
 ## 9. Open questions (need answers before building)
 
 1. ~~**Business model**~~ **Answered 2026-10-10: paid, proprietary SaaS.** AGPL/GPL components can only be design references (ADR-002).
-2. **Hosting:** Vercel plus managed services (fastest to ship, higher cost at scale), or self-hosted on Hetzner or another EU VPS with Docker (cheaper, more ops work)? Is EU data residency required?
-3. **Payments:** Stripe first, then PayPal. Do you also need other gateways (e.g. Klarna, SEPA, NMI, Mollie, Paddle)?
+2. ~~Hosting~~ **Answered: self-hosted on the owner's Oracle Cloud VPS** (other apps already run there, so ZFunnel must be fully isolated; ADR-010). Original question: Vercel plus managed services (fastest to ship, higher cost at scale), or self-hosted on Hetzner or another EU VPS with Docker (cheaper, more ops work)? Is EU data residency required?
+3. ~~Payments~~ **Answered: Stripe (Connect) first.** Original question: Stripe first, then PayPal. Do you also need other gateways (e.g. Klarna, SEPA, NMI, Mollie, Paddle)?
 4. **Email sending:** Amazon SES (cheapest), Resend or Postmark (simplest), or self-hosted Postal?
-5. **Languages:** English only for MVP, or German and Arabic (RTL) from day one?
+5. ~~Languages~~ **Answered: English for now; a native Arabic (RTL) version comes later**, so keep UI strings and layouts RTL-friendly. Original question: English only for MVP, or German and Arabic (RTL) from day one?
 6. **Team and timeline:** Who is building alongside Claude, and is there a target launch date? This sets how aggressive Phase 1 can be.
 7. **Brand:** Is "ZFunnel" the final product name, and is there a logo, color palette or domain already?

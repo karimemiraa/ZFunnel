@@ -75,3 +75,20 @@ Format: **ID — Title** · Status (Proposed / Accepted / Superseded) · Date. S
 - pnpm `minimumReleaseAge` of 14 days, so freshly published (possibly compromised) releases are never installed.
 - Install scripts are allowed only for esbuild.
 - TypeScript stays on 5.9 for now; TypeScript 7 (the Go-based compiler) has not been validated with Next.js 16 here.
+
+### ADR-010 — Self-host on the owner's Oracle Cloud VPS · **Accepted** · 2026-10-10
+
+**Context.** The owner hosts on an Oracle Cloud VPS that already runs other apps. Those apps must not be affected.
+
+**Decision.**
+- Everything runs in its own Docker Compose project, `zfunnel`, on its own network. Containers and volumes are prefixed so they can't collide with anything else on the server.
+- Inside, there is a Caddy container with **on-demand TLS** for customer domains, which asks the app whether a domain is allowed before issuing a certificate.
+- App ports bind to `127.0.0.1` only.
+- Before the first deploy, inspect what already holds ports 80 and 443:
+  - **If an existing reverse proxy owns them**, ZFunnel's Caddy listens on alternate local ports, and the existing proxy forwards ZFunnel's hostnames to it. Customer custom domains then need TLS passthrough or a dedicated IP, a decision made at deploy time.
+  - **If 80 and 443 are free**, ZFunnel's Caddy takes them.
+- Oracle's free tier is usually **ARM64 (Ampere)**, so images are built multi-arch.
+- Deploy access uses an SSH key provided through the environment's secret settings, never pasted into chat.
+
+**Consequences.** Docker images, a production compose file and a deploy script become part of the repo. File storage can use local disk or Oracle Object Storage (S3-compatible).
+
