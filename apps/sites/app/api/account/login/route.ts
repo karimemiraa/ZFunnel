@@ -1,4 +1,4 @@
-import { and, contacts, desc, emailMessages, eq, sql } from "@zfunnel/db";
+import { and, contacts, eq } from "@zfunnel/db";
 import { system } from "@zfunnel/payments";
 import { enqueue } from "@zfunnel/queue";
 import { NextResponse } from "next/server";

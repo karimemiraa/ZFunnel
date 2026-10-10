@@ -38,8 +38,8 @@ export default async function BlogIndex() {
         {hero && (
           <Link href={`/blog/${hero.slug}`} className="group mt-8 grid gap-6 md:grid-cols-2">
             <div className="aspect-[16/10] overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-100 to-violet-50">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               {hero.coverUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={hero.coverUrl}
                   alt=""
