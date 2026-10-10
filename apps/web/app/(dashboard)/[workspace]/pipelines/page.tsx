@@ -1,4 +1,3 @@
-import { formatMoney } from "@zfunnel/payments/money";
 import { EmptyState } from "@zfunnel/ui/empty-state";
 import { cn } from "@zfunnel/ui/lib/utils";
 import { KanbanIcon } from "lucide-react";
@@ -8,8 +7,11 @@ import { NewPipelineButton } from "@/components/crm/new-pipeline";
 import { PageHeader } from "@/components/page-header";
 import { requireWorkspace } from "@/lib/context";
 import { getPipelineBoard } from "@/lib/crm";
+import { getFmt, getT } from "@/lib/i18n";
 
-export const metadata = { title: "Pipelines" };
+export async function generateMetadata() {
+  return { title: (await getT())("pipelines.pageTitle") };
+}
 
 export default async function PipelinesPage({
   params,
@@ -22,14 +24,15 @@ export default async function PipelinesPage({
   const { p } = await searchParams;
   const board = await getPipelineBoard(ctx, p);
   const ws = ctx.workspace.slug;
+  const [t, f] = await Promise.all([getT(), getFmt()]);
   if (!board.current)
     return (
       <>
-        <PageHeader title="Pipelines" description="Track deals from first contact to closed-won." />
+        <PageHeader title={t("pipelines.pageTitle")} description={t("pipelines.pageDescription")} />
         <EmptyState
           icon={<KanbanIcon />}
-          title="Create your first pipeline"
-          description="Comes with ready-made stages (New lead → Contacted → Proposal → Won/Lost). Drag deals between them."
+          title={t("pipelines.emptyTitle")}
+          description={t("pipelines.emptyDescription")}
           action={<NewPipelineButton workspaceSlug={ws} size="lg" />}
         />
       </>
@@ -43,8 +46,8 @@ export default async function PipelinesPage({
   return (
     <>
       <PageHeader
-        title="Pipelines"
-        description={`${formatMoney(open, "usd")} open · ${formatMoney(won, "usd")} won`}
+        title={t("pipelines.pageTitle")}
+        description={t("pipelines.summary", { open: f.money(open, "usd"), won: f.money(won, "usd") })}
         actions={
           <div className="flex items-center gap-2">
             {board.pipelines.length > 1 && (

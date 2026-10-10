@@ -1,4 +1,5 @@
 import { asc, chatSettings, conversationMessages, conversations, desc, eq, sql } from "@zfunnel/db";
+import { getTranslator } from "@zfunnel/i18n";
 import { EmptyState } from "@zfunnel/ui/empty-state";
 import { cn } from "@zfunnel/ui/lib/utils";
 import { InboxIcon } from "lucide-react";
@@ -6,10 +7,12 @@ import Link from "next/link";
 import { ChatSettingsDialog, EmptyThread, Thread } from "@/components/inbox/inbox";
 import { PageHeader } from "@/components/page-header";
 import { requireWorkspace } from "@/lib/context";
-import { timeAgo } from "@/lib/format";
 import { inWorkspace } from "@/lib/funnels";
+import { getFmt, getT } from "@/lib/i18n";
 
-export const metadata = { title: "Inbox" };
+export async function generateMetadata() {
+  return { title: (await getT())("inbox.pageTitle") };
+}
 
 const sqlLatest = sql<string>`(select m.id from conversation_messages m where m.conversation_id = "conversations"."id" order by m.created_at desc limit 1)`;
 
@@ -24,6 +27,7 @@ export default async function InboxPage({
   const { c: selected, status: st } = await searchParams;
   const status = st === "closed" ? "closed" : "open";
   const ws = ctx.workspace.slug;
+  const [t, f] = await Promise.all([getT(), getFmt()]);
   const data = await inWorkspace(ctx, async (tx) => {
     const [settings] = await tx.select().from(chatSettings);
     const list = await tx
@@ -58,14 +62,14 @@ export default async function InboxPage({
   return (
     <>
       <PageHeader
-        title="Inbox"
-        description="Chats from your site in one place. Your replies are also emailed, so visitors never miss them."
+        title={t("inbox.pageTitle")}
+        description={t("inbox.pageDescription")}
         actions={
           <ChatSettingsDialog
             workspaceSlug={ws}
             initial={{
               enabled: data.settings?.enabled ?? false,
-              greeting: data.settings?.greeting ?? "Hi there 👋 How can we help?",
+              greeting: data.settings?.greeting ?? getTranslator(ctx.workspace.siteLocale)("site.defaultGreeting"),
               color: data.settings?.color ?? "#4f46e5",
             }}
           />
@@ -83,19 +87,15 @@ export default async function InboxPage({
                   status === s ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                {s}
+                {t(`inbox.status.${s}`)}
               </Link>
             ))}
           </div>
           {data.list.length === 0 ? (
             <EmptyState
               icon={<InboxIcon />}
-              title={status === "open" ? "No open conversations" : "Nothing closed yet"}
-              description={
-                data.settings?.enabled
-                  ? "New chats from your site appear here."
-                  : "Turn on the chat widget to let visitors message you."
-              }
+              title={status === "open" ? t("inbox.noOpen") : t("inbox.noClosed")}
+              description={data.settings?.enabled ? t("inbox.emptyEnabled") : t("inbox.emptyDisabled")}
             />
           ) : (
             <ul className="divide-y overflow-hidden rounded-xl border bg-card">
@@ -113,8 +113,8 @@ export default async function InboxPage({
                         {c.name || c.email}
                       </span>
                       <span className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
-                        {c.unread && <span className="size-2 rounded-full bg-primary" aria-label="Unread" />}
-                        {timeAgo(c.lastMessageAt)}
+                        {c.unread && <span className="size-2 rounded-full bg-primary" aria-label={t("inbox.unread")} />}
+                        {f.timeAgo(c.lastMessageAt)}
                       </span>
                     </div>
                     <p className="mt-0.5 truncate text-xs text-muted-foreground">{last ?? ""}</p>

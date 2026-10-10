@@ -9,10 +9,12 @@ import { PageHeader } from "@/components/page-header";
 import { SearchInput } from "@/components/search-input";
 import { requireWorkspace } from "@/lib/context";
 import { allTags, listContactsFiltered, listFields, listSegments } from "@/lib/crm";
-import { timeAgo } from "@/lib/format";
 import { listFunnels } from "@/lib/funnels";
+import { getFmt, getT } from "@/lib/i18n";
 
-export const metadata = { title: "Contacts" };
+export async function generateMetadata() {
+  return { title: (await getT())("contacts.pageTitle") };
+}
 
 export default async function ContactsPage({
   params,
@@ -24,6 +26,7 @@ export default async function ContactsPage({
   const ctx = await requireWorkspace(params);
   const sp = await searchParams;
   const ws = ctx.workspace.slug;
+  const [t, f] = await Promise.all([getT(), getFmt()]);
   const [{ rows, total }, tags, segs, fields, funnels] = await Promise.all([
     listContactsFiltered(ctx, { q: sp.q, tag: sp.tag, segmentId: sp.segment }),
     allTags(ctx),
@@ -41,8 +44,8 @@ export default async function ContactsPage({
   return (
     <>
       <PageHeader
-        title="Contacts"
-        description={`${total.toLocaleString()} ${total === 1 ? "contact" : "contacts"} in this view`}
+        title={t("contacts.pageTitle")}
+        description={t("contacts.inView", { count: total })}
         actions={
           <div className="flex flex-wrap gap-2">
             <FieldsDialog
@@ -58,7 +61,7 @@ export default async function ContactsPage({
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-1.5">
           <Link href={`/${ws}/contacts`} className={pill(!sp.segment && !sp.tag)}>
-            All contacts
+            {t("contacts.allContacts")}
           </Link>
           {segs.map((s) => (
             <Link key={s.id} href={`/${ws}/contacts?segment=${s.id}`} className={pill(sp.segment === s.id)}>
@@ -72,11 +75,11 @@ export default async function ContactsPage({
             tags={tags.map((t) => t.tag)}
           />
         </div>
-        <SearchInput placeholder="Search name or email" />
+        <SearchInput placeholder={t("contacts.searchPlaceholder")} />
       </div>
       {tags.length > 0 && (
         <div className="mb-4 flex flex-wrap items-center gap-1.5">
-          <span className="me-1 text-xs text-muted-foreground">Tags:</span>
+          <span className="me-1 text-xs text-muted-foreground">{t("contacts.tagsLabel")}</span>
           {tags.slice(0, 20).map((t) => (
             <Link
               key={t.tag}
@@ -91,8 +94,8 @@ export default async function ContactsPage({
       {rows.length === 0 ? (
         <EmptyState
           icon={<UsersIcon />}
-          title={sp.q || sp.tag || sp.segment ? "No matching contacts" : "No contacts yet"}
-          description="Publish a funnel with an opt-in form or checkout, import a CSV, or add contacts by hand."
+          title={sp.q || sp.tag || sp.segment ? t("contacts.noMatching") : t("contacts.emptyTitle")}
+          description={t("contacts.emptyDescription")}
         />
       ) : (
         <ContactsTable
@@ -108,7 +111,7 @@ export default async function ContactsPage({
             utm: c.attribution?.utmSource
               ? `${c.attribution.utmSource}${c.attribution.utmCampaign ? ` · ${c.attribution.utmCampaign}` : ""}`
               : null,
-            added: timeAgo(c.createdAt),
+            added: f.timeAgo(c.createdAt),
           }))}
         />
       )}

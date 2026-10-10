@@ -23,6 +23,7 @@ import { ruleSchema } from "./rule-schema";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { inWorkspace } from "./funnels";
+import { getT, localizeMessage } from "./i18n";
 import { requireUser } from "./session";
 import { canManage, getWorkspaceForUser, recordAudit } from "./workspaces";
 
@@ -39,9 +40,13 @@ const tagSchema = z
   .string()
   .trim()
   .toLowerCase()
-  .min(1)
-  .max(40)
-  .regex(/^[\p{L}\p{N} _-]+$/u, "Letters, numbers, spaces, - and _ only");
+  .min(1, "contacts.err.tagLength")
+  .max(40, "contacts.err.tagLength")
+  .regex(/^[\p{L}\p{N} _-]+$/u, "contacts.err.tagChars");
+
+/** Zod issue message (an i18n key) in the user's language. */
+const issue = (t: Awaited<ReturnType<typeof getT>>, message: string | undefined) =>
+  localizeMessage(t, message) ?? t("common.somethingWrong");
 
 async function activity(
   tx: Tx,
@@ -58,7 +63,7 @@ async function activity(
 // ---------- Contacts ----------
 
 const contactSchema = z.object({
-  email: z.string().trim().toLowerCase().email("Enter a valid email"),
+  email: z.string().trim().toLowerCase().email("contacts.err.invalidEmail"),
   name: z.string().trim().max(120).optional(),
   phone: z.string().trim().max(40).optional(),
 });
@@ -68,9 +73,10 @@ export async function createContact(
   input: { email: string; name?: string; phone?: string; tags?: string[] },
 ): Promise<Result> {
   const { user, ctx } = await ctxFor(workspaceSlug);
+  const t = await getT();
   const parsed = contactSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]!.message };
-  const tags = (input.tags ?? []).map((t) => tagSchema.safeParse(t)).flatMap((r) => (r.success ? [r.data] : []));
+  if (!parsed.success) return { ok: false, error: issue(t, parsed.error.issues[0]!.message) };
+  const tags = (input.tags ?? []).map((tg) => tagSchema.safeParse(tg)).flatMap((r) => (r.success ? [r.data] : []));
   const blocked = await enforce(ctx.membership.organizationId, "contacts");
   if (blocked) return { ok: false, error: blocked };
   const id = await inWorkspace(ctx, async (tx) => {
@@ -87,7 +93,7 @@ export async function createContact(
       .returning({ id: contacts.id });
     return c?.id ?? null;
   });
-  if (!id) return { ok: false, error: "A contact with this email already exists." };
+  if (!id) return { ok: false, error: t("contacts.err.exists") };
   await recordAudit(ctx, user.id, { action: "contact.created", entityType: "contact", entityId: id });
   revalidatePath(`/${workspaceSlug}/contacts`);
   return { ok: true, id };
@@ -99,7 +105,8 @@ export async function updateContact(
   input: { name?: string; phone?: string; fields?: Record<string, string | number | boolean | null> },
 ): Promise<Result> {
   const { ctx } = await ctxFor(workspaceSlug);
-  if (!uuid.safeParse(contactId).success) return { ok: false, error: "Invalid contact" };
+  const t = await getT();
+  if (!uuid.safeParse(contactId).success) return { ok: false, error: t("contacts.err.invalidContact") };
   await inWorkspace(ctx, async (tx) => {
     const defs = await tx.select().from(contactFields);
     const allowed = new Set(defs.map((d) => d.key));
@@ -118,7 +125,7 @@ export async function updateContact(
       .where(eq(contacts.id, contactId));
   });
   revalidatePath(`/${workspaceSlug}/contacts/${contactId}`);
-  return { ok: true, message: "Saved" };
+  return { ok: true, message: t("common.saved") };
 }
 
 export async function setTags(
@@ -128,10 +135,11 @@ export async function setTags(
   mode: "add" | "remove",
 ): Promise<Result> {
   const { user, ctx } = await ctxFor(workspaceSlug);
+  const tr = await getT();
   const t = tagSchema.safeParse(tag);
-  if (!t.success) return { ok: false, error: t.error.issues[0]!.message };
+  if (!t.success) return { ok: false, error: issue(tr, t.error.issues[0]!.message) };
   const ids = contactIds.filter((id) => uuid.safeParse(id).success).slice(0, 5000);
-  if (!ids.length) return { ok: false, error: "No contacts selected" };
+  if (!ids.length) return { ok: false, error: tr("contacts.err.noneSelected") };
   const changedIds = await inWorkspace(ctx, async (tx) => {
     const changed = await tx
       .update(contacts)
@@ -173,14 +181,15 @@ export async function setTags(
   revalidatePath(`/${workspaceSlug}/contacts`, "layout");
   return {
     ok: true,
-    message: `${mode === "add" ? "Tagged" : "Untagged"} ${ids.length} contact${ids.length === 1 ? "" : "s"}`,
+    message: tr(mode === "add" ? "contacts.taggedCount" : "contacts.untaggedCount", { count: ids.length }),
   };
 }
 
 export async function addNote(workspaceSlug: string, contactId: string, body: string): Promise<Result> {
   const { user, ctx } = await ctxFor(workspaceSlug);
   const text = body.trim().slice(0, 5000);
-  if (!text || !uuid.safeParse(contactId).success) return { ok: false, error: "Write a note first" };
+  if (!text || !uuid.safeParse(contactId).success)
+    return { ok: false, error: (await getT())("contacts.err.noteEmpty") };
   await inWorkspace(ctx, async (tx) => {
     const [c] = await tx.select({ id: contacts.id }).from(contacts).where(eq(contacts.id, contactId));
     if (c) await activity(tx, ctx.workspace.id, contactId, "note", text, user.id);
@@ -201,13 +210,14 @@ export async function deleteContact(workspaceSlug: string, contactId: string) {
 
 export async function importContacts(workspaceSlug: string, csvText: string, tag?: string): Promise<Result> {
   const { user, ctx } = await ctxFor(workspaceSlug);
-  if (csvText.length > 5_000_000) return { ok: false, error: "File too large (5 MB max)" };
+  const t = await getT();
+  if (csvText.length > 5_000_000) return { ok: false, error: t("contacts.err.fileTooLarge") };
   const rows = parseCsv(csvText);
-  if (rows.length < 2) return { ok: false, error: "The file needs a header row and at least one contact." };
+  if (rows.length < 2) return { ok: false, error: t("contacts.err.fileEmpty") };
   const header = rows[0]!.map((h) => h.trim().toLowerCase());
   const col = (...names: string[]) => header.findIndex((h) => names.includes(h));
   const iEmail = col("email", "e-mail", "email address");
-  if (iEmail < 0) return { ok: false, error: "No “email” column found in the header row." };
+  if (iEmail < 0) return { ok: false, error: t("contacts.err.noEmailColumn") };
   const iName = col("name", "full name", "first name");
   const iPhone = col("phone", "phone number", "mobile");
   const iTags = col("tags", "tag");
@@ -218,7 +228,7 @@ export async function importContacts(workspaceSlug: string, csvText: string, tag
     if (!email.success || seen.has(email.data)) return [];
     seen.add(email.data);
     const tags = [...(iTags >= 0 ? (r[iTags] ?? "").split(/[|,]/) : []), ...(extraTag?.success ? [extraTag.data] : [])]
-      .map((t) => tagSchema.safeParse(t))
+      .map((tg) => tagSchema.safeParse(tg))
       .flatMap((x) => (x.success ? [x.data] : []));
     return [
       {
@@ -230,7 +240,7 @@ export async function importContacts(workspaceSlug: string, csvText: string, tag
       },
     ];
   });
-  if (!values.length) return { ok: false, error: "No valid email addresses found." };
+  if (!values.length) return { ok: false, error: t("contacts.err.noValidEmails") };
   const blocked = await enforce(ctx.membership.organizationId, "contacts", values.length);
   if (blocked) return { ok: false, error: blocked };
   let created = 0;
@@ -259,7 +269,11 @@ export async function importContacts(workspaceSlug: string, csvText: string, tag
   revalidatePath(`/${workspaceSlug}/contacts`);
   return {
     ok: true,
-    message: `Imported ${values.length} contacts (${created} new, ${values.length - created} updated).`,
+    message: t("contacts.importedSummary", {
+      count: values.length,
+      created,
+      updated: values.length - created,
+    }),
   };
 }
 
@@ -270,8 +284,9 @@ export async function addField(
   input: { label: string; type: "text" | "number" | "date" | "select" | "checkbox" | "url"; options?: string },
 ): Promise<Result> {
   const { ctx } = await ctxFor(workspaceSlug);
+  const t = await getT();
   const label = input.label.trim().slice(0, 60);
-  if (!label) return { ok: false, error: "Give the field a name" };
+  if (!label) return { ok: false, error: t("contacts.err.fieldName") };
   const key = slugify(label).replace(/-/g, "_") || "field";
   const options =
     input.type === "select"
@@ -289,7 +304,7 @@ export async function addField(
         .values({ workspaceId: ctx.workspace.id, key, label, type: input.type, options, position: n });
     });
   } catch {
-    return { ok: false, error: "A field with this name already exists" };
+    return { ok: false, error: t("contacts.err.fieldExists") };
   }
   revalidatePath(`/${workspaceSlug}/contacts`, "layout");
   return { ok: true };
@@ -307,10 +322,21 @@ export async function saveSegment(
   input: { id?: string; name: string; match: "all" | "any"; rules: unknown[] },
 ): Promise<Result> {
   const { ctx } = await ctxFor(workspaceSlug);
-  const rules = z.array(ruleSchema).min(1, "Add at least one rule").max(20).safeParse(input.rules);
-  if (!rules.success) return { ok: false, error: rules.error.issues[0]!.message };
+  const t = await getT();
+  const rules = z
+    .array(ruleSchema)
+    .min(1, "contacts.err.ruleRequired")
+    .max(20, "contacts.err.tooManyRules")
+    .safeParse(input.rules);
+  if (!rules.success) {
+    const msg = rules.error.issues[0]!.message;
+    return {
+      ok: false,
+      error: msg.startsWith("contacts.") ? t(msg as "contacts.err.ruleRequired") : t("contacts.err.invalidRule"),
+    };
+  }
   const name = input.name.trim().slice(0, 80);
-  if (!name) return { ok: false, error: "Name the segment" };
+  if (!name) return { ok: false, error: t("contacts.err.segmentName") };
   const id = await inWorkspace(ctx, async (tx) => {
     if (input.id) {
       await tx.update(segments).set({ name, match: input.match, rules: rules.data }).where(eq(segments.id, input.id));
@@ -335,24 +361,25 @@ export async function deleteSegment(workspaceSlug: string, segmentId: string): P
 
 // ---------- Pipelines & deals ----------
 
-const DEFAULT_STAGES: [string, string, "open" | "won" | "lost"][] = [
-  ["New lead", "#6366f1", "open"],
-  ["Contacted", "#0ea5e9", "open"],
-  ["Proposal sent", "#f59e0b", "open"],
-  ["Won", "#10b981", "won"],
-  ["Lost", "#94a3b8", "lost"],
-];
+const DEFAULT_STAGES = [
+  ["newLead", "#6366f1", "open"],
+  ["contacted", "#0ea5e9", "open"],
+  ["proposalSent", "#f59e0b", "open"],
+  ["won", "#10b981", "won"],
+  ["lost", "#94a3b8", "lost"],
+] as const;
 
 export async function createPipeline(workspaceSlug: string, name: string): Promise<Result> {
   const { ctx } = await ctxFor(workspaceSlug);
-  const n = name.trim().slice(0, 60) || "Sales pipeline";
+  const t = await getT();
+  const n = name.trim().slice(0, 60) || t("pipelines.defaultName");
   const id = await inWorkspace(ctx, async (tx) => {
     const [p] = await tx.insert(pipelines).values({ workspaceId: ctx.workspace.id, name: n }).returning();
     await tx.insert(pipelineStages).values(
       DEFAULT_STAGES.map(([sn, color, kind], i) => ({
         workspaceId: ctx.workspace.id,
         pipelineId: p!.id,
-        name: sn,
+        name: t(`pipelines.stages.${sn}`),
         color,
         kind,
         position: i,
@@ -367,7 +394,7 @@ export async function createPipeline(workspaceSlug: string, name: string): Promi
 export async function addStage(workspaceSlug: string, pipelineId: string, name: string): Promise<Result> {
   const { ctx } = await ctxFor(workspaceSlug);
   const n = name.trim().slice(0, 40);
-  if (!n) return { ok: false, error: "Name the stage" };
+  if (!n) return { ok: false, error: (await getT())("pipelines.err.stageName") };
   await inWorkspace(ctx, async (tx) => {
     const stages = await tx
       .select()
@@ -391,21 +418,22 @@ export async function addStage(workspaceSlug: string, pipelineId: string, name: 
 const dealSchema = z.object({
   pipelineId: uuid,
   stageId: uuid,
-  title: z.string().trim().min(1, "Give the deal a title").max(120),
-  value: z.number().int().min(0).max(1_000_000_000),
-  contactEmail: z.string().trim().toLowerCase().email().optional().or(z.literal("")),
+  title: z.string().trim().min(1, "pipelines.err.dealTitle").max(120, "pipelines.err.dealTitleLong"),
+  value: z.number().int().min(0, "pipelines.err.dealValue").max(1_000_000_000, "pipelines.err.dealValue"),
+  contactEmail: z.string().trim().toLowerCase().email("pipelines.err.invalidEmail").optional().or(z.literal("")),
 });
 
 export async function createDeal(workspaceSlug: string, input: z.input<typeof dealSchema>): Promise<Result> {
   const { user, ctx } = await ctxFor(workspaceSlug);
+  const t = await getT();
   const d = dealSchema.safeParse(input);
-  if (!d.success) return { ok: false, error: d.error.issues[0]!.message };
+  if (!d.success) return { ok: false, error: issue(t, d.error.issues[0]!.message) };
   const res = await inWorkspace(ctx, async (tx) => {
     const [stage] = await tx
       .select()
       .from(pipelineStages)
       .where(and(eq(pipelineStages.id, d.data.stageId), eq(pipelineStages.pipelineId, d.data.pipelineId)));
-    if (!stage) return "Stage not found";
+    if (!stage) return t("pipelines.err.stageNotFound");
     let contactId: string | null = null;
     if (d.data.contactEmail) {
       const [c] = await tx
@@ -439,11 +467,13 @@ export async function moveDeal(
   beforeDealId: string | null,
 ): Promise<Result> {
   const { user, ctx } = await ctxFor(workspaceSlug);
-  if (![dealId, stageId].every((x) => uuid.safeParse(x).success)) return { ok: false, error: "Invalid move" };
+  const t = await getT();
+  if (![dealId, stageId].every((x) => uuid.safeParse(x).success))
+    return { ok: false, error: t("pipelines.err.invalidMove") };
   const err = await inWorkspace(ctx, async (tx) => {
     const [deal] = await tx.select().from(opportunities).where(eq(opportunities.id, dealId));
     const [stage] = await tx.select().from(pipelineStages).where(eq(pipelineStages.id, stageId));
-    if (!deal || !stage || stage.pipelineId !== deal.pipelineId) return "Can't move there";
+    if (!deal || !stage || stage.pipelineId !== deal.pipelineId) return t("pipelines.err.cantMove");
     const siblings = (
       await tx
         .select({ id: opportunities.id })

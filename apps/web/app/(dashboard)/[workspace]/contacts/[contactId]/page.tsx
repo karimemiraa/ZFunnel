@@ -1,4 +1,3 @@
-import { formatMoney } from "@zfunnel/payments/money";
 import { Badge } from "@zfunnel/ui/badge";
 import {
   ArrowLeftIcon,
@@ -11,6 +10,7 @@ import {
   TagIcon,
   ZapIcon,
 } from "lucide-react";
+import type { T } from "@zfunnel/i18n";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { OrderStatus } from "@/components/commerce/order-status";
@@ -19,7 +19,7 @@ import { EnrollMenu } from "@/components/automations/enroll-menu";
 import { listWorkflows } from "@/lib/automations";
 import { requireWorkspace } from "@/lib/context";
 import { getContactDetail } from "@/lib/crm";
-import { timeAgo } from "@/lib/format";
+import { getFmt, getT } from "@/lib/i18n";
 import { canManage } from "@/lib/workspaces";
 
 const ICONS = {
@@ -38,22 +38,41 @@ const ICONS = {
   automation: ZapIcon,
   form: FilterIcon,
 } as const;
-const LABEL: Record<string, (b: string | null) => string> = {
-  note: () => "Note",
-  tag_added: (b) => `Tagged “${b}”`,
-  tag_removed: (b) => `Removed tag “${b}”`,
-  optin: (b) => `Opted in${b ? ` on ${b}` : ""}`,
-  purchase: (b) => `Purchased${b ? ` ${b}` : ""}`,
-  upsell: (b) => `Accepted upsell${b ? ` ${b}` : ""}`,
-  deal_moved: (b) => `Deal moved: ${b}`,
-  email_sent: (b) => `Email sent: ${b}`,
-  email_opened: (b) => `Opened: ${b}`,
-  email_clicked: (b) => `Clicked: ${b}`,
-  automation: (b) => `Automation: ${b}`,
-  form: (b) => `Submitted ${b}`,
-  booking: (b) => `Booked ${b ?? "an appointment"}`,
-  unsubscribed: (b) => `Unsubscribed${b ? ` via “${b}”` : ""}`,
-};
+function activityLabel(t: T, type: string, b: string | null): string {
+  const v = b ?? "";
+  switch (type) {
+    case "note":
+      return t("contacts.activity.note");
+    case "tag_added":
+      return t("contacts.activity.tagAdded", { tag: v });
+    case "tag_removed":
+      return t("contacts.activity.tagRemoved", { tag: v });
+    case "optin":
+      return b ? t("contacts.activity.optinOn", { page: b }) : t("contacts.activity.optin");
+    case "purchase":
+      return b ? t("contacts.activity.purchaseOf", { item: b }) : t("contacts.activity.purchase");
+    case "upsell":
+      return b ? t("contacts.activity.upsellOf", { item: b }) : t("contacts.activity.upsell");
+    case "deal_moved":
+      return t("contacts.activity.dealMoved", { detail: v });
+    case "email_sent":
+      return t("contacts.activity.emailSent", { subject: v });
+    case "email_opened":
+      return t("contacts.activity.emailOpened", { subject: v });
+    case "email_clicked":
+      return t("contacts.activity.emailClicked", { url: v });
+    case "automation":
+      return t("contacts.activity.automation", { detail: v });
+    case "form":
+      return t("contacts.activity.form", { form: v });
+    case "booking":
+      return b ? t("contacts.activity.bookingOf", { item: b }) : t("contacts.activity.booking");
+    case "unsubscribed":
+      return b ? t("contacts.activity.unsubscribedVia", { via: b }) : t("contacts.activity.unsubscribed");
+    default:
+      return type;
+  }
+}
 
 export default async function ContactPage({ params }: { params: Promise<{ workspace: string; contactId: string }> }) {
   const ctx = await requireWorkspace(params);
@@ -62,6 +81,7 @@ export default async function ContactPage({ params }: { params: Promise<{ worksp
   if (!data) notFound();
   const { contact: c } = data;
   const ws = ctx.workspace.slug;
+  const [t, f] = await Promise.all([getT(), getFmt()]);
   const spent = data.orders
     .filter((o) => o.status === "paid" || o.status === "partially_refunded")
     .reduce((s, o) => s + o.total, 0);
@@ -72,7 +92,7 @@ export default async function ContactPage({ params }: { params: Promise<{ worksp
         href={`/${ws}/contacts`}
         className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeftIcon className="size-3.5 rtl:-scale-x-100" /> Contacts
+        <ArrowLeftIcon className="size-3.5 rtl:-scale-x-100" /> {t("contacts.pageTitle")}
       </Link>
       <div className="mb-8 flex flex-wrap items-center gap-4">
         <span className="flex size-14 items-center justify-center rounded-full bg-primary/10 text-lg font-semibold text-primary">
@@ -81,24 +101,24 @@ export default async function ContactPage({ params }: { params: Promise<{ worksp
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-2xl font-semibold tracking-tight">{c.name ?? c.email}</h1>
           <p className="text-sm text-muted-foreground">
-            {c.email} · added {timeAgo(c.createdAt)}
-            {data.sourceFunnel ? ` via ${data.sourceFunnel}` : ""}
+            <span dir="ltr">{c.email}</span> · {t("contacts.added", { when: f.timeAgo(c.createdAt) })}
+            {data.sourceFunnel ? ` ${t("contacts.via", { source: data.sourceFunnel })}` : ""}
             {c.attribution?.utmSource ? ` (${c.attribution.utmSource})` : ""}
           </p>
         </div>
         <div className="flex gap-6 text-end">
           <div>
-            <div className="text-xs text-muted-foreground">Lifetime value</div>
+            <div className="text-xs text-muted-foreground">{t("contacts.lifetimeValue")}</div>
             <div className="text-xl font-semibold tabular-nums">
-              {formatMoney(spent, data.orders[0]?.currency ?? "usd")}
+              {f.money(spent, data.orders[0]?.currency ?? "usd")}
             </div>
           </div>
           <div>
-            <div className="text-xs text-muted-foreground">Orders</div>
+            <div className="text-xs text-muted-foreground">{t("contacts.orders")}</div>
             <div className="text-xl font-semibold tabular-nums">{data.orders.length}</div>
           </div>
         </div>
-        {c.unsubscribedAt && <Badge variant="warning">Unsubscribed from email</Badge>}
+        {c.unsubscribedAt && <Badge variant="warning">{t("contacts.unsubscribedBadge")}</Badge>}
         <EnrollMenu
           workspaceSlug={ws}
           contactId={c.id}
@@ -115,7 +135,7 @@ export default async function ContactPage({ params }: { params: Promise<{ worksp
         <div className="space-y-6">
           {data.orders.length > 0 && (
             <section className="rounded-xl border bg-card">
-              <h2 className="border-b px-5 py-3 font-semibold">Orders</h2>
+              <h2 className="border-b px-5 py-3 font-semibold">{t("contacts.orders")}</h2>
               <ul className="divide-y">
                 {data.orders.map((o) => (
                   <li key={o.id} className="flex items-center gap-4 px-5 py-3 text-sm">
@@ -124,7 +144,7 @@ export default async function ContactPage({ params }: { params: Promise<{ worksp
                       {o.items.map((i) => i.productName).join(", ")}
                     </span>
                     <OrderStatus status={o.status} test={o.test} />
-                    <span className="w-20 text-end font-medium tabular-nums">{formatMoney(o.total, o.currency)}</span>
+                    <span className="w-20 text-end font-medium tabular-nums">{f.money(o.total, o.currency)}</span>
                   </li>
                 ))}
               </ul>
@@ -132,7 +152,7 @@ export default async function ContactPage({ params }: { params: Promise<{ worksp
           )}
           {data.deals.length > 0 && (
             <section className="rounded-xl border bg-card">
-              <h2 className="border-b px-5 py-3 font-semibold">Deals</h2>
+              <h2 className="border-b px-5 py-3 font-semibold">{t("contacts.deals")}</h2>
               <ul className="divide-y">
                 {data.deals.map(({ deal, stage, color, pipeline }) => (
                   <li key={deal.id} className="flex items-center gap-3 px-5 py-3 text-sm">
@@ -141,14 +161,14 @@ export default async function ContactPage({ params }: { params: Promise<{ worksp
                     <span className="text-muted-foreground">
                       {pipeline} · {stage}
                     </span>
-                    <span className="w-20 text-end tabular-nums">{formatMoney(deal.value, deal.currency)}</span>
+                    <span className="w-20 text-end tabular-nums">{f.money(deal.value, deal.currency)}</span>
                   </li>
                 ))}
               </ul>
             </section>
           )}
           <section>
-            <h2 className="mb-3 font-semibold">Activity</h2>
+            <h2 className="mb-3 font-semibold">{t("contacts.activityTitle")}</h2>
             <NoteForm workspaceSlug={ws} contactId={c.id} />
             <ol className="mt-4 space-y-0">
               {data.activity.map(({ a, actor }) => {
@@ -161,11 +181,11 @@ export default async function ContactPage({ params }: { params: Promise<{ worksp
                     </span>
                     <div className="min-w-0 flex-1 pt-1">
                       <div className="text-sm">
-                        <span className="font-medium">{(LABEL[a.type] ?? (() => a.type))(a.body)}</span>
+                        <span className="font-medium">{activityLabel(t, a.type, a.body)}</span>
                         <span className="text-muted-foreground">
                           {" "}
-                          · {timeAgo(a.createdAt)}
-                          {actor ? ` by ${actor}` : ""}
+                          · {f.timeAgo(a.createdAt)}
+                          {actor ? ` ${t("contacts.byActor", { actor })}` : ""}
                         </span>
                       </div>
                       {a.type === "note" && a.body && (
@@ -175,7 +195,9 @@ export default async function ContactPage({ params }: { params: Promise<{ worksp
                   </li>
                 );
               })}
-              {data.activity.length === 0 && <li className="text-sm text-muted-foreground">No activity yet.</li>}
+              {data.activity.length === 0 && (
+                <li className="text-sm text-muted-foreground">{t("contacts.noActivity")}</li>
+              )}
             </ol>
           </section>
         </div>

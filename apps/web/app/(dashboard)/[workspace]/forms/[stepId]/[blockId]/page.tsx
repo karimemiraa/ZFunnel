@@ -5,10 +5,12 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { requireWorkspace } from "@/lib/context";
-import { timeAgo } from "@/lib/format";
 import { getFormResponses, summarize } from "@/lib/forms";
+import { getFmt, getT } from "@/lib/i18n";
 
-export const metadata = { title: "Form responses" };
+export async function generateMetadata() {
+  return { title: (await getT())("formsAdmin.responsesTitle") };
+}
 
 export default async function FormPage({
   params,
@@ -24,6 +26,7 @@ export default async function FormPage({
   const rows = await getFormResponses(ctx, stepId, blockId);
   if (!rows.length) notFound();
   const ws = ctx.workspace.slug;
+  const [t, f] = await Promise.all([getT(), getFmt()]);
   const name = rows[0]!.s.formName;
   const summary = summarize(rows);
   const scored = rows.filter((r) => r.s.score !== null);
@@ -38,39 +41,39 @@ export default async function FormPage({
         href={`/${ws}/forms`}
         className="mb-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeftIcon className="size-4 rtl:-scale-x-100" /> Forms
+        <ArrowLeftIcon className="size-4 rtl:-scale-x-100" /> {t("formsAdmin.pageTitle")}
       </Link>
       <PageHeader
         title={name}
-        description={`${rows.length.toLocaleString()} ${rows.length === 1 ? "response" : "responses"}`}
+        description={t("formsAdmin.responsesCount", { count: rows.length })}
         actions={
           <Button variant="outline" asChild>
             <a href={`${base}/export`}>
-              <DownloadIcon /> Export CSV
+              <DownloadIcon /> {t("formsAdmin.exportCsv")}
             </a>
           </Button>
         }
       />
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        <StatCard label="Responses" value={rows.length.toLocaleString()} />
-        <StatCard label="With email" value={rows.filter((r) => r.s.contactId).length.toLocaleString()} />
+        <StatCard label={t("formsAdmin.colResponses")} value={f.number(rows.length)} />
+        <StatCard label={t("formsAdmin.withEmail")} value={f.number(rows.filter((r) => r.s.contactId).length)} />
         <StatCard
-          label={scored.length ? "Average score" : "Latest"}
+          label={scored.length ? t("formsAdmin.averageScore") : t("formsAdmin.latest")}
           value={
             scored.length
               ? (scored.reduce((s, r) => s + (r.s.score ?? 0), 0) / scored.length).toFixed(1)
-              : timeAgo(rows[0]!.s.createdAt)
+              : f.timeAgo(rows[0]!.s.createdAt)
           }
         />
       </div>
-      <nav className="mb-5 inline-flex rounded-lg bg-muted p-0.5" aria-label="View">
-        {(["summary", "responses"] as const).map((t) => (
+      <nav className="mb-5 inline-flex rounded-lg bg-muted p-0.5" aria-label={t("formsAdmin.view")}>
+        {(["summary", "responses"] as const).map((v) => (
           <Link
-            key={t}
-            href={t === "summary" ? base : `${base}?view=responses`}
-            className={`rounded-md px-3 py-1 text-sm font-medium capitalize ${tab === t ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+            key={v}
+            href={v === "summary" ? base : `${base}?view=responses`}
+            className={`rounded-md px-3 py-1 text-sm font-medium capitalize ${tab === v ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
           >
-            {t}
+            {t(`formsAdmin.tab.${v}`)}
           </Link>
         ))}
       </nav>
@@ -79,22 +82,31 @@ export default async function FormPage({
         <div className="grid gap-4 lg:grid-cols-2">
           {outcomes.size > 0 && (
             <Bars
-              title="Quiz results"
+              title={t("formsAdmin.quizResults")}
               total={rows.length}
+              answersLabel={t("formsAdmin.answersCount", { count: rows.length })}
               items={[...outcomes.entries()].map(([value, n]) => ({ value, n })).sort((a, b) => b.n - a.n)}
             />
           )}
           {summary.map((q) =>
             q.choices ? (
-              <Bars key={q.key} title={q.label} total={q.answered} items={q.choices} />
+              <Bars
+                key={q.key}
+                title={q.label}
+                total={q.answered}
+                answersLabel={t("formsAdmin.answersCount", { count: q.answered })}
+                items={q.choices}
+              />
             ) : (
               <section key={q.key} className="rounded-xl border bg-card p-5">
                 <h2 className="font-semibold">{q.label}</h2>
-                <p className="mb-3 text-xs text-muted-foreground">{q.answered.toLocaleString()} answers · latest</p>
+                <p className="mb-3 text-xs text-muted-foreground">
+                  {t("formsAdmin.answersLatest", { count: q.answered })}
+                </p>
                 <ul className="grid gap-2">
-                  {q.samples.map((t, i) => (
+                  {q.samples.map((sample, i) => (
                     <li key={i} className="rounded-lg bg-muted/60 px-3 py-2 text-sm">
-                      {t}
+                      {sample}
                     </li>
                   ))}
                 </ul>
@@ -107,14 +119,14 @@ export default async function FormPage({
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-start text-xs font-medium tracking-wide text-muted-foreground uppercase">
               <tr>
-                <th className="px-4 py-3">Contact</th>
+                <th className="px-4 py-3">{t("formsAdmin.colContact")}</th>
                 {summary.map((q) => (
                   <th key={q.key} className="max-w-56 px-4 py-3">
                     {q.label}
                   </th>
                 ))}
-                {scored.length > 0 && <th className="px-4 py-3">Result</th>}
-                <th className="px-4 py-3 text-end">When</th>
+                {scored.length > 0 && <th className="px-4 py-3">{t("formsAdmin.colResult")}</th>}
+                <th className="px-4 py-3 text-end">{t("formsAdmin.colWhen")}</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -126,7 +138,7 @@ export default async function FormPage({
                         {cname || email}
                       </Link>
                     ) : (
-                      <span className="text-muted-foreground">Anonymous</span>
+                      <span className="text-muted-foreground">{t("formsAdmin.anonymous")}</span>
                     )}
                   </td>
                   {summary.map((q) => {
@@ -150,7 +162,9 @@ export default async function FormPage({
                       {s.outcome ?? "—"} <span className="text-xs text-muted-foreground">({s.score})</span>
                     </td>
                   )}
-                  <td className="px-4 py-3 text-end whitespace-nowrap text-muted-foreground">{timeAgo(s.createdAt)}</td>
+                  <td className="px-4 py-3 text-end whitespace-nowrap text-muted-foreground">
+                    {f.timeAgo(s.createdAt)}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -161,13 +175,21 @@ export default async function FormPage({
   );
 }
 
-function Bars({ title, total, items }: { title: string; total: number; items: { value: string; n: number }[] }) {
+function Bars({
+  title,
+  total,
+  answersLabel,
+  items,
+}: {
+  title: string;
+  total: number;
+  answersLabel: string;
+  items: { value: string; n: number }[];
+}) {
   return (
     <section className="rounded-xl border bg-card p-5">
       <h2 className="font-semibold">{title}</h2>
-      <p className="mb-4 text-xs text-muted-foreground">
-        {total.toLocaleString()} {total === 1 ? "answer" : "answers"}
-      </p>
+      <p className="mb-4 text-xs text-muted-foreground">{answersLabel}</p>
       <ul className="grid gap-3">
         {items.slice(0, 12).map((c) => {
           const pct = total ? Math.round((c.n / total) * 100) : 0;

@@ -6,6 +6,7 @@ import { enqueue } from "@zfunnel/queue";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { inWorkspace } from "./funnels";
+import { getT, localizeMessage } from "./i18n";
 import { requireUser } from "./session";
 import { siteOrigin } from "./urls";
 import { getWorkspaceForUser } from "./workspaces";
@@ -22,14 +23,16 @@ const refresh = (ws: string) => revalidatePath(`/${ws}/inbox`);
 
 const settingsSchema = z.object({
   enabled: z.boolean(),
-  greeting: z.string().trim().min(1, "Write a greeting").max(300),
-  color: z.string().regex(/^#[0-9a-f]{6}$/i, "Pick a color"),
+  greeting: z.string().trim().min(1, "inbox.writeGreeting").max(300),
+  color: z.string().regex(/^#[0-9a-f]{6}$/i, "inbox.pickColor"),
 });
 
 export async function saveChatSettings(workspaceSlug: string, input: z.input<typeof settingsSchema>): Promise<Result> {
   const ctx = await ctxFor(workspaceSlug);
+  const t = await getT();
   const d = settingsSchema.safeParse(input);
-  if (!d.success) return { ok: false, error: d.error.issues[0]!.message };
+  if (!d.success)
+    return { ok: false, error: localizeMessage(t, d.error.issues[0]!.message) ?? t("common.somethingWrong") };
   await inWorkspace(ctx, (tx) =>
     tx
       .insert(chatSettings)
@@ -37,14 +40,15 @@ export async function saveChatSettings(workspaceSlug: string, input: z.input<typ
       .onConflictDoUpdate({ target: chatSettings.workspaceId, set: { ...d.data, updatedAt: new Date() } }),
   );
   refresh(workspaceSlug);
-  return { ok: true, message: d.data.enabled ? "Chat is live on your site" : "Chat settings saved" };
+  return { ok: true, message: d.data.enabled ? t("inbox.chatLive") : t("inbox.settingsSaved") };
 }
 
 /** Owner reply: saved in the thread and emailed to the visitor. */
 export async function replyToConversation(workspaceSlug: string, id: string, body: string): Promise<Result> {
   const ctx = await ctxFor(workspaceSlug);
+  const t = await getT();
   const text = body.trim();
-  if (!text || text.length > 4_000) return { ok: false, error: "Write a reply (up to 4,000 characters)." };
+  if (!text || text.length > 4_000) return { ok: false, error: t("inbox.writeReply") };
   const messageId = await inWorkspace(ctx, async (tx) => {
     const [c] = await tx.select().from(conversations).where(eq(conversations.id, id));
     if (!c) return null;
@@ -70,10 +74,10 @@ export async function replyToConversation(workspaceSlug: string, id: string, bod
       .returning({ id: emailMessages.id });
     return m!.id;
   });
-  if (!messageId) return { ok: false, error: "Conversation not found." };
+  if (!messageId) return { ok: false, error: t("inbox.notFound") };
   const queued = await enqueue("email", { messageId }, { jobId: `msg-${messageId}` });
   refresh(workspaceSlug);
-  return { ok: true, message: queued ? "Reply sent" : "Reply saved. The email will go out when the worker is back." };
+  return { ok: true, message: queued ? t("inbox.replySent") : t("inbox.replyQueued") };
 }
 
 export async function setConversationStatus(
@@ -82,11 +86,12 @@ export async function setConversationStatus(
   status: "open" | "closed",
 ): Promise<Result> {
   const ctx = await ctxFor(workspaceSlug);
+  const t = await getT();
   await inWorkspace(ctx, (tx) =>
     tx.update(conversations).set({ status, unread: false }).where(eq(conversations.id, id)),
   );
   refresh(workspaceSlug);
-  return { ok: true, message: status === "closed" ? "Conversation closed" : "Conversation reopened" };
+  return { ok: true, message: status === "closed" ? t("inbox.closed") : t("inbox.reopened") };
 }
 
 export async function markConversationRead(workspaceSlug: string, id: string) {

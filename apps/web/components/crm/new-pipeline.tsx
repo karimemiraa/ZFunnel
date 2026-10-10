@@ -2,12 +2,14 @@
 
 import { Button } from "@zfunnel/ui/button";
 import { toast } from "@zfunnel/ui/toaster";
+import { useT } from "@zfunnel/i18n/react";
 import { Loader2Icon, PlusIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { createPipeline } from "@/lib/crm-actions";
 
 export function NewPipelineButton({ workspaceSlug, size }: { workspaceSlug: string; size?: "lg" }) {
+  const t = useT();
   const router = useRouter();
   const [busy, start] = useTransition();
   return (
@@ -16,7 +18,7 @@ export function NewPipelineButton({ workspaceSlug, size }: { workspaceSlug: stri
       variant={size ? "default" : "outline"}
       disabled={busy}
       onClick={() => {
-        const name = prompt("Pipeline name", "Sales pipeline");
+        const name = prompt(t("pipelines.namePrompt"), t("pipelines.defaultName"));
         if (!name) return;
         start(async () => {
           const r = await createPipeline(workspaceSlug, name);
@@ -26,7 +28,7 @@ export function NewPipelineButton({ workspaceSlug, size }: { workspaceSlug: stri
         });
       }}
     >
-      {busy ? <Loader2Icon className="animate-spin" /> : <PlusIcon />} New pipeline
+      {busy ? <Loader2Icon className="animate-spin" /> : <PlusIcon />} {t("pipelines.newPipeline")}
     </Button>
   );
 }

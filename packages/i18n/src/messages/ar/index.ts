@@ -8,12 +8,16 @@ import { booking } from "./booking";
 import { checkout } from "./checkout";
 import { common } from "./common";
 import { community } from "./community";
+import { contacts } from "./contacts";
 import { courses } from "./courses";
 import { emails } from "./emails";
 import { errors } from "./errors";
 import { forms } from "./forms";
+import { formsAdmin } from "./formsAdmin";
+import { inbox } from "./inbox";
 import { nav } from "./nav";
 import { overview } from "./overview";
+import { pipelines } from "./pipelines";
 import { settings } from "./settings";
 import { shell } from "./shell";
 import { site } from "./site";
@@ -29,12 +33,16 @@ export const ar: Shape<typeof en> = {
   checkout,
   common,
   community,
+  contacts,
   courses,
   emails,
   errors,
   forms,
+  formsAdmin,
+  inbox,
   nav,
   overview,
+  pipelines,
   settings,
   shell,
   site,

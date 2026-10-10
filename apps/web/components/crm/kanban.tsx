@@ -1,17 +1,18 @@
 "use client";
 
-import { formatMoney } from "@zfunnel/payments/money";
 import { Button } from "@zfunnel/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@zfunnel/ui/dialog";
 import { Input } from "@zfunnel/ui/input";
 import { Label } from "@zfunnel/ui/label";
 import { cn } from "@zfunnel/ui/lib/utils";
 import { toast } from "@zfunnel/ui/toaster";
+import { useT } from "@zfunnel/i18n/react";
 import { Loader2Icon, PlusIcon, Trash2Icon, TrophyIcon, XCircleIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useOptimistic, useState, useTransition } from "react";
 import { addStage, createDeal, deleteDeal, moveDeal } from "@/lib/crm-actions";
+import { useFmt } from "@/lib/use-fmt";
 
 type Stage = { id: string; name: string; color: string; kind: "open" | "won" | "lost" };
 type Deal = {
@@ -33,6 +34,7 @@ function NewDealDialog({
   pipelineId: string;
   stage: Stage;
 }) {
+  const t = useT();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [busy, start] = useTransition();
@@ -40,12 +42,12 @@ function NewDealDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground">
-          <PlusIcon /> Add deal
+          <PlusIcon /> {t("pipelines.addDeal")}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>New deal in “{stage.name}”</DialogTitle>
+          <DialogTitle>{t("pipelines.newDealIn", { stage: stage.name })}</DialogTitle>
         </DialogHeader>
         <form
           className="grid gap-4"
@@ -61,29 +63,29 @@ function NewDealDialog({
                 contactEmail: String(f.get("email") ?? ""),
               });
               if (!r.ok) return void toast.error(r.error);
-              toast.success("Deal added");
+              toast.success(t("pipelines.dealAdded"));
               setOpen(false);
               router.refresh();
             });
           }}
         >
           <div className="space-y-1.5">
-            <Label htmlFor="d-title">Title</Label>
-            <Input id="d-title" name="title" placeholder="Acme: coaching package" required />
+            <Label htmlFor="d-title">{t("pipelines.dealTitle")}</Label>
+            <Input id="d-title" name="title" placeholder={t("pipelines.titlePlaceholder")} required />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="d-value">Value ($)</Label>
+              <Label htmlFor="d-value">{t("pipelines.value")}</Label>
               <Input id="d-value" name="value" inputMode="decimal" placeholder="2500" />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="d-email">Contact email</Label>
-              <Input id="d-email" name="email" type="email" placeholder="optional" />
+              <Label htmlFor="d-email">{t("pipelines.contactEmail")}</Label>
+              <Input id="d-email" name="email" type="email" dir="ltr" placeholder={t("common.optional")} />
             </div>
           </div>
           <div className="flex justify-end">
             <Button type="submit" disabled={busy}>
-              {busy && <Loader2Icon className="animate-spin" />} Add deal
+              {busy && <Loader2Icon className="animate-spin" />} {t("pipelines.addDeal")}
             </Button>
           </div>
         </form>
@@ -103,6 +105,8 @@ export function Kanban({
   stages: Stage[];
   deals: Deal[];
 }) {
+  const t = useT();
+  const f = useFmt();
   const router = useRouter();
   const [optimistic, applyMove] = useOptimistic(
     deals,
@@ -166,7 +170,7 @@ export function Kanban({
                 <span className="text-xs text-muted-foreground tabular-nums">{items.length}</span>
               </header>
               <div className="px-3 pb-2 text-xs font-medium text-muted-foreground tabular-nums">
-                {formatMoney(total, items[0]?.currency ?? "usd")}
+                {f.money(total, items[0]?.currency ?? "usd")}
               </div>
               <ol className="flex flex-1 flex-col gap-2 px-2 pb-2">
                 {items.map((d) => (
@@ -194,9 +198,9 @@ export function Kanban({
                       <button
                         type="button"
                         className="text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-destructive"
-                        aria-label={`Delete ${d.title}`}
+                        aria-label={t("pipelines.deleteDealAria", { title: d.title })}
                         onClick={() =>
-                          confirm(`Delete deal “${d.title}”?`) &&
+                          confirm(t("pipelines.deleteDealConfirm", { title: d.title })) &&
                           start(async () => {
                             await deleteDeal(workspaceSlug, d.id);
                             router.refresh();
@@ -217,7 +221,7 @@ export function Kanban({
                       ) : (
                         <span />
                       )}
-                      <span className="font-semibold tabular-nums">{formatMoney(d.value, d.currency)}</span>
+                      <span className="font-semibold tabular-nums">{f.money(d.value, d.currency)}</span>
                     </div>
                   </li>
                 ))}
@@ -243,11 +247,11 @@ export function Kanban({
           <Input
             value={newStage}
             onChange={(e) => setNewStage(e.target.value)}
-            placeholder="New stage name"
-            aria-label="New stage name"
+            placeholder={t("pipelines.newStageName")}
+            aria-label={t("pipelines.newStageName")}
           />
           <Button type="submit" variant="outline" size="sm" className="w-full" disabled={!newStage}>
-            <PlusIcon /> Add stage
+            <PlusIcon /> {t("pipelines.addStage")}
           </Button>
         </form>
       </div>

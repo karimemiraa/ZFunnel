@@ -1,0 +1,58 @@
+import type { Shape } from "../../core";
+import type { formsAdmin as en } from "../en/formsAdmin";
+
+export const formsAdmin: Shape<typeof en> = {
+  pageTitle: "النماذج",
+  pageDescription: "كل الردود على الاستبيانات والاختبارات والنماذج في صفحات أقماع مبيعاتك.",
+  emptyTitle: "لا توجد ردود بعد",
+  emptyDescription:
+    "أضف كتلة «نموذج / استبيان / اختبار» إلى أي صفحة في قمع المبيعات وانشرها، وستجد هنا كل رد مع ملخص واضح.",
+  goToFunnels: "انتقل إلى أقماع المبيعات ←",
+  colForm: "النموذج",
+  colFunnel: "قمع المبيعات",
+  colResponses: "الردود",
+  colLastResponse: "آخر رد",
+  contactsCount: {
+    zero: "لا توجد جهات اتصال",
+    one: "جهة اتصال واحدة",
+    two: "جهتا اتصال",
+    few: "{count} جهات اتصال",
+    many: "{count} جهة اتصال",
+    other: "{count} جهة اتصال",
+  },
+  deletedFunnel: "قمع محذوف",
+  responsesTitle: "ردود النموذج",
+  responsesCount: {
+    one: "رد واحد",
+    two: "ردّان",
+    few: "{count} ردود",
+    many: "{count} ردًا",
+    other: "{count} رد",
+  },
+  exportCsv: "تصدير CSV",
+  withEmail: "مع بريد إلكتروني",
+  averageScore: "متوسط النتيجة",
+  latest: "الأحدث",
+  view: "طريقة العرض",
+  tab: { summary: "الملخص", responses: "الردود" },
+  quizResults: "نتائج الاختبار",
+  answersCount: {
+    zero: "لا توجد إجابات",
+    one: "إجابة واحدة",
+    two: "إجابتان",
+    few: "{count} إجابات",
+    many: "{count} إجابة",
+    other: "{count} إجابة",
+  },
+  answersLatest: {
+    one: "إجابة واحدة · الأحدث",
+    two: "إجابتان · الأحدث",
+    few: "{count} إجابات · الأحدث",
+    many: "{count} إجابة · الأحدث",
+    other: "{count} إجابة · الأحدث",
+  },
+  colContact: "جهة الاتصال",
+  colResult: "النتيجة",
+  colWhen: "التاريخ",
+  anonymous: "مجهول",
+};

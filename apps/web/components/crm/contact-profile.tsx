@@ -7,6 +7,7 @@ import { Label } from "@zfunnel/ui/label";
 import { NativeSelect } from "@zfunnel/ui/select";
 import { Textarea } from "@zfunnel/ui/textarea";
 import { toast } from "@zfunnel/ui/toaster";
+import { useT } from "@zfunnel/i18n/react";
 import { Loader2Icon, PlusIcon, Trash2Icon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -25,6 +26,7 @@ export function ContactProfile({
   fields: Field[];
   canDelete: boolean;
 }) {
+  const t = useT();
   const router = useRouter();
   const [busy, start] = useTransition();
   const [newTag, setNewTag] = useState("");
@@ -34,7 +36,7 @@ export function ContactProfile({
       if (r.ok) {
         toast.success(r.message ?? msg);
         router.refresh();
-      } else toast.error(r.error ?? "Something went wrong");
+      } else toast.error(r.error ?? t("contacts.somethingWrong"));
     });
 
   return (
@@ -57,18 +59,18 @@ export function ContactProfile({
                 phone: String(f.get("phone") ?? ""),
                 fields: values,
               }),
-            "Saved",
+            t("common.saved"),
           );
         }}
       >
-        <h2 className="font-semibold">Details</h2>
+        <h2 className="font-semibold">{t("contacts.details")}</h2>
         <div className="space-y-1.5">
-          <Label htmlFor="p-name">Name</Label>
+          <Label htmlFor="p-name">{t("contacts.name")}</Label>
           <Input id="p-name" name="name" defaultValue={contact.name ?? ""} />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="p-phone">Phone</Label>
-          <Input id="p-phone" name="phone" defaultValue={contact.phone ?? ""} />
+          <Label htmlFor="p-phone">{t("contacts.phone")}</Label>
+          <Input id="p-phone" name="phone" dir="ltr" defaultValue={contact.phone ?? ""} />
         </div>
         {fields.map((fd) => {
           const v = contact.fields?.[fd.key];
@@ -105,22 +107,22 @@ export function ContactProfile({
           );
         })}
         <Button type="submit" variant="secondary" disabled={busy} className="w-full">
-          {busy && <Loader2Icon className="animate-spin" />} Save details
+          {busy && <Loader2Icon className="animate-spin" />} {t("contacts.saveDetails")}
         </Button>
       </form>
 
       <div className="space-y-3 rounded-xl border bg-card p-5">
-        <h2 className="font-semibold">Tags</h2>
+        <h2 className="font-semibold">{t("contacts.tags")}</h2>
         <div className="flex flex-wrap gap-1.5">
-          {contact.tags.length === 0 && <span className="text-sm text-muted-foreground">No tags yet</span>}
-          {contact.tags.map((t) => (
-            <Badge key={t} variant="secondary" className="gap-1 pe-1">
-              {t}
+          {contact.tags.length === 0 && <span className="text-sm text-muted-foreground">{t("contacts.noTags")}</span>}
+          {contact.tags.map((tag) => (
+            <Badge key={tag} variant="secondary" className="gap-1 pe-1">
+              {tag}
               <button
                 type="button"
-                aria-label={`Remove tag ${t}`}
+                aria-label={t("contacts.removeTag", { tag })}
                 className="rounded-full p-0.5 hover:text-foreground"
-                onClick={() => run(() => setTags(workspaceSlug, [contact.id], t, "remove"), "Tag removed")}
+                onClick={() => run(() => setTags(workspaceSlug, [contact.id], tag, "remove"), t("contacts.tagRemoved"))}
               >
                 <XIcon />
               </button>
@@ -131,15 +133,15 @@ export function ContactProfile({
           className="flex gap-2"
           onSubmit={(e) => {
             e.preventDefault();
-            run(() => setTags(workspaceSlug, [contact.id], newTag, "add"), "Tag added");
+            run(() => setTags(workspaceSlug, [contact.id], newTag, "add"), t("contacts.tagAdded"));
             setNewTag("");
           }}
         >
           <Input
             value={newTag}
             onChange={(e) => setNewTag(e.target.value)}
-            placeholder="Add a tag"
-            aria-label="New tag"
+            placeholder={t("contacts.addTag")}
+            aria-label={t("contacts.newTag")}
             className="h-8"
           />
           <Button size="sm" type="submit" disabled={!newTag || busy}>
@@ -152,13 +154,9 @@ export function ContactProfile({
         <Button
           variant="ghost"
           className="w-full text-destructive hover:text-destructive"
-          onClick={() =>
-            confirm(
-              "Permanently delete this contact and their history (GDPR erasure)? Orders are kept without personal data.",
-            ) && start(() => deleteContact(workspaceSlug, contact.id))
-          }
+          onClick={() => confirm(t("contacts.deleteConfirm")) && start(() => deleteContact(workspaceSlug, contact.id))}
         >
-          <Trash2Icon /> Delete contact (GDPR)
+          <Trash2Icon /> {t("contacts.deleteGdpr")}
         </Button>
       )}
     </div>
@@ -166,6 +164,7 @@ export function ContactProfile({
 }
 
 export function NoteForm({ workspaceSlug, contactId }: { workspaceSlug: string; contactId: string }) {
+  const t = useT();
   const router = useRouter();
   const [text, setText] = useState("");
   const [busy, start] = useTransition();
@@ -186,13 +185,13 @@ export function NoteForm({ workspaceSlug, contactId }: { workspaceSlug: string; 
       <Textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="Add a note…"
+        placeholder={t("contacts.notePlaceholder")}
         rows={2}
-        aria-label="Note"
+        aria-label={t("contacts.note")}
       />
       <div className="flex justify-end">
         <Button size="sm" type="submit" disabled={!text.trim() || busy}>
-          {busy && <Loader2Icon className="animate-spin" />} Add note
+          {busy && <Loader2Icon className="animate-spin" />} {t("contacts.addNote")}
         </Button>
       </div>
     </form>
