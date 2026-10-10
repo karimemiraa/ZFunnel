@@ -5,6 +5,7 @@ import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { resolveStepForWorkspace } from "@/lib/resolve";
 import { currentWorkspace } from "@/lib/site";
 import { track } from "@/lib/track";
+import { logActivity } from "@zfunnel/payments";
 
 const bodySchema = z.object({
   stepId: z.string().uuid(),
@@ -43,8 +44,8 @@ export async function POST(req: Request) {
   };
 
   const now = new Date();
-  await withSystem(getDb(), (tx) =>
-    tx
+  await withSystem(getDb(), async (tx) => {
+    const [c] = await tx
       .insert(contacts)
       .values({
         workspaceId: ws.id,
@@ -65,8 +66,10 @@ export async function POST(req: Request) {
           phone: sql`coalesce(excluded.phone, ${contacts.phone})`,
           updatedAt: now,
         },
-      }),
-  );
+      })
+      .returning({ id: contacts.id });
+    await logActivity(tx, { workspaceId: ws.id, contactId: c!.id, type: "optin", body: "opt-in form" });
+  });
 
   await track(req.headers, {
     workspaceId: ws.id,

@@ -1,6 +1,7 @@
-import { and, eq, orders, payments } from "@zfunnel/db";
+import { and, eq, orderItems, orders, payments } from "@zfunnel/db";
 import {
   chargeTestCard,
+  logActivity,
   getPaymentSetup,
   markPaymentFailed,
   markPaymentSucceeded,
@@ -123,6 +124,20 @@ export async function POST(req: Request) {
     }
   }
 
+  if (payment.status !== "succeeded" && order.contactId)
+    await system(async (tx) => {
+      const items = await tx
+        .select({ name: orderItems.productName })
+        .from(orderItems)
+        .where(eq(orderItems.orderId, order.id));
+      await logActivity(tx, {
+        workspaceId: g.ws.id,
+        contactId: order.contactId!,
+        type: "purchase",
+        body: `#${order.number}: ${items.map((i) => i.name).join(", ")}`,
+        data: { orderId: order.id },
+      });
+    });
   if (payment.status !== "succeeded")
     await track(req.headers, {
       workspaceId: g.ws.id,

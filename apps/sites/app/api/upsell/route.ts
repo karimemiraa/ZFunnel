@@ -8,6 +8,7 @@ import {
   getPaymentSetup,
   getProfile,
   getStepOffers,
+  logActivity,
   markPaymentFailed,
   markPaymentSucceeded,
   recordSubscription,
@@ -87,6 +88,9 @@ export async function POST(req: Request) {
 
   if (setup.provider === "test") {
     await system((tx) => markPaymentSucceeded(tx, paymentId, { test: true }));
+    await system((tx) =>
+      logActivity(tx, { workspaceId: g.ws.id, contactId: session.contactId!, type: "upsell", body: offer.productName }),
+    );
     await track(req.headers, {
       workspaceId: g.ws.id,
       funnelId: step.funnelId,
@@ -167,6 +171,9 @@ export async function POST(req: Request) {
     console.error("[upsell]", err);
     return fail("Your card was declined. Please try another option.");
   }
+  await system((tx) =>
+    logActivity(tx, { workspaceId: g.ws.id, contactId: session.contactId!, type: "upsell", body: offer.productName }),
+  );
   await track(req.headers, {
     workspaceId: g.ws.id,
     funnelId: step.funnelId,

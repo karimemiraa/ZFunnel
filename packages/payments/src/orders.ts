@@ -1,6 +1,7 @@
 import {
   and,
   asc,
+  contactActivities,
   contacts,
   eq,
   funnelSessions,
@@ -326,4 +327,26 @@ export function toRuntimeOffers(offers: OfferView[]) {
     trialDays: o.trialDays,
     installments: o.installments,
   }));
+}
+
+/** Adds an entry to a contact's timeline (shown in the CRM). */
+export async function logActivity(
+  tx: Tx,
+  input: {
+    workspaceId: string;
+    contactId: string;
+    type: "optin" | "purchase" | "upsell" | "form" | "automation" | "email_sent" | "email_opened" | "email_clicked";
+    body?: string | null;
+    data?: Record<string, unknown>;
+  },
+) {
+  await tx
+    .insert(contactActivities)
+    .values({
+      workspaceId: input.workspaceId,
+      contactId: input.contactId,
+      type: input.type,
+      body: input.body ?? null,
+      data: input.data,
+    });
 }

@@ -4,6 +4,7 @@ import {
   CalendarIcon,
   ContactIcon,
   type LucideIcon,
+  KanbanIcon,
   LayoutDashboardIcon,
   MailIcon,
   PackageIcon,
@@ -54,6 +55,12 @@ export const NAV_MODULES: NavModule[] = [
     label: "Contacts",
     icon: ContactIcon,
     description: "Your CRM: contacts, tags, segments and pipelines.",
+  },
+  {
+    segment: "pipelines",
+    label: "Pipelines",
+    icon: KanbanIcon,
+    description: "Drag deals through your sales stages and see what's in the pipeline.",
   },
   {
     segment: "email",
