@@ -3,6 +3,7 @@
 import { affiliates, affiliateSettings, and, commissions, eq } from "@zfunnel/db";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { getT, localizeMessage } from "./i18n";
 import { inWorkspace } from "./funnels";
 import { requireUser } from "./session";
 import { canManage, getWorkspaceForUser, recordAudit } from "./workspaces";
@@ -12,22 +13,32 @@ type Result = { ok: true; message?: string } | { ok: false; error: string };
 async function managerCtx(workspaceSlug: string) {
   const user = await requireUser();
   const ctx = await getWorkspaceForUser(user.id, workspaceSlug);
-  if (!ctx) throw new Error("Workspace not found");
-  if (!canManage(ctx.membership.role)) throw new Error("Only owners and admins can manage affiliates.");
+  const t = await getT();
+  if (!ctx) throw new Error(t("affiliatesAdmin.errors.workspaceNotFound"));
+  if (!canManage(ctx.membership.role)) throw new Error(t("affiliatesAdmin.errors.forbidden"));
   return { user, ctx };
 }
 
 const schema = z.object({
   enabled: z.boolean(),
-  commissionPercent: z.number().int().min(1).max(90),
-  cookieDays: z.number().int().min(1).max(365),
-  terms: z.string().trim().max(3000),
+  commissionPercent: z
+    .number()
+    .int()
+    .min(1, "affiliatesAdmin.errors.commission")
+    .max(90, "affiliatesAdmin.errors.commission"),
+  cookieDays: z
+    .number()
+    .int()
+    .min(1, "affiliatesAdmin.errors.cookieDays")
+    .max(365, "affiliatesAdmin.errors.cookieDays"),
+  terms: z.string().trim().max(3000, "affiliatesAdmin.errors.terms"),
 });
 
 export async function saveAffiliateSettings(workspaceSlug: string, input: z.input<typeof schema>): Promise<Result> {
   const { user, ctx } = await managerCtx(workspaceSlug);
+  const t = await getT();
   const d = schema.safeParse(input);
-  if (!d.success) return { ok: false, error: d.error.issues[0]!.message };
+  if (!d.success) return { ok: false, error: localizeMessage(t, d.error.issues[0]!.message) ?? "" };
   await inWorkspace(ctx, (tx) =>
     tx
       .insert(affiliateSettings)
@@ -40,7 +51,7 @@ export async function saveAffiliateSettings(workspaceSlug: string, input: z.inpu
     data: d.data,
   });
   revalidatePath(`/${workspaceSlug}/affiliates`);
-  return { ok: true, message: d.data.enabled ? "Affiliate program is live" : "Saved" };
+  return { ok: true, message: d.data.enabled ? t("affiliatesAdmin.programLive") : t("affiliatesAdmin.saved") };
 }
 
 export async function setAffiliateStatus(
@@ -71,5 +82,5 @@ export async function markAffiliatePaid(workspaceSlug: string, affiliateId: stri
     data: { commissions: rows.length, amount: rows.reduce((s, r) => s + r.amount, 0) },
   });
   revalidatePath(`/${workspaceSlug}/affiliates`);
-  return { ok: true, message: `Marked ${rows.length} commissions as paid` };
+  return { ok: true, message: (await getT())("affiliatesAdmin.markedPaid", { count: rows.length }) };
 }
