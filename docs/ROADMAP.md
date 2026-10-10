@@ -232,6 +232,50 @@ Live & evergreen webinars (LiveKit) · AI conversion coach (analyses funnel stat
 
 ---
 
+## Phase 7 — Platform owner, brand, ClickFunnels import (M–L)
+
+### Phase 7 plan (2026-10-10) — awaiting sign-off
+
+**Problem.**
+
+1. The platform owner can't see or manage the platform as a whole: sign-ups, organizations, plans, abuse.
+2. The product still carries a placeholder look rather than the ZFunnel brand: an orange and white "Z" on deep navy.
+3. The owner's existing funnels live in ClickFunnels, and moving them by hand is slow.
+
+**Success criteria.**
+
+1. Only accounts listed as platform admins can open `/admin`. Everyone else gets a 404.
+2. Admins can see every organization, workspace and user, with sign-up date, plan, usage and revenue.
+3. Admins can suspend or unsuspend an organization and change its plan.
+4. Every admin action is written to an audit log.
+5. The logo, favicon, colors, auth screens, emails and the "Powered by" badge all carry the new brand, in light and dark mode, in English and Arabic.
+6. A published ClickFunnels page URL can be imported as an editable ZFunnel funnel step, with its images copied over.
+7. Contacts can be imported from the ClickFunnels CSV export.
+
+**Scope.**
+
+| #   | Item                | Scope                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| --- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 7.1 | Super admin         | Admin access comes from `PLATFORM_ADMIN_EMAILS` in the server `.env`, and the email must be verified. A separate admin area at `/admin` has: an overview (sign-ups, active organizations, MRR, GMV and a 30-day trend), lists of organizations, workspaces and users with search, an organization detail page (members, workspaces, plan, usage), suspend/unsuspend, plan override, and the admin audit log. Platform-wide reads go through `withSystem` behind an admin guard. No silent "log in as user". |
+| 7.2 | Rebrand and UI pass | The logo as SVG (mark plus wordmark), favicon and app icons, and brand tokens (orange `#F28A22`, navy `#001A57`) in light and dark mode. Updated auth and onboarding screens, sidebar, empty states, email header and the badge. A polish pass on spacing, typography and contrast across the main screens.                                                                                                                                                                                                 |
+| 7.3 | ClickFunnels import | Paste one or more published page URLs. The server fetches each page and turns it into ZFunnel blocks (headings, text, images, buttons, video, lists, forms becoming opt-in forms). Anything it can't map is kept as a custom-HTML block, so nothing is lost. Images are copied to our storage. Contacts come in through the existing CSV import, with the ClickFunnels column names pre-mapped.                                                                                                             |
+
+**Honest limits of the import.**
+
+- ClickFunnels has no export of its page designs. We can only read the published pages, the same way a browser does.
+- The text, images, structure and colors come over. The pixel-exact layout and animations will need touch-up in the editor.
+- Products, prices, order bumps, automations and email sequences can't be read from a page. They must be recreated, which is quick with the templates.
+- Only pages you own may be imported. The import tool says so.
+
+**Open questions for the owner.**
+
+1. Which email should be the first super admin? (Probably the account you just created.)
+2. Should the admin area live at `app.zf.zealmarketing.net/admin`, or on its own subdomain (`admin.zf…`, which needs another DNS record)?
+3. Should admins be able to "view as" a customer for support (read-only, logged, with a visible banner), or not at all?
+4. About how many ClickFunnels funnels and pages, and do you have the ClickFunnels contacts CSV?
+
+---
+
 ## Working agreement
 
 1. Every phase starts with a short phase PRD addendum and needs sign-off.
