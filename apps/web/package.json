@@ -1,0 +1,37 @@
+{
+  "name": "@zfunnel/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "next build",
+    "start": "next start --port 3000",
+    "lint": "eslint .",
+    "typecheck": "next typegen && tsc --noEmit"
+  },
+  "dependencies": {
+    "@zfunnel/auth": "workspace:*",
+    "@zfunnel/db": "workspace:*",
+    "@zfunnel/shared": "workspace:*",
+    "@zfunnel/ui": "workspace:*",
+    "lucide-react": "1.48.0",
+    "next": "16.3.6",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "server-only": "0.0.1",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@next/env": "16.3.6",
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "22.20.4",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@zfunnel/config": "workspace:*",
+    "eslint": "9.39.5",
+    "postcss": "8.5.28",
+    "tailwindcss": "4.3.3",
+    "typescript": "5.9.3"
+  }
+}

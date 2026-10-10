@@ -1,0 +1,33 @@
+# Local development services. Start with `pnpm infra:up`.
+# S3-compatible storage is added in Phase 1 (uploads). MinIO no longer publishes
+# community images; RustFS or SeaweedFS (both Apache-2.0) are the candidates.
+name: zfunnel
+
+services:
+  postgres:
+    image: postgres:16.10-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports: ["5432:5432"]
+    volumes:
+      - postgres:/var/lib/postgresql/data
+      - ./postgres-init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7.4-alpine
+    ports: ["6379:6379"]
+    volumes: [redis:/data]
+
+  # Catches all outgoing email locally. Web UI: http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports: ["1025:1025", "8025:8025"]
+
+volumes:
+  postgres:
+  redis:

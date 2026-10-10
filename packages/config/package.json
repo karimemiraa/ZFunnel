@@ -1,0 +1,21 @@
+{
+  "name": "@zfunnel/config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./eslint": "./eslint.config.js",
+    "./tsconfig/base.json": "./tsconfig/base.json",
+    "./tsconfig/library.json": "./tsconfig/library.json",
+    "./tsconfig/nextjs.json": "./tsconfig/nextjs.json"
+  },
+  "dependencies": {
+    "@eslint/js": "9.39.5",
+    "@next/eslint-plugin-next": "16.3.6",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "typescript-eslint": "8.70.1"
+  },
+  "peerDependencies": {
+    "eslint": "^9"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "@zfunnel/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=../../.env src/index.ts",
+    "start": "tsx src/index.ts",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "bullmq": "6.3.9",
+    "ioredis": "6.0.0",
+    "tsx": "4.23.15"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.4",
+    "@zfunnel/config": "workspace:*",
+    "eslint": "9.39.5",
+    "typescript": "5.9.3"
+  }
+}

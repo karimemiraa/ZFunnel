@@ -1,0 +1,31 @@
+{
+  "name": "@zfunnel/sites",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 3001",
+    "build": "next build",
+    "start": "next start --port 3001",
+    "lint": "eslint .",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@zfunnel/db": "workspace:*",
+    "next": "16.3.6",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "server-only": "0.0.1"
+  },
+  "devDependencies": {
+    "@next/env": "16.3.6",
+    "@types/node": "22.20.4",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@zfunnel/config": "workspace:*",
+    "eslint": "9.39.5",
+    "typescript": "5.9.3",
+    "vitest": "5.0.2"
+  }
+}

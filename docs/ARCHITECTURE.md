@@ -29,33 +29,34 @@
 ```
 
 **Why the public renderer (`apps/sites`) is a separate app:**
+
 - Published pages must stay fast and online even when the dashboard is deploying or broken.
 - They ship **zero editor JavaScript**.
 - Pages are rendered from published JSON snapshots and cached at the edge (ISR, invalidated on publish).
 
 ## 2. Key technical decisions
 
-| Area | Decision | Notes |
-|---|---|---|
-| Language | TypeScript everywhere | One stack, shared types and zod schemas |
-| Monorepo | pnpm workspaces + Turborepo | Fast cached builds |
-| Framework | Next.js (App Router) for `web` and `sites` | `web` is seeded from nextjs/saas-starter |
-| DB | PostgreSQL + Drizzle ORM | Row-level security on every tenant table; migrations in `packages/db` |
-| Cache/queue | Redis + BullMQ | Workflow "wait 2 days" steps become delayed jobs; durable run state lives in Postgres |
-| Auth | Better Auth + organization plugin | Org → workspaces → members with roles (owner, admin, editor, viewer). Customer-center logins are a separate auth realm per workspace. |
-| Editor | Puck + Tiptap | Blocks live in `packages/blocks` and are shared by editor and renderer |
-| Canvases | React Flow (xyflow) | Used for both the funnel map and the automation builder |
-| Payments | Stripe **Connect** (each user connects their own Stripe account) | One-click upsell: first charge uses `setup_future_usage=off_session`, upsells are off-session PaymentIntents. PayPal follows via an adapter. |
-| Email | react-email/MJML render → sender adapter (SES / Resend / SMTP / Postal) ❓ | Per-workspace sending domains (SPF/DKIM/DMARC wizard) |
-| Analytics | Our own tracker (Umami-derived) → Postgres `events` table, partitioned monthly | Move to ClickHouse when volume requires it |
-| A/B tests | Variant assigned at the edge by hashing the visitor ID (sticky cookie) | Bayesian significance in `packages/analytics` |
-| Files/media | S3-compatible storage (Cloudflare R2 / MinIO locally) + image CDN | Video via Mux or Bunny Stream (Phase 3) ❓ |
-| Domains | Free subdomain `{slug}.zfunnel.app`; custom domains via **Caddy on-demand TLS** (self-host) or **Vercel Domains API** (Vercel) ❓ | Middleware maps `Host` header → workspace → site/funnel |
-| AI | Vercel AI SDK with Claude models | Prompt → funnel JSON (validated against block schemas) |
-| Validation | zod schemas shared across client, server and API | |
-| API | Internal: server actions + tRPC-style routers. Public: REST `/api/v1` with OpenAPI spec + webhooks (Phase 3). | |
-| Testing | Vitest (unit), Playwright (e2e: build funnel → buy → upsell) | |
-| i18n | next-intl, with RTL-ready layout ❓ | |
+| Area        | Decision                                                                                                                          | Notes                                                                                                                                                                           |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Language    | TypeScript everywhere                                                                                                             | One stack, shared types and zod schemas                                                                                                                                         |
+| Monorepo    | pnpm workspaces + Turborepo                                                                                                       | Fast cached builds                                                                                                                                                              |
+| Framework   | Next.js (App Router) for `web` and `sites`                                                                                        | Next.js 16, TypeScript 5.9. UI components harvested from nextjs/saas-starter                                                                                                    |
+| DB          | PostgreSQL + Drizzle ORM                                                                                                          | Row-level security on every tenant table; migrations in `packages/db`                                                                                                           |
+| Cache/queue | Redis + BullMQ                                                                                                                    | Workflow "wait 2 days" steps become delayed jobs; durable run state lives in Postgres                                                                                           |
+| Auth        | Better Auth + organization plugin                                                                                                 | Org → workspaces → members with roles (Phase 0: owner, admin, member; finer roles such as editor/viewer later). Customer-center logins are a separate auth realm per workspace. |
+| Editor      | Puck + Tiptap                                                                                                                     | Blocks live in `packages/blocks` and are shared by editor and renderer                                                                                                          |
+| Canvases    | React Flow (xyflow)                                                                                                               | Used for both the funnel map and the automation builder                                                                                                                         |
+| Payments    | Stripe **Connect** (each user connects their own Stripe account)                                                                  | One-click upsell: first charge uses `setup_future_usage=off_session`, upsells are off-session PaymentIntents. PayPal follows via an adapter.                                    |
+| Email       | react-email/MJML render → sender adapter (SES / Resend / SMTP / Postal) ❓                                                        | Per-workspace sending domains (SPF/DKIM/DMARC wizard)                                                                                                                           |
+| Analytics   | Our own tracker (Umami-derived) → Postgres `events` table, partitioned monthly                                                    | Move to ClickHouse when volume requires it                                                                                                                                      |
+| A/B tests   | Variant assigned at the edge by hashing the visitor ID (sticky cookie)                                                            | Bayesian significance in `packages/analytics`                                                                                                                                   |
+| Files/media | S3-compatible storage (Cloudflare R2; local service chosen in Phase 1, since MinIO stopped publishing images) + image CDN         | Video via Mux or Bunny Stream (Phase 3) ❓                                                                                                                                      |
+| Domains     | Free subdomain `{slug}.zfunnel.app`; custom domains via **Caddy on-demand TLS** (self-host) or **Vercel Domains API** (Vercel) ❓ | Middleware maps `Host` header → workspace → site/funnel                                                                                                                         |
+| AI          | Vercel AI SDK with Claude models                                                                                                  | Prompt → funnel JSON (validated against block schemas)                                                                                                                          |
+| Validation  | zod schemas shared across client, server and API                                                                                  |                                                                                                                                                                                 |
+| API         | Internal: server actions + tRPC-style routers. Public: REST `/api/v1` with OpenAPI spec + webhooks (Phase 3).                     |                                                                                                                                                                                 |
+| Testing     | Vitest (unit), Playwright (e2e: build funnel → buy → upsell)                                                                      |                                                                                                                                                                                 |
+| i18n        | next-intl, with RTL-ready layout ❓                                                                                               |                                                                                                                                                                                 |
 
 ## 3. Project structure
 
@@ -117,7 +118,7 @@ zfunnel/
 │   ├── shared/                 # zod schemas, types, money/date utils, errors
 │   └── config/                 # tsconfig, eslint, tailwind presets
 ├── infra/
-│   ├── docker/                 # docker-compose: postgres, redis, mailpit, minio
+│   ├── docker/                 # docker-compose: postgres, redis, mailpit
 │   ├── caddy/                  # Caddyfile with on-demand TLS + ask endpoint ❓
 │   └── deploy/                 # Vercel / Fly / Hetzner configs ❓
 ├── e2e/                        # Playwright end-to-end tests
@@ -162,6 +163,26 @@ Every tenant table has `workspace_id` with a Postgres RLS policy. The app connec
    - If the bank requires SCA, we fall back to an on-session 3-D Secure confirmation.
 4. Decline goes to `next_on_decline` (downsell or thank-you).
 5. Every step emits analytics events. `order.paid` triggers workflows (email receipt, course access, tag, CRM opportunity).
+
+## 5b. Tenancy as built (Phase 0)
+
+- **Tables.** `organization` / `member` / `invitation` come from Better Auth. `workspaces` and `audit_logs` are our first tenant tables (see ADR-007/008).
+- **Query helpers** (`packages/db/src/tenant.ts`):
+
+  | Helper                                                   | Use                                             |
+  | -------------------------------------------------------- | ----------------------------------------------- |
+  | `withOrganization(db, orgId, fn)`                        | Dashboard reads and writes for one organization |
+  | `withWorkspace(db, { organizationId, workspaceId }, fn)` | Data inside one workspace                       |
+  | `withSystem(db, fn)`                                     | Trusted cross-tenant platform code only         |
+
+- **Request flow** (`apps/web/lib/context.ts`):
+  1. `requireWorkspace(params)` gets the signed-in user.
+  2. It resolves the URL slug to a workspace among that user's memberships.
+  3. If the user isn't a member, it returns a 404.
+- **Public renderer** (`apps/sites`):
+  1. Reads the `Host` header and extracts the subdomain (`lib/host.ts`).
+  2. Resolves it to a workspace with `withSystem`.
+  3. In Phase 1, renders the published page snapshot for that workspace.
 
 ## 6. Security & compliance
 

@@ -1,0 +1,5 @@
+{
+  "extends": "@zfunnel/config/tsconfig/library.json",
+  "compilerOptions": { "lib": ["DOM", "ES2023"] },
+  "include": ["src"]
+}
