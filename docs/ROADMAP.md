@@ -234,7 +234,7 @@ Live & evergreen webinars (LiveKit) · AI conversion coach (analyses funnel stat
 
 ## Phase 7 — Platform owner, brand, ClickFunnels import (M–L)
 
-### Phase 7 plan (2026-10-10) — awaiting sign-off
+### Phase 7 plan (2026-10-10) — signed off
 
 **Problem.**
 
@@ -267,12 +267,12 @@ Live & evergreen webinars (LiveKit) · AI conversion coach (analyses funnel stat
 - Products, prices, order bumps, automations and email sequences can't be read from a page. They must be recreated, which is quick with the templates.
 - Only pages you own may be imported. The import tool says so.
 
-**Open questions for the owner.**
+**Owner decisions.**
 
-1. Which email should be the first super admin? (Probably the account you just created.)
-2. Should the admin area live at `app.zf.zealmarketing.net/admin`, or on its own subdomain (`admin.zf…`, which needs another DNS record)?
-3. Should admins be able to "view as" a customer for support (read-only, logged, with a visible banner), or not at all?
-4. About how many ClickFunnels funnels and pages, and do you have the ClickFunnels contacts CSV?
+1. The first super admin is `karim@zealmarketing.net`, the account already registered.
+2. The admin area stays at `app.zf.zealmarketing.net/admin`.
+3. Admins can "view as" a customer: read-only, logged, with a visible banner.
+4. Import volume: about 5–10 ClickFunnels funnels.
 
 ---
 
