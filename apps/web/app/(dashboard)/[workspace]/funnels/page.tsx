@@ -4,6 +4,7 @@ import { EmptyState } from "@zfunnel/ui/empty-state";
 import { FilterIcon, PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { NewFunnelDialog } from "@/components/funnels/new-funnel-dialog";
+import { aiConfigured } from "@/lib/ai";
 import { PageHeader } from "@/components/page-header";
 import { requireWorkspace } from "@/lib/context";
 import { listFunnels } from "@/lib/funnels";
@@ -24,7 +25,9 @@ export default async function FunnelsPage({ params }: { params: Promise<{ worksp
       <PageHeader
         title="Funnels"
         description="Build, publish and optimize your sales funnels."
-        actions={<NewFunnelDialog workspaceSlug={ws} presets={presets} templates={templates} />}
+        actions={
+          <NewFunnelDialog workspaceSlug={ws} presets={presets} templates={templates} aiEnabled={aiConfigured()} />
+        }
       />
       {funnels.length === 0 ? (
         <EmptyState
@@ -36,6 +39,7 @@ export default async function FunnelsPage({ params }: { params: Promise<{ worksp
               workspaceSlug={ws}
               presets={presets}
               templates={templates}
+              aiEnabled={aiConfigured()}
               trigger={
                 <Button size="lg">
                   <PlusIcon /> Create funnel

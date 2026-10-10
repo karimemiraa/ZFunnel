@@ -20,6 +20,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createFunnelWithSteps, FUNNEL_PRESETS, inWorkspace, uniqueSlug, type FunnelPreset } from "./funnels";
+import { aiConfigured, takeAiQuota } from "./ai";
+import { writeFunnelCopy } from "./ai-funnel";
 import { enforce } from "./billing";
 import { requireUser } from "./session";
 import { canManage, getWorkspaceForUser, recordAudit, type WorkspaceContext } from "./workspaces";
@@ -83,7 +85,17 @@ export async function createFunnel(workspaceSlug: string, _prev: FormState, form
   if (!parsed.success) return { fieldErrors: z.flattenError(parsed.error).fieldErrors };
   const blocked = await enforce(ctx.membership.organizationId, "funnels");
   if (blocked) return { error: blocked };
+  const brief = String(formData.get("brief") ?? "")
+    .trim()
+    .slice(0, 1500);
+  const useAi = brief.length >= 10 && "template" in parsed.data.source && aiConfigured();
+  if (useAi) {
+    const aiBlocked = await enforce(ctx.membership.organizationId, "ai");
+    if (aiBlocked) return { error: aiBlocked };
+    if (!takeAiQuota(ctx.workspace.id)) return { error: "You've reached the hourly AI limit. Try again later." };
+  }
   const funnel = await createFunnelWithSteps(ctx, parsed.data.name, parsed.data.source);
+  if (useAi) await writeFunnelCopy(ctx, funnel.id, brief);
   await recordAudit(ctx, user.id, {
     action: "funnel.created",
     entityType: "funnel",

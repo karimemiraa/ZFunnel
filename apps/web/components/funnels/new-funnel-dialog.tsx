@@ -3,10 +3,11 @@
 import { Button } from "@zfunnel/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@zfunnel/ui/dialog";
 import { FormMessage } from "@zfunnel/ui/form-message";
+import { Textarea } from "@zfunnel/ui/textarea";
 import { Input } from "@zfunnel/ui/input";
 import { Label } from "@zfunnel/ui/label";
 import { cn } from "@zfunnel/ui/lib/utils";
-import { CheckIcon, LayoutTemplateIcon, Loader2Icon, PlusIcon, WorkflowIcon } from "lucide-react";
+import { CheckIcon, LayoutTemplateIcon, Loader2Icon, PlusIcon, SparklesIcon, WorkflowIcon } from "lucide-react";
 import { useActionState, useState } from "react";
 import { createFunnel } from "@/lib/funnel-actions";
 import type { StepType } from "@/lib/funnels";
@@ -34,11 +35,13 @@ export function NewFunnelDialog({
   presets,
   templates,
   trigger,
+  aiEnabled = false,
 }: {
   workspaceSlug: string;
   presets: Preset[];
   templates: Template[];
   trigger?: React.ReactNode;
+  aiEnabled?: boolean;
 }) {
   const [state, action, pending] = useActionState(createFunnel.bind(null, workspaceSlug), null);
   const [tab, setTab] = useState<"templates" | "structures">("templates");
@@ -174,8 +177,27 @@ export function NewFunnelDialog({
               ))}
             </div>
           )}
+          {aiEnabled && source.startsWith("template:") && (
+            <div className="grid gap-2 rounded-xl border border-violet-300/50 bg-violet-500/5 p-4">
+              <Label htmlFor="funnel-brief" className="flex items-center gap-1.5">
+                <SparklesIcon className="size-4 text-violet-500" /> Let AI write every page (optional)
+              </Label>
+              <Textarea
+                id="funnel-brief"
+                name="brief"
+                rows={3}
+                maxLength={1500}
+                placeholder="What do you sell, to whom, and why it's different. E.g. “An 8-week online yoga program for busy moms who want more energy, $97.”"
+              />
+            </div>
+          )}
           <FormMessage message={state?.error ?? state?.fieldErrors?.source?.[0]} />
-          <div className="flex justify-end">
+          <div className="flex items-center justify-end gap-3">
+            {pending && (
+              <span className="text-sm text-muted-foreground">
+                Building your funnel… this can take up to a minute with AI.
+              </span>
+            )}
             <Button type="submit" disabled={pending} size="lg">
               {pending && <Loader2Icon className="animate-spin" />}
               Create funnel
