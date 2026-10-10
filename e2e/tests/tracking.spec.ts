@@ -26,7 +26,7 @@ test("tracking: a purchase reaches Meta, TikTok and GA4 server-side", async ({ p
   await page.locator("#ga4-token").fill("GA_SECRET_X");
   await page.locator("form").nth(2).getByRole("button", { name: "Connect" }).click();
   await expect(page.getByText("Google Analytics 4 connected")).toBeVisible();
-  await expect(page.getByText("Connected")).toHaveCount(3);
+  await expect(page.getByText("Connected", { exact: true })).toHaveCount(3);
 
   await page.goto(`/${ws}/products`);
   await page.getByRole("button", { name: "New product" }).first().click();
