@@ -4,6 +4,7 @@ import { getPaymentSetup, getStepOffers, system, toRuntimeOffers } from "@zfunne
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { resolvePage } from "@/lib/resolve";
+import { Tracker } from "../tracker";
 import { currentWorkspace } from "@/lib/site";
 
 type Params = { params: Promise<{ path?: string[] }> };
@@ -69,5 +70,10 @@ export default async function SitePage(props: Params) {
     stepId: r.page.step.id,
     apiBase: "/api",
   };
-  return <Render config={config} data={r.page.data as never} metadata={runtime} />;
+  return (
+    <>
+      <Render config={config} data={r.page.data as never} metadata={runtime} />
+      <Tracker stepId={r.page.step.id} />
+    </>
+  );
 }

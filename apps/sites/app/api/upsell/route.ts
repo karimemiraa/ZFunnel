@@ -20,6 +20,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { jsonError, publicPost } from "@/lib/api";
 import { resolveStepForWorkspace } from "@/lib/resolve";
+import { track } from "@/lib/track";
 
 const bodySchema = z.object({ stepId: z.string().uuid(), offerId: z.string().uuid().optional() });
 
@@ -86,6 +87,14 @@ export async function POST(req: Request) {
 
   if (setup.provider === "test") {
     await system((tx) => markPaymentSucceeded(tx, paymentId, { test: true }));
+    await track(req.headers, {
+      workspaceId: g.ws.id,
+      funnelId: step.funnelId,
+      stepId,
+      type: offer.role === "downsell" ? "downsell" : "upsell",
+      revenue: offer.trialDays ? 0 : offer.amount,
+      currency: offer.currency,
+    });
     return NextResponse.json({ ok: true, redirect: step.nextPath });
   }
 
@@ -158,5 +167,13 @@ export async function POST(req: Request) {
     console.error("[upsell]", err);
     return fail("Your card was declined. Please try another option.");
   }
+  await track(req.headers, {
+    workspaceId: g.ws.id,
+    funnelId: step.funnelId,
+    stepId,
+    type: offer.role === "downsell" ? "downsell" : "upsell",
+    revenue: offer.trialDays ? 0 : offer.amount,
+    currency: offer.currency,
+  });
   return NextResponse.json({ ok: true, redirect: step.nextPath });
 }

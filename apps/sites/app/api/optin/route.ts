@@ -4,6 +4,7 @@ import { z } from "zod";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { resolveStepForWorkspace } from "@/lib/resolve";
 import { currentWorkspace } from "@/lib/site";
+import { track } from "@/lib/track";
 
 const bodySchema = z.object({
   stepId: z.string().uuid(),
@@ -67,5 +68,12 @@ export async function POST(req: Request) {
       }),
   );
 
+  await track(req.headers, {
+    workspaceId: ws.id,
+    funnelId: step.funnelId,
+    stepId: step.id,
+    type: "optin",
+    props: attribution,
+  });
   return NextResponse.json({ ok: true, redirect: step.nextPath });
 }

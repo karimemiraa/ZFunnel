@@ -16,6 +16,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { jsonError, publicPost, sessionCookie } from "@/lib/api";
 import { resolveStepForWorkspace } from "@/lib/resolve";
+import { track } from "@/lib/track";
 
 const bodySchema = z.object({
   orderId: z.string().uuid(),
@@ -122,6 +123,15 @@ export async function POST(req: Request) {
     }
   }
 
+  if (payment.status !== "succeeded")
+    await track(req.headers, {
+      workspaceId: g.ws.id,
+      funnelId: order.funnelId!,
+      stepId: order.stepId!,
+      type: "purchase",
+      revenue: payment.amount,
+      currency: payment.currency,
+    });
   const session = await system((tx) =>
     startFunnelSession(tx, {
       workspaceId: g.ws.id,

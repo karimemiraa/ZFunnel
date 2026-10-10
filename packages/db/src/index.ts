@@ -6,4 +6,5 @@ export * from "./schema/funnels";
 export * from "./schema/contacts";
 export * from "./schema/commerce";
 export * from "./schema/domains";
+export * from "./schema/analytics";
 export { and, asc, count, desc, eq, gte, ilike, inArray, isNotNull, isNull, lt, ne, or, sql } from "drizzle-orm";

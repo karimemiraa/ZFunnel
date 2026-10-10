@@ -47,7 +47,6 @@ export const NAV_MODULES: NavModule[] = [
     segment: "analytics",
     label: "Analytics",
     icon: BarChart3Icon,
-    phase: 1,
     description: "Visits, opt-ins, sales and revenue for every funnel step.",
   },
   {
