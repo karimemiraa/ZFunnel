@@ -25,6 +25,7 @@ x-app-env: &app-env
   ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
   AI_MODEL: ${AI_MODEL:-claude-sonnet-5-5}
   SECRETS_KEY: ${SECRETS_KEY:-}
+  PLATFORM_ADMIN_EMAILS: ${PLATFORM_ADMIN_EMAILS:-}
 
 services:
   postgres:

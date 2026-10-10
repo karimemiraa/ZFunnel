@@ -11,14 +11,18 @@ export function BarChart({
   label,
 }: {
   data: { day: string; value: number }[];
-  unit: { currency: string } | { noun: "visitors" };
+  unit: { currency: string } | { noun: "visitors" | "signups" };
   label: string;
 }) {
   const t = useT();
   const f = useFmt();
   const intl = useIntlLocale();
   const format = (v: number) =>
-    "currency" in unit ? f.money(v, unit.currency) : t("analytics.visitorsCount", { count: v, n: f.number(v) });
+    "currency" in unit
+      ? f.money(v, unit.currency)
+      : unit.noun === "signups"
+        ? t("admin.overview.signupsCount", { count: v, n: f.number(v) })
+        : t("analytics.visitorsCount", { count: v, n: f.number(v) });
   const [hover, setHover] = useState<number | null>(null);
   const max = Math.max(1, ...data.map((d) => d.value));
   const W = 100 / data.length;

@@ -9,6 +9,7 @@ DOMAIN="${1:-}"
 EMAIL="${2:-}"
 if [ -z "$DOMAIN" ] || [ -z "$EMAIL" ]; then
   echo "Usage: $0 <root-domain> <email-for-certificates>"
+  echo "The email also becomes the first platform admin (PLATFORM_ADMIN_EMAILS)."
   echo "Example: $0 zf.zealmarketing.net admin@zealmarketing.net"
   exit 1
 fi
@@ -39,6 +40,7 @@ sed \
   -e "s|^# SECRETS_KEY=.*|SECRETS_KEY=$(secret)|" \
   -e "s|^EMAIL_FROM=.*|EMAIL_FROM=hello@${DOMAIN}|" \
   -e "s|^PAYMENTS_TEST_MODE=.*|PAYMENTS_TEST_MODE=true|" \
+  -e "s|^PLATFORM_ADMIN_EMAILS=.*|PLATFORM_ADMIN_EMAILS=${EMAIL}|" \
   .env.production.example > .env
 chmod 600 .env
 
@@ -54,4 +56,6 @@ Point these DNS records at the server, then run: sudo ./infra/deploy/deploy.sh
 Still to fill in later (optional): SMTP_URL + EMAIL_FROM (emails), Stripe keys (real payments),
 ANTHROPIC_API_KEY (AI). PAYMENTS_TEST_MODE is on so you can try checkout without Stripe;
 set it to false before taking real orders.
+
+Platform admin (/admin): ${EMAIL}. Sign up with that email and verify it (see docs/DEPLOYMENT.md).
 MSG

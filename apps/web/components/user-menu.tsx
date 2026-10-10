@@ -10,13 +10,14 @@ import {
   DropdownMenuTrigger,
 } from "@zfunnel/ui/dropdown-menu";
 import { useLocale, useT } from "@zfunnel/i18n/react";
-import { LanguagesIcon, LogOutIcon } from "lucide-react";
+import { LanguagesIcon, LogOutIcon, ShieldIcon } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { setLanguage } from "@/lib/i18n-actions";
 import { signOut } from "@/lib/actions";
 
-export function UserMenu({ name, email }: { name: string; email: string }) {
+export function UserMenu({ name, email, isAdmin = false }: { name: string; email: string; isAdmin?: boolean }) {
   const t = useT();
   const other = useLocale() === "ar" ? "en" : "ar";
   const router = useRouter();
@@ -43,6 +44,13 @@ export function UserMenu({ name, email }: { name: string; email: string }) {
           <div className="truncate text-xs font-normal text-muted-foreground">{email}</div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {isAdmin && (
+          <DropdownMenuItem asChild>
+            <Link href="/admin">
+              <ShieldIcon /> {t("admin.menuLink")}
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem
           // Offers the other language, written in that language ("العربية" / "English").
           onSelect={() =>

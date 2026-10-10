@@ -2,6 +2,7 @@ import type { Shape } from "../../core";
 import type { en } from "../en";
 import { account } from "./account";
 import { activity } from "./activity";
+import { admin } from "./admin";
 import { affiliate } from "./affiliate";
 import { affiliatesAdmin } from "./affiliatesAdmin";
 import { ai } from "./ai";
@@ -52,6 +53,7 @@ import { workspace } from "./workspace";
 export const ar: Shape<typeof en> = {
   account,
   activity,
+  admin,
   affiliate,
   affiliatesAdmin,
   ai,

@@ -6,7 +6,8 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { resolvePage } from "@/lib/resolve";
 import { Tracker } from "../tracker";
-import { currentWorkspace } from "@/lib/site";
+import { currentHostSuspended, currentWorkspace } from "@/lib/site";
+import { Unavailable } from "../unavailable";
 import { pickVariant, variantCookie } from "@/lib/variants";
 import { visitorLocale } from "@/lib/locale";
 import { getT } from "@/lib/i18n";
@@ -22,6 +23,8 @@ async function load({ params }: Params) {
 
 export async function generateMetadata(props: Params): Promise<Metadata> {
   const r = await load(props);
+  if (!r && (await currentHostSuspended()))
+    return { title: (await getT())("site.unavailable"), robots: { index: false } };
   if (!r?.page) return { title: r?.ws?.name ?? "Not found" };
   const root = (r.page.data.root?.props ?? {}) as { title?: string; seoDescription?: string; ogImage?: string };
   const title = root.title || r.page.step.name;
@@ -38,6 +41,7 @@ export async function generateMetadata(props: Params): Promise<Metadata> {
 
 export default async function SitePage(props: Params) {
   const r = await load(props);
+  if (!r && (await currentHostSuspended())) return <Unavailable />;
   if (!r) notFound();
   if (!r.page) {
     // Root of a workspace without a homepage yet: a friendly placeholder instead of a bare 404.

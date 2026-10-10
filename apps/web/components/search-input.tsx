@@ -16,6 +16,8 @@ export function SearchInput({ placeholder }: { placeholder: string }) {
       const next = new URLSearchParams(params);
       if (value) next.set("q", value);
       else next.delete("q");
+      // A new search starts again from the first page.
+      if ((params.get("q") ?? "") !== value) next.delete("page");
       if (next.toString() !== params.toString()) router.replace(`${pathname}?${next}`, { scroll: false });
     }, 300);
     return () => clearTimeout(t);

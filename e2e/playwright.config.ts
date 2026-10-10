@@ -26,7 +26,7 @@ export default defineConfig({
   webServer: [
     {
       command: "pnpm --filter @zfunnel/web start",
-      env: { AUTH_RATE_LIMIT: "off" },
+      env: { AUTH_RATE_LIMIT: "off", PLATFORM_ADMIN_EMAILS: "e2e-admin@example.com" },
       url: "http://localhost:3000/sign-in",
       reuseExistingServer: reuse,
       timeout: 120_000,

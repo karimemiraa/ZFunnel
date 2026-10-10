@@ -234,7 +234,7 @@ Live & evergreen webinars (LiveKit) · AI conversion coach (analyses funnel stat
 
 ## Phase 7 — Platform owner, brand, ClickFunnels import (M–L)
 
-### Phase 7 plan (2026-10-10) — awaiting sign-off
+### Phase 7 plan (2026-10-10) — signed off
 
 **Problem.**
 
@@ -273,6 +273,16 @@ Live & evergreen webinars (LiveKit) · AI conversion coach (analyses funnel stat
 2. Should the admin area live at `app.zf.zealmarketing.net/admin`, or on its own subdomain (`admin.zf…`, which needs another DNS record)?
 3. Should admins be able to "view as" a customer for support (read-only, logged, with a visible banner), or not at all?
 4. About how many ClickFunnels funnels and pages, and do you have the ClickFunnels contacts CSV?
+
+**Owner decisions (7.1).** First admin: `karim@zealmarketing.net`. The area stays at `app.…/admin` on the same host. "View as" is allowed, read-only, logged and with a visible banner.
+
+### 7.1 status — **Done** (2026-10-10)
+
+- `/admin`: an overview (sign-ups total and last 30 days, organizations, active organizations, workspaces, platform MRR from `org_billing`, GMV from paid orders, and a 30-day sign-ups chart), organizations with search and pagination, an organization page (members, workspaces, plan, funnel/contact/order counts), users with search, and the admin audit log.
+- Actions: suspend/unsuspend (members get a suspended screen; public sites show a neutral "unavailable" page), plan override, and read-only "view as" with a banner and an exit button.
+- Access: `PLATFORM_ADMIN_EMAILS` plus a verified email. Everyone else gets a 404. An **Admin** link appears in the account menu for admins.
+- New platform tables `platform_audit_log` and `organization_suspensions` (migrations 0051–0052, system-only writes). Design in ADR-024; setup in `docs/DEPLOYMENT.md` §9.
+- English and Arabic (`admin` namespace). Tests: guard and token unit tests, RLS tests for both tables, and `e2e/tests/admin.spec.ts`.
 
 ---
 

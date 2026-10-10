@@ -108,6 +108,26 @@ sudo ./infra/deploy/deploy.sh
 - **Email.** Set `SMTP_URL` and `EMAIL_FROM` in `.env.production`, using any SMTP provider (Postmark, Amazon SES, Mailgun, Brevo…). Verify the `EMAIL_FROM` domain with your provider (SPF and DKIM), then redeploy. Without SMTP, broadcasts, automation emails and customer sign-in links stay queued and fail.
 - **AI copywriter (optional).** Set `ANTHROPIC_API_KEY`. Without it, the AI buttons explain that AI isn't set up.
 
+## 9. Platform admin (`/admin`)
+
+The super admin area lives at `https://app.ROOT_DOMAIN/admin` (ADR-024). Two things make someone an admin:
+
+1. Their email is listed in `PLATFORM_ADMIN_EMAILS` in `infra/deploy/.env` (comma-separated, case doesn't matter). `setup-env.sh` puts the email you pass it there. For this deployment the owner sets:
+
+   ```bash
+   PLATFORM_ADMIN_EMAILS=karim@zealmarketing.net
+   ```
+
+2. Their email is **verified**. Sign-up doesn't send a verification email yet, so after signing up with that address, mark it verified once on the server:
+
+   ```bash
+   cd infra/deploy
+   sudo docker compose -f docker-compose.prod.yml --env-file .env exec -T postgres psql -U postgres -d zfunnel \
+     -c "update \"user\" set email_verified = true where lower(email) = 'karim@zealmarketing.net';"
+   ```
+
+Then run `sudo ./infra/deploy/deploy.sh` (or restart the `web` container) so the new env is read. An **Admin** link appears in the account menu. To add another admin, append their email to the list, verify it the same way and redeploy; to remove one, take it out of the list and redeploy. Everyone else gets a 404 at `/admin`, and every admin action is recorded in **Admin → Audit log**.
+
 ## Sharing ports (another proxy already uses 80/443)
 
 1. Set `CADDY_HTTP_PORT=8080` and `CADDY_HTTPS_PORT=8443` in `.env`, then deploy.
