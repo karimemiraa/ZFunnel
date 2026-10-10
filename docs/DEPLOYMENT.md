@@ -2,6 +2,25 @@
 
 ZFunnel runs as one isolated Docker Compose project (`zfunnel`) on a private network (`zfunnel_internal`). It never touches other containers, networks or volumes on the server. The only shared resources are ports 80/443, and there is a mode for servers where another proxy already owns them.
 
+## Your setup: zf.zealmarketing.net
+
+| Setting                         | Value                                                         |
+| ------------------------------- | ------------------------------------------------------------- |
+| ROOT_DOMAIN                     | `zf.zealmarketing.net`                                        |
+| Dashboard                       | `https://app.zf.zealmarketing.net`                            |
+| Free workspace sites            | `https://<workspace>.zf.zealmarketing.net`                    |
+| CNAME target for custom domains | `sites.zf.zealmarketing.net` (covered by the wildcard record) |
+
+DNS records at the provider that hosts `zealmarketing.net`, all pointing to the VPS's public IPv4:
+
+| Type | Name (host) | Value     |
+| ---- | ----------- | --------- |
+| A    | `zf`        | server IP |
+| A    | `app.zf`    | server IP |
+| A    | `*.zf`      | server IP |
+
+Then follow steps 2–6 below. For Arabic, each workspace picks its site language under Settings → General. Each user picks their dashboard language from the account menu.
+
 ## 0. What you need
 
 - The VPS with Docker + the Compose plugin (`docker compose version`).
@@ -47,10 +66,10 @@ This lists running containers, port usage, memory and architecture, and changes 
 ## 5. Configure
 
 ```bash
-cp infra/deploy/.env.production.example infra/deploy/.env
-nano infra/deploy/.env        # fill in ROOT_DOMAIN, ACME_EMAIL, secrets (openssl rand -base64 32)
-chmod 600 infra/deploy/.env
+./infra/deploy/setup-env.sh zf.zealmarketing.net you@zealmarketing.net
 ```
+
+This writes `infra/deploy/.env` with your domain, freshly generated secrets, and file permissions so only you can read it. It never overwrites an existing `.env`. To fill the file in by hand instead, copy `.env.production.example` and generate each secret with `openssl rand -hex 32`. Use hex, not base64: the database password is part of a URL, and base64 can contain `/` or `+`.
 
 ## 6. Deploy
 

@@ -1,5 +1,7 @@
 import type { ComponentData } from "@puckeditor/core";
-import { config, type Components, type PageData, type RootProps } from "./config";
+import type { Locale } from "@zfunnel/i18n";
+import { configFor, type Components, type PageData, type RootProps } from "./config";
+import { starterPageAr } from "./starters-ar";
 import { DEFAULT_THEME, THEME_PRESETS, type PageTheme } from "./theme";
 
 type BlockType = keyof Components;
@@ -11,9 +13,23 @@ function uid() {
   return `${Date.now().toString(36)}${counter.toString(36)}${Math.random().toString(36).slice(2, 7)}`;
 }
 
-/** Builds a block with its defaults, overridden by `props`. */
+/** Language whose default block text `block()` uses; set only while building (see withLang). */
+let buildLang: Locale = "en";
+
+/** Runs a synchronous page build with block defaults in `lang` (restored afterwards). */
+export function withLang<R>(lang: Locale, build: () => R): R {
+  const prev = buildLang;
+  buildLang = lang;
+  try {
+    return build();
+  } finally {
+    buildLang = prev;
+  }
+}
+
+/** Builds a block with its defaults (in the current build language), overridden by `props`. */
 export function block<T extends BlockType>(type: T, props: Partial<Components[T]> = {}): Node {
-  const defaults = (config.components[type].defaultProps ?? {}) as Components[T];
+  const defaults = (configFor(buildLang).components[type].defaultProps ?? {}) as Components[T];
   return { type, props: { ...defaults, ...props, id: `${type}-${uid()}` } } as Node;
 }
 
@@ -45,12 +61,14 @@ const text = (html: string, extra: Partial<Components["Text"]> = {}) => block("T
 
 export type StarterStepType = "optin" | "sales" | "checkout" | "upsell" | "downsell" | "thankyou" | "page";
 
-/** A polished starting page for each step type. */
+/** A polished starting page for each step type, in the site's language. */
 export function starterPage(
   type: StarterStepType,
   name: string,
   theme?: Partial<PageTheme & { preset: string }>,
+  lang: Locale = "en",
 ): PageData {
+  if (lang === "ar") return withLang("ar", () => starterPageAr(type, name, theme));
   switch (type) {
     case "optin":
       return page(

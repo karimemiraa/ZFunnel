@@ -1,5 +1,7 @@
 import type { PageData } from "./config";
-import { block, columns, page, section, starterPage, type StarterStepType } from "./starters";
+import type { Locale } from "@zfunnel/i18n";
+import { block, columns, page, section, starterPage, withLang, type StarterStepType } from "./starters";
+import { TEMPLATES_AR } from "./templates-ar";
 import type { PageTheme } from "./theme";
 
 type Theme = Partial<PageTheme & { preset: string }>;
@@ -544,13 +546,28 @@ export const TEMPLATES: FunnelTemplate[] = [
   },
 ];
 
-/** Every step of a template, with pages built in the template's theme. */
-export function buildTemplate(id: string) {
+/** Every step of a template, with pages built in the template's theme and the site's language. */
+export function buildTemplate(id: string, lang: Locale = "en") {
   const t = TEMPLATES.find((x) => x.id === id);
   if (!t) return null;
+  const ar = lang === "ar" ? TEMPLATES_AR[id] : undefined;
+  if (ar)
+    return withLang("ar", () =>
+      ar.steps.map((s) => ({
+        name: s.name,
+        type: s.type,
+        page: s.build ? s.build(t.theme) : starterPage(s.type, s.name, t.theme, "ar"),
+      })),
+    );
   return t.steps.map((s) => ({
     name: s.name,
     type: s.type,
     page: s.build ? s.build(t.theme) : starterPage(s.type, s.name, t.theme),
   }));
+}
+
+/** Template name and description in the site's language. */
+export function templateText(t: Pick<FunnelTemplate, "id" | "name" | "description">, lang: Locale = "en") {
+  const ar = lang === "ar" ? TEMPLATES_AR[t.id] : undefined;
+  return { name: ar?.name ?? t.name, description: ar?.description ?? t.description };
 }

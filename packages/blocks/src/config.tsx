@@ -1,4 +1,6 @@
 import type { Config, Data } from "@puckeditor/core";
+import type { Locale } from "@zfunnel/i18n";
+import { AR_DEFAULTS } from "./defaults-ar";
 import { colorField } from "./fields";
 import {
   Columns,
@@ -188,6 +190,24 @@ export const config: Config<{
 };
 
 /** A fresh page: one hero section, so new users never face a blank canvas. */
+/**
+ * The block config for a site language: Arabic sites get natively written default text, so newly
+ * added blocks start in Arabic (ADR-023). Same components, fields and rendering otherwise.
+ */
+export function configFor(lang: Locale = "en"): typeof config {
+  if (lang !== "ar") return config;
+  if (arConfig) return arConfig;
+  const components = Object.fromEntries(
+    Object.entries(config.components).map(([name, c]) => [
+      name,
+      AR_DEFAULTS[name] ? { ...c, defaultProps: { ...c.defaultProps, ...AR_DEFAULTS[name] } } : c,
+    ]),
+  ) as typeof config.components;
+  arConfig = { ...config, components };
+  return arConfig;
+}
+let arConfig: typeof config | null = null;
+
 export function emptyPage(title = ""): PageData {
   return {
     root: { props: { ...DEFAULT_THEME, preset: "Indigo", title, seoDescription: "", ogImage: "" } },
