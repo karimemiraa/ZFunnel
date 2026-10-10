@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { currentCustomer, customerAccount } from "@/lib/customer";
 import { currentWorkspace } from "@/lib/site";
 import { LoginForm, SignOut, SubscriptionToggle } from "./account-client";
+import { Brand } from "@/app/brand";
 
 export const metadata: Metadata = { title: "Your account", robots: { index: false } };
 
@@ -41,7 +42,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
     <main className="min-h-dvh bg-zinc-50 text-zinc-900">
       <header className="border-b border-zinc-200 bg-white">
         <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-4">
-          <span className="font-semibold">{ws.name}</span>
+          <Brand ws={ws} />
           <div className="flex items-center gap-6">
             <Link href="/courses" className="text-sm font-medium text-zinc-500 hover:text-zinc-900">
               My courses

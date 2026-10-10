@@ -134,6 +134,47 @@ export async function renameWorkspace(slug: string, _prev: ActionState, formData
   return { success: "Saved." };
 }
 
+const brandingSchema = z.object({
+  logoUrl: z
+    .string()
+    .trim()
+    .max(500)
+    .refine((v) => v === "" || /^https:\/\/\S+$/.test(v), "Use an https:// image link"),
+  brandColor: z.string().regex(/^#[0-9a-f]{6}$/i, "Pick a color"),
+  hideBadge: z.boolean(),
+});
+
+/** White-label settings: logo, brand color and the "Powered by" badge (paid feature). */
+export async function saveBranding(
+  slug: string,
+  input: z.input<typeof brandingSchema>,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const user = await requireUser();
+  const ctx = await getWorkspaceForUser(user.id, slug);
+  if (!ctx) return { ok: false, error: "Workspace not found." };
+  if (!canManage(ctx.membership.role)) return { ok: false, error: "Only owners and admins can change branding." };
+  const d = brandingSchema.safeParse(input);
+  if (!d.success) return { ok: false, error: d.error.issues[0]!.message };
+  if (d.data.hideBadge) {
+    const blocked = await enforce(ctx.membership.organizationId, "whiteLabel");
+    if (blocked) return { ok: false, error: blocked };
+  }
+  await withOrganization(getDb(), ctx.membership.organizationId, (tx) =>
+    tx
+      .update(workspaces)
+      .set({ logoUrl: d.data.logoUrl || null, brandColor: d.data.brandColor, hideBadge: d.data.hideBadge })
+      .where(eq(workspaces.id, ctx.workspace.id)),
+  );
+  await recordAudit(ctx, user.id, {
+    action: "workspace.branding_updated",
+    entityType: "workspace",
+    entityId: ctx.workspace.id,
+    data: { hideBadge: d.data.hideBadge },
+  });
+  revalidatePath(`/${slug}/settings`);
+  return { ok: true };
+}
+
 export async function signOut() {
   await auth.api.signOut({ headers: await headers() });
   redirect("/sign-in");

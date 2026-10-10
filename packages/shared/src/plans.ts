@@ -5,7 +5,7 @@
  */
 export type PlanId = "trial" | "starter" | "pro" | "scale";
 export type LimitKey = "workspaces" | "funnels" | "contacts" | "emailsPerMonth" | "domains" | "members";
-export type FeatureKey = "automations" | "splitTests" | "ai";
+export type FeatureKey = "automations" | "splitTests" | "ai" | "whiteLabel";
 
 export type Plan = {
   id: PlanId;
@@ -26,7 +26,7 @@ export const PLANS: Record<PlanId, Plan> = {
     monthly: 0,
     tagline: `Everything, free for ${TRIAL_DAYS} days`,
     limits: { workspaces: 1, funnels: 5, contacts: 500, emailsPerMonth: 1_000, domains: 1, members: 2 },
-    features: { automations: true, splitTests: true, ai: true },
+    features: { automations: true, splitTests: true, ai: true, whiteLabel: false },
   },
   starter: {
     id: "starter",
@@ -34,7 +34,7 @@ export const PLANS: Record<PlanId, Plan> = {
     monthly: 4_900,
     tagline: "For your first funnels",
     limits: { workspaces: 1, funnels: 10, contacts: 2_500, emailsPerMonth: 10_000, domains: 1, members: 2 },
-    features: { automations: true, splitTests: false, ai: false },
+    features: { automations: true, splitTests: false, ai: false, whiteLabel: false },
   },
   pro: {
     id: "pro",
@@ -42,7 +42,7 @@ export const PLANS: Record<PlanId, Plan> = {
     monthly: 9_900,
     tagline: "For growing businesses",
     limits: { workspaces: 3, funnels: 50, contacts: 15_000, emailsPerMonth: 75_000, domains: 5, members: 5 },
-    features: { automations: true, splitTests: true, ai: true },
+    features: { automations: true, splitTests: true, ai: true, whiteLabel: true },
   },
   scale: {
     id: "scale",
@@ -50,7 +50,7 @@ export const PLANS: Record<PlanId, Plan> = {
     monthly: 24_900,
     tagline: "For agencies and big lists",
     limits: { workspaces: 10, funnels: null, contacts: 100_000, emailsPerMonth: 500_000, domains: 25, members: 20 },
-    features: { automations: true, splitTests: true, ai: true },
+    features: { automations: true, splitTests: true, ai: true, whiteLabel: true },
   },
 };
 
@@ -69,4 +69,5 @@ export const FEATURE_LABELS: Record<FeatureKey, string> = {
   automations: "Automations",
   splitTests: "A/B split tests",
   ai: "AI copywriter",
+  whiteLabel: "White-label (remove “Powered by”)",
 };

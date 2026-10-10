@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { publishedPosts } from "@/lib/blog";
 import { currentWorkspace } from "@/lib/site";
+import { Brand } from "@/app/brand";
 
 export async function generateMetadata(): Promise<Metadata> {
   const ws = await currentWorkspace();
@@ -24,8 +25,8 @@ export default async function BlogIndex() {
     <main className="min-h-dvh bg-white text-zinc-900">
       <header className="border-b border-zinc-100">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4">
-          <Link href="/blog" className="font-bold">
-            {ws.name}
+          <Link href="/blog">
+            <Brand ws={ws} />
           </Link>
           <a href="/blog/rss.xml" className="text-sm text-zinc-500 hover:text-zinc-900">
             RSS

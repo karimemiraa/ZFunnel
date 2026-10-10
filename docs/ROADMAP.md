@@ -124,6 +124,10 @@ The owner asked to continue through all phases without check-ins. Scope is v1 of
 - **4.3 Community: done.** Spaces can be open to all signed-in members or gated to a course's students. Members post and reply (sanitized) at `/community`, using the customer-center sign-in. The owner posts pinned announcements as the business and has a moderation feed (pin, hide or show posts and replies). Verified end to end.
 - **4.4 Store: done.** Products can be listed in a public `/store` with stock limits and optional shipping address capture. Store orders run through the same checkout (Stripe or test gateway), decrement stock on payment, and show the ship-to address in Orders. Covered by `e2e/tests/store.spec.ts`.
 - **4.5 Message hub: done.** Site chat bubble (toggle, greeting, brand color) on every public page. Visitors leave a name and email on the first message; threads land in **Inbox** with unread markers and open/closed views. Owner replies show in the widget and are emailed to the visitor with the recent thread. Covered by `e2e/tests/inbox.spec.ts`.
+- **4.6 White-label: done.** Settings → Branding sets a logo and brand color used on the customer center, courses, store, blog, affiliate portal and built-in emails. A small “Powered by ZFunnel” badge shows on public pages and can be removed on Pro and Scale (ADR-019). Covered by `e2e/tests/white-label.spec.ts`.
+- **4.7 Analytics at scale: decided.** Stay on Postgres with the existing indexes; partitioning and rollups when `events` passes ~50M rows or p95 passes 1s (ADR-020).
+
+**Phase 4 complete.**
 
 **Deferred:** WhatsApp/Messenger channels (Meta business verification), payout automation (Stripe Connect transfers to affiliates need KYC), a public marketplace with paid templates (moderation and payments policy), custom dashboard domains per agency (needs on-demand TLS for the app host).
 

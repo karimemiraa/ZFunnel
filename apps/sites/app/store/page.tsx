@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentWorkspace } from "@/lib/site";
 import { storeProducts } from "@/lib/store";
+import { Brand } from "@/app/brand";
 
 export async function generateMetadata(): Promise<Metadata> {
   const ws = await currentWorkspace();
@@ -18,8 +19,8 @@ export default async function StorePage() {
     <main className="min-h-dvh bg-white text-zinc-900">
       <header className="border-b border-zinc-100">
         <div className="mx-auto flex h-16 max-w-6xl items-center px-4">
-          <Link href="/store" className="font-bold">
-            {ws.name}
+          <Link href="/store">
+            <Brand ws={ws} />
           </Link>
         </div>
       </header>

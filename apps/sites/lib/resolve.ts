@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { PageData } from "@zfunnel/blocks";
+import { PLANS } from "@zfunnel/shared";
 import {
   and,
   asc,
@@ -11,7 +12,9 @@ import {
   getDb,
   gt,
   isNull,
+  orgBilling,
   pageVersions,
+  sql,
   stepVariants,
   withSystem,
   workspaces,
@@ -21,7 +24,33 @@ import {
  * Public lookups. The renderer has no user session, so it uses the trusted system
  * context and only ever reads published snapshots.
  */
-export type SiteWorkspace = { id: string; name: string; slug: string; homeFunnelId: string | null };
+export type SiteWorkspace = {
+  id: string;
+  name: string;
+  slug: string;
+  homeFunnelId: string | null;
+  logoUrl: string | null;
+  brandColor: string;
+  /** False only when the owner hid it AND the plan includes white-label. */
+  showBadge: boolean;
+};
+
+const WHITE_LABEL_PLANS = Object.values(PLANS)
+  .filter((p) => p.features.whiteLabel)
+  .map((p) => p.id);
+
+/** Branding columns shared by both workspace lookups. */
+const brandColumns = {
+  logoUrl: workspaces.logoUrl,
+  brandColor: workspaces.brandColor,
+  showBadge: sql<boolean>`not (${workspaces.hideBadge} and exists (
+    select 1 from ${orgBilling} b where b.organization_id = ${workspaces.organizationId}
+      and b.status in ('active', 'trialing', 'past_due')
+      and b.plan in (${sql.join(
+        WHITE_LABEL_PLANS.map((id) => sql`${id}`),
+        sql`, `,
+      )})))`,
+};
 export type ResolvedPage = {
   workspace: SiteWorkspace;
   funnel: { id: string; slug: string; name: string };
@@ -55,6 +84,7 @@ export function resolveWorkspace(slug: string) {
           name: workspaces.name,
           slug: workspaces.slug,
           homeFunnelId: workspaces.homeFunnelId,
+          ...brandColumns,
         })
         .from(workspaces)
         .where(eq(workspaces.slug, slug))
@@ -75,6 +105,7 @@ export function resolveCustomDomain(hostname: string) {
           slug: workspaces.slug,
           homeFunnelId: workspaces.homeFunnelId,
           domainFunnelId: domains.funnelId,
+          ...brandColumns,
         })
         .from(domains)
         .innerJoin(workspaces, eq(workspaces.id, domains.workspaceId))

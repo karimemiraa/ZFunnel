@@ -1,6 +1,7 @@
 import "./globals.css";
 import { AffiliateCapture } from "./affiliate-capture";
 import { ChatWidget } from "./chat-widget";
+import { PoweredBy } from "./powered-by";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -9,6 +10,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {children}
         <AffiliateCapture />
         <ChatWidget />
+        <PoweredBy />
       </body>
     </html>
   );

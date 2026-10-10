@@ -7,6 +7,7 @@ import { currentCustomer, requestOrigin } from "@/lib/customer";
 import { currentWorkspace } from "@/lib/site";
 import { LoginForm, SignOut } from "../account/account-client";
 import { CopyLink, JoinForm } from "./join-form";
+import { Brand } from "@/app/brand";
 
 export const metadata: Metadata = { title: "Affiliate program", robots: { index: false } };
 
@@ -55,7 +56,7 @@ export default async function AffiliatePage() {
     <main className="min-h-dvh bg-zinc-50 text-zinc-900">
       <header className="border-b border-zinc-200 bg-white">
         <div className="mx-auto flex h-16 max-w-4xl items-center justify-between px-4">
-          <span className="font-semibold">{ws.name} · Affiliate</span>
+          <Brand ws={ws} suffix="· Affiliate" />
           <SignOut />
         </div>
       </header>

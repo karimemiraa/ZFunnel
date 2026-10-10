@@ -5,6 +5,7 @@ import { currentCustomer } from "@/lib/customer";
 import { myCourses } from "@/lib/courses";
 import { currentWorkspace } from "@/lib/site";
 import { LoginForm, SignOut } from "../account/account-client";
+import { Brand } from "@/app/brand";
 
 export const metadata: Metadata = { title: "My courses", robots: { index: false } };
 
@@ -30,7 +31,9 @@ export default async function MyCoursesPage() {
     <main className="min-h-dvh bg-zinc-50 text-zinc-900">
       <header className="border-b border-zinc-200 bg-white">
         <div className="mx-auto flex h-16 max-w-5xl items-center gap-6 px-4">
-          <span className="flex-1 font-semibold">{ws.name}</span>
+          <span className="flex-1">
+            <Brand ws={ws} />
+          </span>
           <Link href="/account" className="text-sm font-medium text-zinc-500 hover:text-zinc-900">
             Account
           </Link>

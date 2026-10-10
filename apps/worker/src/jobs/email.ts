@@ -154,6 +154,18 @@ export async function processEmail({ messageId }: EmailJob) {
   }
 }
 
+const brandSelect = { name: workspaces.name, logoUrl: workspaces.logoUrl, brandColor: workspaces.brandColor };
+type WsBrand = { name: string; logoUrl: string | null; brandColor: string } | undefined;
+
+/** Safe brand color for inline styles (falls back to indigo). */
+const brandColor = (ws: WsBrand) => (ws && /^#[0-9a-f]{6}$/i.test(ws.brandColor) ? ws.brandColor : "#4f46e5");
+
+/** Optional logo row at the top of built-in emails (white-label). */
+const logoRow = (ws: WsBrand) =>
+  ws?.logoUrl && /^https:\/\//.test(ws.logoUrl)
+    ? `<tr><td style="padding:28px 36px 0"><img src="${esc(ws.logoUrl)}" alt="${esc(ws.name)}" height="32" style="height:32px;width:auto;border:0"></td></tr>`
+    : "";
+
 /** Built-in transactional email: the customer-center sign-in link (no tracking, no unsubscribe). */
 async function sendLoginLink(
   m: typeof emailMessages.$inferSelect,
@@ -166,16 +178,17 @@ async function sendLoginLink(
     return { failed: true };
   }
   const [ws] = await withSystem(db(), (tx) =>
-    tx.select({ name: workspaces.name }).from(workspaces).where(eq(workspaces.id, m.workspaceId)),
+    tx.select(brandSelect).from(workspaces).where(eq(workspaces.id, m.workspaceId)),
   );
   const fromName = settings?.fromName ?? ws?.name ?? "Customer center";
   const url = `${origin}/account/verify?t=${signToken("l", m.id)}`;
   const html = `<!doctype html><html><body style="margin:0;background:#f4f4f7;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#fff;border-radius:14px">
+${logoRow(ws)}
 <tr><td style="padding:36px 36px 8px;font-size:22px;font-weight:700;color:#111827">Sign in to your account</td></tr>
 <tr><td style="padding:0 36px 24px;font-size:15px;line-height:1.6;color:#4b5563">Click the button below to see your purchases and manage your subscriptions with ${esc(fromName)}. This link works once and expires in 30 minutes.</td></tr>
-<tr><td style="padding:0 36px 32px"><a href="${esc(url)}" style="display:inline-block;background:#4f46e5;color:#fff;text-decoration:none;font-weight:600;padding:13px 26px;border-radius:10px">Sign in</a></td></tr>
+<tr><td style="padding:0 36px 32px"><a href="${esc(url)}" style="display:inline-block;background:${brandColor(ws)};color:#fff;text-decoration:none;font-weight:600;padding:13px 26px;border-radius:10px">Sign in</a></td></tr>
 <tr><td style="padding:0 36px 32px;font-size:12px;color:#9ca3af">If you didn't ask for this, you can ignore this email.</td></tr>
 </table></td></tr></table></body></html>`;
   const r = await sendEmail({
@@ -200,14 +213,14 @@ async function sendBookingConfirmation(
   const row = await withSystem(db(), async (tx) => {
     const [b] = m.meta?.bookingId ? await tx.select().from(bookings).where(eq(bookings.id, m.meta.bookingId)) : [];
     const [c] = b ? await tx.select().from(calendars).where(eq(calendars.id, b.calendarId)) : [];
-    const [ws] = await tx.select({ name: workspaces.name }).from(workspaces).where(eq(workspaces.id, m.workspaceId));
-    return b && c ? { b, c, wsName: ws?.name ?? "" } : null;
+    const [ws] = await tx.select(brandSelect).from(workspaces).where(eq(workspaces.id, m.workspaceId));
+    return b && c ? { b, c, ws, wsName: ws?.name ?? "" } : null;
   });
   if (!row) {
     await mark({ status: "skipped", error: "Booking not found" });
     return { skipped: true };
   }
-  const { b, c, wsName } = row;
+  const { b, c, ws, wsName } = row;
   const fromName = settings?.fromName ?? wsName;
   const when = b.startAt.toLocaleString("en-US", {
     timeZone: c.timezone,
@@ -228,12 +241,13 @@ async function sendBookingConfirmation(
   const html = `<!doctype html><html><body style="margin:0;background:#f4f4f7;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:14px">
+${logoRow(ws)}
 <tr><td style="padding:36px 36px 8px;font-size:13px;font-weight:600;color:#059669">BOOKING CONFIRMED</td></tr>
 <tr><td style="padding:0 36px 8px;font-size:22px;font-weight:700;color:#111827">${esc(c.name)}</td></tr>
 <tr><td style="padding:0 36px 4px;font-size:15px;color:#374151">📅 ${esc(when)}</td></tr>
 <tr><td style="padding:0 36px 4px;font-size:15px;color:#374151">⏱ ${c.durationMinutes} minutes</td></tr>
 ${c.location ? `<tr><td style="padding:0 36px 4px;font-size:15px;color:#374151">📍 ${esc(c.location)}</td></tr>` : ""}
-<tr><td style="padding:24px 36px 32px"><a href="${esc(gcal)}" style="display:inline-block;background:#4f46e5;color:#fff;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:10px">Add to Google Calendar</a></td></tr>
+<tr><td style="padding:24px 36px 32px"><a href="${esc(gcal)}" style="display:inline-block;background:${brandColor(ws)};color:#fff;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:10px">Add to Google Calendar</a></td></tr>
 <tr><td style="padding:0 36px 32px;font-size:13px;color:#6b7280">Need to change the time? Just reply to this email.</td></tr>
 </table></td></tr></table></body></html>`;
   const r = await sendEmail({
@@ -265,8 +279,8 @@ async function sendChatReply(
           .orderBy(desc(conversationMessages.createdAt))
           .limit(6)
       : [];
-    const [ws] = await tx.select({ name: workspaces.name }).from(workspaces).where(eq(workspaces.id, m.workspaceId));
-    return { msgs: msgs.reverse(), wsName: ws?.name ?? "" };
+    const [ws] = await tx.select(brandSelect).from(workspaces).where(eq(workspaces.id, m.workspaceId));
+    return { msgs: msgs.reverse(), ws, wsName: ws?.name ?? "" };
   });
   if (!row.msgs.length) {
     await mark({ status: "skipped", error: "Conversation not found" });
@@ -283,9 +297,10 @@ async function sendChatReply(
   const html = `<!doctype html><html><body style="margin:0;background:#f4f4f7;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:14px">
+${logoRow(row.ws)}
 <tr><td style="padding:32px 36px 16px;font-size:20px;font-weight:700;color:#111827">New reply from ${esc(fromName)}</td></tr>
 ${lines}
-<tr><td style="padding:12px 36px 32px;font-size:13px;color:#6b7280">${origin ? `Continue the chat on <a href="${esc(origin)}" style="color:#4f46e5">${esc(origin.replace(/^https?:\/\//, ""))}</a> or just reply to this email.` : "Just reply to this email to continue."}</td></tr>
+<tr><td style="padding:12px 36px 32px;font-size:13px;color:#6b7280">${origin ? `Continue the chat on <a href="${esc(origin)}" style="color:${brandColor(row.ws)}">${esc(origin.replace(/^https?:\/\//, ""))}</a> or just reply to this email.` : "Just reply to this email to continue."}</td></tr>
 </table></td></tr></table></body></html>`;
   const text = row.msgs.map((x) => `${x.sender === "owner" ? fromName : "You"}: ${x.body}`).join("\n\n");
   const r = await sendEmail({

@@ -152,3 +152,19 @@ Format: **ID — Title** · Status (Proposed / Accepted / Superseded) · Date. S
 **Why.** Deriving the commission from the order removes a whole class of drift bugs and needs no extra hooks in the payment paths. Paying affiliates automatically would need Stripe Connect payouts with KYC for each affiliate, which is deferred.
 
 **Consequences.** One affiliate per order (last click). Affiliate codes are random-suffixed, so they can't be guessed from a name. Clicks are counted once per browser session per code.
+
+### ADR-019 — White-label is per workspace; the badge is a paid feature · **Accepted** · 2026-10-10
+
+**Decision.** Logo URL, brand color and “hide Powered by ZFunnel” live on `workspaces`, not on the organization. The logo and color are used on the customer center, courses, store, blog, affiliate portal and the built-in emails (sign-in link, booking confirmation, chat reply). The badge is hidden only when the owner turned it off **and** the organization has an active plan with the `whiteLabel` feature (Pro and Scale). The check runs at render time, in the site resolver.
+
+**Why.** A workspace is the brand customers see. An agency runs one organization with many client brands, so organization-level branding would be wrong for them. Checking the plan at render time means a downgrade brings the badge back without a migration or a webhook hook.
+
+**Consequences.** The dashboard itself stays ZFunnel-branded. A fully white-labeled dashboard on an agency's own domain is deferred. Logos are https links for now; uploads come with the media library. Branding changes reach public pages within the resolver's 5-second cache.
+
+### ADR-020 — Analytics stays on Postgres for now · **Accepted** · 2026-10-10
+
+**Decision.** Page views, opt-ins and sales remain rows in the `events` table, read with indexed aggregate queries (`workspace_id, funnel_id, created_at`; `step_id, type`; `step_id, variant_id, created_at`). We do not add ClickHouse or another OLAP store yet.
+
+**Why.** One Postgres instance on the VPS is simpler to run, back up and secure (RLS applies to analytics too). At the expected early volume (millions of events per month), these queries stay well under a second. A second database would double the operational load before it pays off.
+
+**Consequences.** Triggers to revisit, whichever comes first: (1) `events` passes about 50 million rows; (2) the funnel analytics page's p95 exceeds 1 second. The first step is then monthly range partitioning of `events` on `created_at`, which the indexes already lead with, plus a daily rollup table. ClickHouse comes only after that. Raw events older than 13 months may then be dropped once they are rolled up.

@@ -1,4 +1,4 @@
-import { index, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, index, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { organization, user } from "./auth";
 
 /**
@@ -17,6 +17,11 @@ export const workspaces = pgTable(
     slug: text().notNull().unique(),
     /** Funnel served at the root path "/" of this workspace's domains. */
     homeFunnelId: uuid(),
+    /** White-label: shown on the customer center, member area, store, blog and emails. */
+    logoUrl: text(),
+    brandColor: text().notNull().default("#4f46e5"),
+    /** Hide "Powered by ZFunnel" (honored only on plans with the whiteLabel feature). */
+    hideBadge: boolean().notNull().default(false),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true })
       .notNull()
