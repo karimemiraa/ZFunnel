@@ -16,5 +16,6 @@ export * from "./schema/courses";
 export * from "./schema/calendars";
 export * from "./schema/blog";
 export * from "./schema/developers";
+export * from "./schema/sms";
 export { and, asc, count, desc, eq, gt, gte, ilike, inArray, isNotNull, isNull, lt, ne, or, sql } from "drizzle-orm";
 export { ruleCondition, segmentCondition } from "./segments";

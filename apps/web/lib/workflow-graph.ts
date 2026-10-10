@@ -25,6 +25,8 @@ export function blankNode(type: NodeType, id = newId()): WorkflowNode {
       return { id, type, url: "" };
     case "grant_course":
       return { id, type, courseId: null };
+    case "send_sms":
+      return { id, type, message: "Hi {{first_name|there}}, " };
   }
 }
 

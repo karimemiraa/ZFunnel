@@ -232,6 +232,20 @@
       "when": 1791641881706,
       "tag": "0032_developers_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1791642185506,
+      "tag": "0033_sms",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1791642186769,
+      "tag": "0034_sms_rls",
+      "breakpoints": true
     }
   ]
 }

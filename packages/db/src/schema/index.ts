@@ -14,3 +14,4 @@ export * from "./courses";
 export * from "./calendars";
 export * from "./blog";
 export * from "./developers";
+export * from "./sms";

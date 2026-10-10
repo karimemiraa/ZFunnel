@@ -9,6 +9,7 @@ import {
   HandIcon,
   type LucideIcon,
   MailIcon,
+  MessageSquareIcon,
   TagIcon,
   TagsIcon,
   WebhookIcon,
@@ -23,6 +24,7 @@ export const NODE_META: Record<WorkflowNode["type"], { label: string; icon: Luci
     remove_tag: { label: "Remove tag", icon: TagsIcon, color: "#f43f5e", hint: "Remove a tag" },
     condition: { label: "If / else", icon: GitBranchIcon, color: "#0ea5e9", hint: "Branch on a condition" },
     webhook: { label: "Webhook", icon: WebhookIcon, color: "#64748b", hint: "POST the contact to a URL" },
+    send_sms: { label: "Send SMS", icon: MessageSquareIcon, color: "#ec4899", hint: "Text the contact (Twilio)" },
     grant_course: {
       label: "Give course access",
       icon: GraduationCapIcon,
@@ -30,14 +32,19 @@ export const NODE_META: Record<WorkflowNode["type"], { label: string; icon: Luci
       hint: "Enroll the contact in a course",
     },
   };
-export const NODE_ORDER: WorkflowNode["type"][] = [
+export const NODE_ORDER = [
   "send_email",
+  "send_sms",
   "wait",
   "condition",
   "add_tag",
   "remove_tag",
+  "grant_course",
   "webhook",
-];
+] as const satisfies readonly WorkflowNode["type"][];
+// Compile-time guard: every step type must appear in the "Add a step" menu.
+type MissingNode = Exclude<WorkflowNode["type"], (typeof NODE_ORDER)[number]>;
+export const allNodesListed: [MissingNode] extends [never] ? true : MissingNode = true;
 
 export const TRIGGER_META: Record<WorkflowTrigger["type"], { label: string; icon: LucideIcon; hint: string }> = {
   optin: { label: "Opts in to a funnel", icon: FilterIcon, hint: "Someone submits an opt-in form" },
@@ -51,13 +58,16 @@ export const TRIGGER_META: Record<WorkflowTrigger["type"], { label: string; icon
   },
   manual: { label: "Added manually", icon: HandIcon, hint: "You add contacts yourself" },
 };
-export const TRIGGER_CHOICES: WorkflowTrigger["type"][] = [
+export const TRIGGER_CHOICES = [
   "optin",
   "form_submitted",
   "purchase",
+  "booked",
   "tag_added",
   "manual",
-];
+] as const satisfies readonly WorkflowTrigger["type"][];
+type MissingTrigger = Exclude<WorkflowTrigger["type"], (typeof TRIGGER_CHOICES)[number]>;
+export const allTriggersListed: [MissingTrigger] extends [never] ? true : MissingTrigger = true;
 
 export type Lookups = {
   funnels: { id: string; name: string }[];
@@ -107,6 +117,8 @@ export function nodeSummary(n: WorkflowNode, l: Pick<Lookups, "emails" | "course
       if (r.field === "custom") return `${r.key} ${r.op === "is_set" ? "is set" : `${r.op} “${r.value ?? ""}”`}`;
       return "Custom condition";
     }
+    case "send_sms":
+      return n.message.trim() ? n.message.slice(0, 40) : "Write a message";
     case "grant_course":
       return n.courseId ? (l.courses.find((c) => c.id === n.courseId)?.title ?? "A deleted course") : "Choose a course";
     case "webhook":

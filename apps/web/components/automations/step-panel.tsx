@@ -5,6 +5,7 @@ import { Button } from "@zfunnel/ui/button";
 import { Input } from "@zfunnel/ui/input";
 import { Label } from "@zfunnel/ui/label";
 import { NativeSelect } from "@zfunnel/ui/select";
+import { Textarea } from "@zfunnel/ui/textarea";
 import { toast } from "@zfunnel/ui/toaster";
 import { Loader2Icon, PaletteIcon, PlusIcon, Trash2Icon, XIcon } from "lucide-react";
 import Link from "next/link";
@@ -345,6 +346,24 @@ export function StepPanel(props: StepProps & { onDelete: () => void; onClose: ()
 
       {node.type === "condition" && (
         <ConditionFields node={node} lookups={lookups} readOnly={readOnly} onChange={onChange} />
+      )}
+
+      {node.type === "send_sms" && (
+        <fieldset disabled={readOnly}>
+          <Field
+            label="Message"
+            htmlFor="node-sms"
+            hint={`${node.message.length} characters · ${Math.max(1, Math.ceil(node.message.length / 160))} SMS. Use {{first_name|there}} to personalize.`}
+          >
+            <Textarea
+              id="node-sms"
+              rows={5}
+              maxLength={1600}
+              value={node.message}
+              onChange={(e) => onChange({ ...node, message: e.target.value })}
+            />
+          </Field>
+        </fieldset>
       )}
 
       {node.type === "grant_course" && (

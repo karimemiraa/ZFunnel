@@ -41,3 +41,13 @@ describe("isPublicUrl", () => {
     expect(await isPublicUrl("https://1.1.1.1/hook")).toBe(true);
   });
 });
+
+import { normalizePhone } from "./workflows";
+describe("normalizePhone", () => {
+  it("accepts international numbers and rejects junk", () => {
+    expect(normalizePhone("+1 (415) 555-0100")).toBe("+14155550100");
+    expect(normalizePhone("971 50 123 4567")).toBe("+971501234567");
+    expect(normalizePhone("call me")).toBeNull();
+    expect(normalizePhone(null)).toBeNull();
+  });
+});

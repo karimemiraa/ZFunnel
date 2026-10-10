@@ -11,6 +11,7 @@ import {
   eq,
   getDb,
   ruleCondition,
+  smsSettings,
   sql,
   withSystem,
   workflowRunLogs,
@@ -20,7 +21,9 @@ import {
   type WorkflowNode,
   type WorkflowTrigger,
 } from "@zfunnel/db";
+import { openSecret, personalize } from "@zfunnel/email";
 import { queue, type WorkflowEvent, type WorkflowRunJob } from "@zfunnel/queue";
+import { contactVars } from "./email";
 
 const db = () => getDb();
 /** Guards against accidental infinite loops inside one job. */
@@ -196,6 +199,7 @@ async function runStep(
         });
       return { next, status: "ok", message: c.title };
     }
+    case "send_sms":
     case "webhook":
       // Performed outside the transaction (network call); see runWorkflow.
       return { next: node.next ?? null, status: "ok" };
@@ -242,6 +246,11 @@ export async function processWorkflowRun({ runId }: WorkflowRunJob) {
       if (node.type === "webhook") {
         const [contact] = await tx.select().from(contacts).where(eq(contacts.id, run.contactId));
         return { webhook: { node, run, contact, wf } };
+      }
+      if (node.type === "send_sms") {
+        const [contact] = await tx.select().from(contacts).where(eq(contacts.id, run.contactId));
+        const [sms] = await tx.select().from(smsSettings).where(eq(smsSettings.workspaceId, run.workspaceId));
+        return { sms: { node, run, contact, settings: sms ?? null } };
       }
       const r = await runStep(tx, node, ctx);
       await tx.insert(workflowRunLogs).values({
@@ -293,6 +302,26 @@ export async function processWorkflowRun({ runId }: WorkflowRunJob) {
       });
       continue;
     }
+    if ("sms" in step && step.sms) {
+      const { node, run, contact, settings } = step.sms;
+      const res = await sendSmsStep(node.message, contact, settings);
+      await withSystem(db(), async (tx) => {
+        await tx.insert(workflowRunLogs).values({
+          workspaceId: run.workspaceId,
+          runId: run.id,
+          nodeId: node.id,
+          nodeType: node.type,
+          status: res.status,
+          message: res.message,
+        });
+        // A failed SMS is logged but does not stop the automation.
+        await tx
+          .update(workflowRuns)
+          .set({ currentNodeId: node.next ?? null })
+          .where(and(eq(workflowRuns.id, run.id), eq(workflowRuns.currentNodeId, node.id)));
+      });
+      continue;
+    }
     if (step.emailMessageId)
       await queue("email").add("email", { messageId: step.emailMessageId }, { jobId: `msg-${step.emailMessageId}` });
     if (step.resumeAt) {
@@ -307,4 +336,41 @@ export async function processWorkflowRun({ runId }: WorkflowRunJob) {
   // Long chains continue in a fresh job.
   await queue("workflow-runs").add("run", { runId }, { jobId: `run-${runId}-cont-${Date.now()}` });
   return { continued: true };
+}
+
+/** E.164-ish: keep digits and a leading +. */
+export function normalizePhone(raw: string | null | undefined) {
+  const p = (raw ?? "").replace(/[^\d+]/g, "");
+  return /^\+?\d{8,15}$/.test(p) ? (p.startsWith("+") ? p : `+${p}`) : null;
+}
+
+async function sendSmsStep(
+  message: string,
+  contact: typeof contacts.$inferSelect | undefined,
+  settings: typeof smsSettings.$inferSelect | null,
+): Promise<{ status: "ok" | "skipped" | "error"; message: string }> {
+  if (!settings) return { status: "skipped", message: "SMS isn't set up (Settings → SMS)" };
+  const to = normalizePhone(contact?.phone);
+  if (!contact || !to) return { status: "skipped", message: "Contact has no valid phone number" };
+  if (contact.unsubscribedAt) return { status: "skipped", message: "Contact unsubscribed" };
+  const token = openSecret(settings.authTokenSealed);
+  if (!token) return { status: "error", message: "Stored Twilio token can't be decrypted. Re-enter it." };
+  const body = personalize(message, contactVars(contact), false).slice(0, 1600);
+  const base = (process.env.TWILIO_API_BASE ?? "https://api.twilio.com").replace(/\/$/, "");
+  try {
+    const res = await fetch(`${base}/2010-04-01/Accounts/${encodeURIComponent(settings.accountSid)}/Messages.json`, {
+      method: "POST",
+      headers: {
+        authorization: `Basic ${Buffer.from(`${settings.accountSid}:${token}`).toString("base64")}`,
+        "content-type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({ To: to, From: settings.fromNumber, Body: body }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (res.ok) return { status: "ok", message: `Sent to ${to}` };
+    const err = (await res.json().catch(() => ({}))) as { message?: string };
+    return { status: "error", message: `Twilio ${res.status}: ${err.message ?? "error"}`.slice(0, 300) };
+  } catch (err) {
+    return { status: "error", message: (err as Error).message.slice(0, 200) };
+  }
 }
