@@ -14,6 +14,7 @@ import { Input } from "@zfunnel/ui/input";
 import { Label } from "@zfunnel/ui/label";
 import { Textarea } from "@zfunnel/ui/textarea";
 import { toast } from "@zfunnel/ui/toaster";
+import { useT } from "@zfunnel/i18n/react";
 import { CheckCircle2Icon, Loader2Icon, MessageCircleIcon, RotateCcwIcon, SendIcon, Settings2Icon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
@@ -23,6 +24,7 @@ import {
   saveChatSettings,
   setConversationStatus,
 } from "@/lib/inbox-actions";
+import { useFmt } from "@/lib/use-fmt";
 
 type Result = { ok: true; message?: string } | { ok: false; error: string };
 
@@ -49,6 +51,7 @@ export function ChatSettingsDialog({
   workspaceSlug: string;
   initial: { enabled: boolean; greeting: string; color: string };
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [v, setV] = useState(initial);
   const { busy, run } = useRun();
@@ -56,18 +59,16 @@ export function ChatSettingsDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline">
-          <Settings2Icon /> Chat widget{" "}
+          <Settings2Icon /> {t("inbox.chatWidget")}{" "}
           <span className={initial.enabled ? "text-emerald-600" : "text-muted-foreground"}>
-            · {initial.enabled ? "On" : "Off"}
+            · {initial.enabled ? t("inbox.on") : t("inbox.off")}
           </span>
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Site chat widget</DialogTitle>
-          <DialogDescription>
-            A chat bubble on every page of your site. Messages land here, and your replies are emailed to the visitor.
-          </DialogDescription>
+          <DialogTitle>{t("inbox.settingsTitle")}</DialogTitle>
+          <DialogDescription>{t("inbox.settingsDescription")}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <label className="flex items-center gap-3 rounded-lg border p-3 text-sm font-medium">
@@ -77,10 +78,10 @@ export function ChatSettingsDialog({
               checked={v.enabled}
               onChange={(e) => setV({ ...v, enabled: e.target.checked })}
             />
-            Show the chat bubble on my site
+            {t("inbox.showBubble")}
           </label>
           <div className="space-y-2">
-            <Label htmlFor="chat-greeting">Greeting</Label>
+            <Label htmlFor="chat-greeting">{t("inbox.greeting")}</Label>
             <Textarea
               id="chat-greeting"
               rows={2}
@@ -89,16 +90,21 @@ export function ChatSettingsDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="chat-color">Brand color</Label>
+            <Label htmlFor="chat-color">{t("inbox.brandColor")}</Label>
             <div className="flex items-center gap-2">
               <input
                 type="color"
-                aria-label="Pick a color"
+                aria-label={t("inbox.pickColor")}
                 value={v.color}
                 onChange={(e) => setV({ ...v, color: e.target.value })}
                 className="h-9 w-12 cursor-pointer rounded border bg-transparent"
               />
-              <Input id="chat-color" value={v.color} onChange={(e) => setV({ ...v, color: e.target.value })} />
+              <Input
+                id="chat-color"
+                dir="ltr"
+                value={v.color}
+                onChange={(e) => setV({ ...v, color: e.target.value })}
+              />
             </div>
           </div>
         </div>
@@ -112,7 +118,7 @@ export function ChatSettingsDialog({
               )
             }
           >
-            {busy && <Loader2Icon className="animate-spin" />} Save
+            {busy && <Loader2Icon className="animate-spin" />} {t("common.save")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -136,6 +142,8 @@ export function Thread({
   };
   messages: { id: string; sender: "visitor" | "owner"; body: string; at: string }[];
 }) {
+  const t = useT();
+  const f = useFmt();
   const [text, setText] = useState("");
   const { busy, run } = useRun();
   const router = useRouter();
@@ -149,8 +157,8 @@ export function Thread({
   }, [conversation.id, conversation.unread, workspaceSlug, router]);
   // New visitor messages show up without reloading.
   useEffect(() => {
-    const t = setInterval(() => router.refresh(), 15_000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => router.refresh(), 15_000);
+    return () => clearInterval(timer);
   }, [router]);
 
   const closed = conversation.status === "closed";
@@ -160,8 +168,9 @@ export function Thread({
         <div className="min-w-0">
           <p className="truncate font-semibold">{conversation.name || conversation.email}</p>
           <p className="truncate text-xs text-muted-foreground">
-            {conversation.email}
-            {conversation.pageUrl && ` · started on ${conversation.pageUrl.replace(/^https?:\/\//, "")}`}
+            <span dir="ltr">{conversation.email}</span>
+            {conversation.pageUrl &&
+              ` · ${t("inbox.startedOn", { page: conversation.pageUrl.replace(/^https?:\/\//, "") })}`}
           </p>
         </div>
         <Button
@@ -170,7 +179,7 @@ export function Thread({
           disabled={busy}
           onClick={() => run(() => setConversationStatus(workspaceSlug, conversation.id, closed ? "open" : "closed"))}
         >
-          {closed ? <RotateCcwIcon /> : <CheckCircle2Icon />} {closed ? "Reopen" : "Close"}
+          {closed ? <RotateCcwIcon /> : <CheckCircle2Icon />} {closed ? t("inbox.reopen") : t("inbox.close")}
         </Button>
       </header>
       <div className="flex-1 space-y-3 overflow-y-auto bg-muted/30 p-5 text-sm">
@@ -187,7 +196,7 @@ export function Thread({
                 {m.body}
               </p>
               <p className={`mt-1 text-[11px] text-muted-foreground ${m.sender === "owner" ? "text-end" : ""}`}>
-                {new Date(m.at).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}
+                {f.dateTime(m.at)}
               </p>
             </div>
           </div>
@@ -205,9 +214,9 @@ export function Thread({
         }}
       >
         <Textarea
-          aria-label="Reply"
+          aria-label={t("inbox.reply")}
           rows={2}
-          placeholder={`Reply to ${conversation.name || conversation.email}… (also sent by email)`}
+          placeholder={t("inbox.replyPlaceholder", { name: conversation.name || conversation.email })}
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
@@ -216,7 +225,7 @@ export function Thread({
           className="min-h-0 flex-1 resize-none"
         />
         <Button type="submit" disabled={busy || !text.trim()}>
-          {busy ? <Loader2Icon className="animate-spin" /> : <SendIcon />} Send
+          {busy ? <Loader2Icon className="animate-spin" /> : <SendIcon />} {t("inbox.send")}
         </Button>
       </form>
     </section>
@@ -224,10 +233,11 @@ export function Thread({
 }
 
 export function EmptyThread() {
+  const t = useT();
   return (
     <div className="flex min-h-[560px] flex-col items-center justify-center rounded-xl border border-dashed text-center text-sm text-muted-foreground">
       <MessageCircleIcon className="mb-3 size-8" />
-      Pick a conversation to read and reply.
+      {t("inbox.pickConversation")}
     </div>
   );
 }

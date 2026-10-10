@@ -1,15 +1,16 @@
 "use client";
 
-import { formatMoney } from "@zfunnel/payments/money";
 import { Badge } from "@zfunnel/ui/badge";
 import { Button } from "@zfunnel/ui/button";
 import { Input } from "@zfunnel/ui/input";
 import { toast } from "@zfunnel/ui/toaster";
+import { useT } from "@zfunnel/i18n/react";
 import { Loader2Icon, TagIcon, XIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { setTags } from "@/lib/crm-actions";
+import { useFmt } from "@/lib/use-fmt";
 
 type Row = {
   id: string;
@@ -24,6 +25,8 @@ type Row = {
 };
 
 export function ContactsTable({ workspaceSlug, rows }: { workspaceSlug: string; rows: Row[] }) {
+  const t = useT();
+  const f = useFmt();
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [tag, setTag] = useState("");
@@ -35,7 +38,7 @@ export function ContactsTable({ workspaceSlug, rows }: { workspaceSlug: string; 
     start(async () => {
       const r = await setTags(workspaceSlug, [...selected], tag, mode);
       if (r.ok) {
-        toast.success(r.message ?? "Done");
+        toast.success(r.message ?? t("contacts.done"));
         setTag("");
         router.refresh();
       } else toast.error(r.error);
@@ -45,22 +48,22 @@ export function ContactsTable({ workspaceSlug, rows }: { workspaceSlug: string; 
     <div className="overflow-hidden rounded-xl border bg-card">
       {selected.size > 0 && (
         <div className="flex flex-wrap items-center gap-2 border-b bg-primary/5 px-4 py-2.5 text-sm">
-          <span className="font-medium">{selected.size} selected</span>
+          <span className="font-medium">{t("contacts.selected", { count: selected.size })}</span>
           <Input
             value={tag}
             onChange={(e) => setTag(e.target.value)}
-            placeholder="tag name"
+            placeholder={t("contacts.tagName")}
             className="h-8 w-40"
-            aria-label="Tag"
+            aria-label={t("contacts.tag")}
           />
           <Button size="sm" disabled={busy || !tag} onClick={() => bulk("add")}>
-            {busy ? <Loader2Icon className="animate-spin" /> : <TagIcon />} Add tag
+            {busy ? <Loader2Icon className="animate-spin" /> : <TagIcon />} {t("contacts.addTagBtn")}
           </Button>
           <Button size="sm" variant="outline" disabled={busy || !tag} onClick={() => bulk("remove")}>
-            Remove tag
+            {t("contacts.removeTagBtn")}
           </Button>
           <Button size="sm" variant="ghost" className="ms-auto" onClick={() => setSelected(new Set())}>
-            <XIcon /> Clear
+            <XIcon /> {t("contacts.clear")}
           </Button>
         </div>
       )}
@@ -73,14 +76,14 @@ export function ContactsTable({ workspaceSlug, rows }: { workspaceSlug: string; 
                 className="size-4 accent-primary"
                 checked={all}
                 onChange={() => setSelected(all ? new Set() : new Set(rows.map((r) => r.id)))}
-                aria-label="Select all"
+                aria-label={t("contacts.selectAll")}
               />
             </th>
-            <th className="px-2 py-3">Contact</th>
-            <th className="px-4 py-3 max-lg:hidden">Tags</th>
-            <th className="px-4 py-3 max-md:hidden">Source</th>
-            <th className="px-4 py-3 max-sm:hidden">Status</th>
-            <th className="px-4 py-3 text-end">Spent</th>
+            <th className="px-2 py-3">{t("contacts.colContact")}</th>
+            <th className="px-4 py-3 max-lg:hidden">{t("contacts.tags")}</th>
+            <th className="px-4 py-3 max-md:hidden">{t("contacts.colSource")}</th>
+            <th className="px-4 py-3 max-sm:hidden">{t("contacts.colStatus")}</th>
+            <th className="px-4 py-3 text-end">{t("contacts.colSpent")}</th>
           </tr>
         </thead>
         <tbody className="divide-y">
@@ -92,7 +95,7 @@ export function ContactsTable({ workspaceSlug, rows }: { workspaceSlug: string; 
                   className="size-4 accent-primary"
                   checked={selected.has(c.id)}
                   onChange={() => toggle(c.id)}
-                  aria-label={`Select ${c.email}`}
+                  aria-label={t("contacts.selectRow", { email: c.email })}
                 />
               </td>
               <td className="px-2 py-3">
@@ -102,15 +105,17 @@ export function ContactsTable({ workspaceSlug, rows }: { workspaceSlug: string; 
                   </span>
                   <span className="min-w-0">
                     <span className="block truncate font-medium group-hover:underline">{c.name ?? "—"}</span>
-                    <span className="block truncate text-xs text-muted-foreground">{c.email}</span>
+                    <span className="block truncate text-xs text-muted-foreground" dir="ltr">
+                      {c.email}
+                    </span>
                   </span>
                 </Link>
               </td>
               <td className="px-4 py-3 max-lg:hidden">
                 <div className="flex flex-wrap gap-1">
-                  {c.tags.slice(0, 4).map((t) => (
-                    <Badge key={t} variant="secondary">
-                      {t}
+                  {c.tags.slice(0, 4).map((tag) => (
+                    <Badge key={tag} variant="secondary">
+                      {tag}
                     </Badge>
                   ))}
                   {c.tags.length > 4 && <Badge variant="outline">+{c.tags.length - 4}</Badge>}
@@ -118,18 +123,16 @@ export function ContactsTable({ workspaceSlug, rows }: { workspaceSlug: string; 
               </td>
               <td className="px-4 py-3 max-md:hidden">
                 <div className="max-w-[12rem] truncate">{c.funnelName ?? "—"}</div>
-                {c.utm && <div className="text-xs text-muted-foreground">via {c.utm}</div>}
+                {c.utm && <div className="text-xs text-muted-foreground">{t("contacts.via", { source: c.utm })}</div>}
               </td>
               <td className="px-4 py-3 max-sm:hidden">
                 {c.orderCount > 0 ? (
-                  <Badge variant="success">Customer · {c.orderCount}</Badge>
+                  <Badge variant="success">{t("contacts.customerCount", { count: c.orderCount })}</Badge>
                 ) : (
-                  <Badge variant="secondary">Lead</Badge>
+                  <Badge variant="secondary">{t("contacts.lead")}</Badge>
                 )}
               </td>
-              <td className="px-4 py-3 text-end font-medium tabular-nums">
-                {c.spent ? formatMoney(c.spent, "usd") : "—"}
-              </td>
+              <td className="px-4 py-3 text-end font-medium tabular-nums">{c.spent ? f.money(c.spent, "usd") : "—"}</td>
             </tr>
           ))}
         </tbody>

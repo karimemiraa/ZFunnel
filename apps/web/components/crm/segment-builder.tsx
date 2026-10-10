@@ -6,6 +6,7 @@ import { Input } from "@zfunnel/ui/input";
 import { Label } from "@zfunnel/ui/label";
 import { NativeSelect } from "@zfunnel/ui/select";
 import { toast } from "@zfunnel/ui/toaster";
+import { useT } from "@zfunnel/i18n/react";
 import { FilterIcon, Loader2Icon, PlusIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -15,41 +16,41 @@ type Rule = { field: string; op: string; value?: string | number; key?: string }
 const FIELDS = [
   {
     value: "tag",
-    label: "Tag",
+    label: "tag",
     ops: [
       ["has", "has"],
-      ["not_has", "doesn't have"],
+      ["not_has", "notHas"],
     ],
     input: "text",
   },
-  { value: "email", label: "Email", ops: [["contains", "contains"]], input: "text" },
-  { value: "name", label: "Name", ops: [["contains", "contains"]], input: "text" },
+  { value: "email", label: "email", ops: [["contains", "contains"]], input: "text" },
+  { value: "name", label: "name", ops: [["contains", "contains"]], input: "text" },
   {
     value: "created",
-    label: "Added",
+    label: "added",
     ops: [
-      ["within_days", "in the last (days)"],
-      ["older_than_days", "more than (days) ago"],
+      ["within_days", "withinDays"],
+      ["older_than_days", "olderThanDays"],
     ],
     input: "number",
   },
   {
     value: "customer",
-    label: "Customer",
+    label: "customer",
     ops: [
-      ["is", "has bought"],
-      ["is_not", "hasn't bought"],
+      ["is", "hasBought"],
+      ["is_not", "hasNotBought"],
     ],
     input: "none",
   },
-  { value: "source_funnel", label: "Source funnel", ops: [["is", "is"]], input: "funnel" },
+  { value: "source_funnel", label: "sourceFunnel", ops: [["is", "is"]], input: "funnel" },
   {
     value: "custom",
-    label: "Custom field",
+    label: "customField",
     ops: [
       ["equals", "equals"],
       ["contains", "contains"],
-      ["is_set", "is set"],
+      ["is_set", "isSet"],
     ],
     input: "custom",
   },
@@ -66,6 +67,7 @@ export function SegmentBuilder({
   fields: { key: string; label: string }[];
   tags: string[];
 }) {
+  const t = useT();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
@@ -79,27 +81,30 @@ export function SegmentBuilder({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
-          <FilterIcon /> New segment
+          <FilterIcon /> {t("contacts.segment.new")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>New segment</DialogTitle>
-          <DialogDescription>
-            A saved, always up-to-date group of contacts, e.g. “Webinar leads who haven't bought”.
-          </DialogDescription>
+          <DialogTitle>{t("contacts.segment.new")}</DialogTitle>
+          <DialogDescription>{t("contacts.segment.description")}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4">
           <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
             <div className="space-y-1.5">
-              <Label htmlFor="seg-name">Name</Label>
-              <Input id="seg-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Hot leads" />
+              <Label htmlFor="seg-name">{t("contacts.name")}</Label>
+              <Input
+                id="seg-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={t("contacts.segment.namePlaceholder")}
+              />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="seg-match">Match</Label>
+              <Label htmlFor="seg-match">{t("contacts.segment.match")}</Label>
               <NativeSelect id="seg-match" value={match} onChange={(e) => setMatch(e.target.value as "all" | "any")}>
-                <option value="all">All rules</option>
-                <option value="any">Any rule</option>
+                <option value="all">{t("contacts.segment.allRules")}</option>
+                <option value="any">{t("contacts.segment.anyRule")}</option>
               </NativeSelect>
             </div>
           </div>
@@ -109,7 +114,7 @@ export function SegmentBuilder({
               return (
                 <div key={i} className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/40 p-2">
                   <NativeSelect
-                    aria-label="Field"
+                    aria-label={t("contacts.segment.field")}
                     value={r.field}
                     onChange={(e) => {
                       const d = FIELDS.find((f) => f.value === e.target.value)!;
@@ -124,13 +129,13 @@ export function SegmentBuilder({
                   >
                     {FIELDS.map((f) => (
                       <option key={f.value} value={f.value}>
-                        {f.label}
+                        {t(`contacts.segment.fields.${f.label}`)}
                       </option>
                     ))}
                   </NativeSelect>
                   {def.input === "custom" && (
                     <NativeSelect
-                      aria-label="Custom field"
+                      aria-label={t("contacts.segment.fields.customField")}
                       value={r.key ?? ""}
                       onChange={(e) => update(i, { key: e.target.value })}
                       className="w-36"
@@ -143,20 +148,20 @@ export function SegmentBuilder({
                     </NativeSelect>
                   )}
                   <NativeSelect
-                    aria-label="Condition"
+                    aria-label={t("contacts.segment.condition")}
                     value={r.op}
                     onChange={(e) => update(i, { op: e.target.value })}
                     className="w-44"
                   >
                     {def.ops.map(([v, l]) => (
                       <option key={v} value={v}>
-                        {l}
+                        {t(`contacts.segment.ops.${l}`)}
                       </option>
                     ))}
                   </NativeSelect>
                   {def.input === "text" || (def.input === "custom" && r.op !== "is_set") ? (
                     <Input
-                      aria-label="Value"
+                      aria-label={t("contacts.segment.value")}
                       value={String(r.value ?? "")}
                       onChange={(e) => update(i, { value: e.target.value })}
                       className="h-9 w-40 flex-1"
@@ -164,7 +169,7 @@ export function SegmentBuilder({
                     />
                   ) : def.input === "number" ? (
                     <Input
-                      aria-label="Days"
+                      aria-label={t("contacts.segment.days")}
                       type="number"
                       min={1}
                       value={Number(r.value ?? 30)}
@@ -173,7 +178,7 @@ export function SegmentBuilder({
                     />
                   ) : def.input === "funnel" ? (
                     <NativeSelect
-                      aria-label="Funnel"
+                      aria-label={t("contacts.segment.funnel")}
                       value={String(r.value ?? "")}
                       onChange={(e) => update(i, { value: e.target.value })}
                       className="w-48"
@@ -188,7 +193,7 @@ export function SegmentBuilder({
                   <Button
                     variant="ghost"
                     size="icon"
-                    aria-label="Remove rule"
+                    aria-label={t("contacts.segment.removeRule")}
                     disabled={rules.length === 1}
                     onClick={() => setRules((x) => x.filter((_, j) => j !== i))}
                     className="ms-auto"
@@ -199,8 +204,8 @@ export function SegmentBuilder({
               );
             })}
             <datalist id="seg-tags">
-              {tags.map((t) => (
-                <option key={t} value={t} />
+              {tags.map((tag) => (
+                <option key={tag} value={tag} />
               ))}
             </datalist>
             <Button
@@ -208,7 +213,7 @@ export function SegmentBuilder({
               size="sm"
               onClick={() => setRules((r) => [...r, { field: "tag", op: "has", value: "" }])}
             >
-              <PlusIcon /> Add rule
+              <PlusIcon /> {t("contacts.segment.addRule")}
             </Button>
           </div>
           <div className="flex justify-end">
@@ -218,13 +223,13 @@ export function SegmentBuilder({
                 start(async () => {
                   const res = await saveSegment(workspaceSlug, { name, match, rules });
                   if (!res.ok) return void toast.error(res.error);
-                  toast.success("Segment saved");
+                  toast.success(t("contacts.segment.saved"));
                   setOpen(false);
                   router.push(`/${workspaceSlug}/contacts?segment=${res.id}`);
                 })
               }
             >
-              {busy && <Loader2Icon className="animate-spin" />} Save segment
+              {busy && <Loader2Icon className="animate-spin" />} {t("contacts.segment.save")}
             </Button>
           </div>
         </div>

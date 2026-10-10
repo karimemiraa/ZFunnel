@@ -3,26 +3,28 @@ import { ClipboardListIcon } from "lucide-react";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { requireWorkspace } from "@/lib/context";
-import { timeAgo } from "@/lib/format";
 import { listForms } from "@/lib/forms";
+import { getFmt, getT } from "@/lib/i18n";
 
-export const metadata = { title: "Forms" };
+export async function generateMetadata() {
+  return { title: (await getT())("formsAdmin.pageTitle") };
+}
 
 export default async function FormsPage({ params }: { params: Promise<{ workspace: string }> }) {
   const ctx = await requireWorkspace(params);
   const ws = ctx.workspace.slug;
-  const forms = await listForms(ctx);
+  const [forms, t, fm] = await Promise.all([listForms(ctx), getT(), getFmt()]);
   return (
     <>
-      <PageHeader title="Forms" description="Responses to the surveys, quizzes and forms on your funnel pages." />
+      <PageHeader title={t("formsAdmin.pageTitle")} description={t("formsAdmin.pageDescription")} />
       {forms.length === 0 ? (
         <EmptyState
           icon={<ClipboardListIcon />}
-          title="No responses yet"
-          description="Add the “Form / survey / quiz” block to any funnel page and publish it. Every response shows up here, summarized."
+          title={t("formsAdmin.emptyTitle")}
+          description={t("formsAdmin.emptyDescription")}
           action={
             <Link href={`/${ws}/funnels`} className="text-sm font-medium text-primary hover:underline">
-              Go to funnels →
+              {t("formsAdmin.goToFunnels")}
             </Link>
           }
         />
@@ -31,10 +33,10 @@ export default async function FormsPage({ params }: { params: Promise<{ workspac
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-start text-xs font-medium tracking-wide text-muted-foreground uppercase">
               <tr>
-                <th className="px-4 py-3">Form</th>
-                <th className="px-4 py-3 max-md:hidden">Funnel</th>
-                <th className="px-4 py-3 text-end">Responses</th>
-                <th className="px-4 py-3 text-end max-sm:hidden">Last response</th>
+                <th className="px-4 py-3">{t("formsAdmin.colForm")}</th>
+                <th className="px-4 py-3 max-md:hidden">{t("formsAdmin.colFunnel")}</th>
+                <th className="px-4 py-3 text-end">{t("formsAdmin.colResponses")}</th>
+                <th className="px-4 py-3 text-end max-sm:hidden">{t("formsAdmin.colLastResponse")}</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -47,15 +49,17 @@ export default async function FormsPage({ params }: { params: Promise<{ workspac
                     >
                       {f.formName}
                     </Link>
-                    <p className="text-xs text-muted-foreground">{f.contacts.toLocaleString()} contacts</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t("formsAdmin.contactsCount", { count: f.contacts })}
+                    </p>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground max-md:hidden">
-                    {f.funnelName ?? "Deleted funnel"}
+                    {f.funnelName ?? t("formsAdmin.deletedFunnel")}
                     {f.stepName && <span className="text-xs"> · {f.stepName}</span>}
                   </td>
-                  <td className="px-4 py-3 text-end font-semibold tabular-nums">{f.responses.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-end font-semibold tabular-nums">{fm.number(f.responses)}</td>
                   <td className="px-4 py-3 text-end text-muted-foreground max-sm:hidden">
-                    {timeAgo(new Date(f.last))}
+                    {fm.timeAgo(new Date(f.last))}
                   </td>
                 </tr>
               ))}
