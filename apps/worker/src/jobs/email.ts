@@ -4,6 +4,8 @@ import {
   broadcasts,
   calendars,
   contacts,
+  conversationMessages,
+  desc,
   emailMessages,
   emails,
   emailSettings,
@@ -100,6 +102,7 @@ export async function processEmail({ messageId }: EmailJob) {
     withSystem(db(), (tx) => tx.update(emailMessages).set(set).where(eq(emailMessages.id, m.id)));
   if (m.meta?.kind === "login") return sendLoginLink(m, settings, mark);
   if (m.meta?.kind === "booking") return sendBookingConfirmation(m, settings, mark);
+  if (m.meta?.kind === "chat_reply") return sendChatReply(m, settings, mark);
   if (!email || !settings) {
     await mark({
       status: "failed",
@@ -240,6 +243,58 @@ ${c.location ? `<tr><td style="padding:0 36px 4px;font-size:15px;color:#374151">
     subject: m.subject,
     html,
     text: `Booking confirmed: ${c.name}\n${when}\n${c.durationMinutes} minutes${c.location ? `\n${c.location}` : ""}\n\nAdd to Google Calendar: ${gcal}`,
+    messageId: m.id,
+  });
+  await mark({ status: "sent", sentAt: new Date(), providerMessageId: r.providerMessageId });
+  return { sent: true };
+}
+
+/** Built-in transactional email: the owner's reply to a site chat, with the recent thread. */
+async function sendChatReply(
+  m: typeof emailMessages.$inferSelect,
+  settings: typeof emailSettings.$inferSelect | undefined,
+  mark: (set: Partial<typeof emailMessages.$inferInsert>) => Promise<unknown>,
+) {
+  const row = await withSystem(db(), async (tx) => {
+    const id = m.meta?.conversationId;
+    const msgs = id
+      ? await tx
+          .select()
+          .from(conversationMessages)
+          .where(eq(conversationMessages.conversationId, id))
+          .orderBy(desc(conversationMessages.createdAt))
+          .limit(6)
+      : [];
+    const [ws] = await tx.select({ name: workspaces.name }).from(workspaces).where(eq(workspaces.id, m.workspaceId));
+    return { msgs: msgs.reverse(), wsName: ws?.name ?? "" };
+  });
+  if (!row.msgs.length) {
+    await mark({ status: "skipped", error: "Conversation not found" });
+    return { skipped: true };
+  }
+  const fromName = settings?.fromName ?? row.wsName;
+  const origin = m.meta?.siteOrigin && /^https?:\/\/[^/]+$/.test(m.meta.siteOrigin) ? m.meta.siteOrigin : null;
+  const lines = row.msgs
+    .map(
+      (x) =>
+        `<tr><td style="padding:0 36px 12px"><div style="font-size:12px;color:#9ca3af;margin-bottom:4px">${x.sender === "owner" ? esc(fromName) : "You"}</div><div style="font-size:15px;line-height:1.55;color:#111827;white-space:pre-wrap;${x.sender === "owner" ? "background:#eef2ff" : "background:#f4f4f5"};border-radius:12px;padding:10px 14px">${esc(x.body)}</div></td></tr>`,
+    )
+    .join("");
+  const html = `<!doctype html><html><body style="margin:0;background:#f4f4f7;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 12px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:14px">
+<tr><td style="padding:32px 36px 16px;font-size:20px;font-weight:700;color:#111827">New reply from ${esc(fromName)}</td></tr>
+${lines}
+<tr><td style="padding:12px 36px 32px;font-size:13px;color:#6b7280">${origin ? `Continue the chat on <a href="${esc(origin)}" style="color:#4f46e5">${esc(origin.replace(/^https?:\/\//, ""))}</a> or just reply to this email.` : "Just reply to this email to continue."}</td></tr>
+</table></td></tr></table></body></html>`;
+  const text = row.msgs.map((x) => `${x.sender === "owner" ? fromName : "You"}: ${x.body}`).join("\n\n");
+  const r = await sendEmail({
+    fromName,
+    replyTo: settings?.replyTo,
+    to: m.toEmail,
+    subject: m.subject,
+    html,
+    text,
     messageId: m.id,
   });
   await mark({ status: "sent", sentAt: new Date(), providerMessageId: r.providerMessageId });

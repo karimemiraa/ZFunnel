@@ -16,6 +16,7 @@ import {
   WorkflowIcon,
   FilterIcon,
   HandshakeIcon,
+  InboxIcon,
 } from "lucide-react";
 
 export type NavModule = {
@@ -84,6 +85,12 @@ export const NAV_MODULES: NavModule[] = [
     icon: WorkflowIcon,
 
     description: "Visual workflows: triggers, waits, branches and actions.",
+  },
+  {
+    segment: "inbox",
+    label: "Inbox",
+    icon: InboxIcon,
+    description: "Site chat and conversations with your visitors.",
   },
   {
     segment: "community",

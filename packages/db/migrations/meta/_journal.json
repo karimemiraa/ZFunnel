@@ -288,6 +288,20 @@
       "when": 1791644316261,
       "tag": "0040_store",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1791644671560,
+      "tag": "0041_inbox",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1791644672967,
+      "tag": "0042_inbox_rls",
+      "breakpoints": true
     }
   ]
 }
