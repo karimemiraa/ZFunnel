@@ -2,28 +2,45 @@ import { notFound } from "next/navigation";
 import { PageEditor } from "@/components/editor/page-editor";
 import { getEditorOffers } from "@/lib/commerce";
 import { getFunnel, getStepWithDraft } from "@/lib/funnels";
+import { getVariant } from "@/lib/split";
 import { requireUser } from "@/lib/session";
 import { getWorkspaceForUser } from "@/lib/workspaces";
 
 export const metadata = { title: "Editor" };
 
-export default async function EditorPage({ params }: { params: Promise<{ workspace: string; stepId: string }> }) {
-  const [{ workspace, stepId }, user] = await Promise.all([params, requireUser()]);
+export default async function EditorPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ workspace: string; stepId: string }>;
+  searchParams: Promise<{ variant?: string }>;
+}) {
+  const [{ workspace, stepId }, { variant: variantId }, user] = await Promise.all([
+    params,
+    searchParams,
+    requireUser(),
+  ]);
   const ctx = await getWorkspaceForUser(user.id, workspace);
   if (!ctx) notFound();
   const row = await getStepWithDraft(ctx, stepId);
   if (!row) notFound();
-  const [funnel, offers] = await Promise.all([getFunnel(ctx, row.funnel.id), getEditorOffers(ctx, stepId)]);
+  const [funnel, offers, variant] = await Promise.all([
+    getFunnel(ctx, row.funnel.id),
+    getEditorOffers(ctx, stepId),
+    variantId ? getVariant(ctx, variantId) : Promise.resolve(null),
+  ]);
+  if (variantId && variant?.stepId !== stepId) notFound();
 
   return (
     <PageEditor
-      key={stepId}
+      key={variant?.id ?? stepId}
       workspaceSlug={workspace}
       step={{ id: row.step.id, name: row.step.name, type: row.step.type }}
       funnel={{ id: row.funnel.id, name: row.funnel.name }}
       steps={(funnel?.steps ?? []).map((s) => ({ id: s.id, name: s.name, type: s.type }))}
-      initialData={row.step.draft as never}
-      savedAt={row.step.draftUpdatedAt.toISOString()}
+      initialData={(variant?.draft ?? row.step.draft) as never}
+      savedAt={(variant?.draftUpdatedAt ?? row.step.draftUpdatedAt).toISOString()}
+      variant={variant ? { id: variant.id, name: variant.name } : undefined}
       offers={offers}
     />
   );

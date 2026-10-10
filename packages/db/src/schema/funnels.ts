@@ -96,3 +96,30 @@ export const pageVersions = pgTable(
 export type Funnel = typeof funnels.$inferSelect;
 export type FunnelStep = typeof funnelSteps.$inferSelect;
 export type PageVersion = typeof pageVersions.$inferSelect;
+
+/**
+ * A/B split test challenger for a step. The step itself is variant "A"; each challenger has
+ * its own draft and published version and gets `weight`% of new visitors.
+ */
+export const stepVariants = pgTable(
+  "step_variants",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    workspaceId: uuid()
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    stepId: uuid()
+      .notNull()
+      .references(() => funnelSteps.id, { onDelete: "cascade" }),
+    name: text().notNull().default("B"),
+    draft: jsonb().$type<PageJson>().notNull(),
+    draftUpdatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    publishedVersionId: uuid().references(() => pageVersions.id, { onDelete: "set null" }),
+    publishedAt: timestamp({ withTimezone: true }),
+    /** Share of new visitors (0–100) sent to this variant. */
+    weight: integer().notNull().default(50),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("step_variants_step_idx").on(t.stepId)],
+);
+export type StepVariant = typeof stepVariants.$inferSelect;

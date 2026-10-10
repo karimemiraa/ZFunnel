@@ -5,12 +5,13 @@ import {
   and,
   eq,
   funnels,
-  inArray,
-  type Tx,
   funnelSteps,
   getDb,
+  inArray,
   pageVersions,
   STEP_TYPES,
+  stepVariants,
+  type Tx,
   withOrganization,
   workspaces,
 } from "@zfunnel/db";
@@ -23,7 +24,7 @@ import { requireUser } from "./session";
 import { canManage, getWorkspaceForUser, recordAudit, type WorkspaceContext } from "./workspaces";
 
 export type FormState = { error?: string; success?: string; fieldErrors?: Record<string, string[] | undefined> } | null;
-type Result = { ok: true } | { ok: false; error: string };
+type Result = { ok: true; message?: string } | { ok: false; error: string };
 
 async function ctxFor(workspaceSlug: string) {
   const user = await requireUser();
@@ -471,4 +472,127 @@ export async function unpublishStep(workspaceSlug: string, stepId: string): Prom
   });
   revalidateFunnel(workspaceSlug, funnelId);
   return { ok: true };
+}
+
+// ── Split tests ──────────────────────────────────────────────────────────────
+
+/** Starts an A/B test: variant B begins as a copy of the step's current draft. */
+export async function createVariant(workspaceSlug: string, stepId: string): Promise<Result & { id?: string }> {
+  const { user, ctx } = await ctxFor(workspaceSlug);
+  const res = await inWorkspace(ctx, async (tx) => {
+    const [step] = await tx.select().from(funnelSteps).where(eq(funnelSteps.id, stepId));
+    if (!step) return { error: "Step not found" };
+    if (!step.publishedVersionId) return { error: "Publish this page first, then test a variant against it." };
+    const existing = await tx.select({ id: stepVariants.id }).from(stepVariants).where(eq(stepVariants.stepId, stepId));
+    if (existing.length) return { error: "This page already has a split test running." };
+    const [v] = await tx
+      .insert(stepVariants)
+      .values({ workspaceId: ctx.workspace.id, stepId, name: "B", draft: step.draft, weight: 50 })
+      .returning({ id: stepVariants.id });
+    return { id: v!.id, funnelId: step.funnelId };
+  });
+  if ("error" in res) return { ok: false, error: res.error! };
+  await recordAudit(ctx, user.id, { action: "split_test.started", entityType: "step", entityId: stepId });
+  revalidateFunnel(workspaceSlug, res.funnelId);
+  return { ok: true, id: res.id };
+}
+
+export async function saveVariantDraft(
+  workspaceSlug: string,
+  variantId: string,
+  data: unknown,
+): Promise<Result & { savedAt?: string }> {
+  const { ctx } = await ctxFor(workspaceSlug);
+  const parsed = pageSchema.safeParse(data);
+  if (!parsed.success) return { ok: false, error: "This page data is invalid." };
+  if (JSON.stringify(parsed.data).length > MAX_PAGE_BYTES)
+    return { ok: false, error: "This page is too large (2 MB max). Remove some content." };
+  const now = new Date();
+  await inWorkspace(ctx, (tx) =>
+    tx
+      .update(stepVariants)
+      .set({ draft: parsed.data as never, draftUpdatedAt: now })
+      .where(eq(stepVariants.id, variantId)),
+  );
+  return { ok: true, savedAt: now.toISOString() };
+}
+
+export async function publishVariant(
+  workspaceSlug: string,
+  variantId: string,
+  data?: unknown,
+): Promise<Result & { publishedAt?: string }> {
+  const { user, ctx } = await ctxFor(workspaceSlug);
+  if (data !== undefined) {
+    const saved = await saveVariantDraft(workspaceSlug, variantId, data);
+    if (!saved.ok) return saved;
+  }
+  const now = new Date();
+  const funnelId = await inWorkspace(ctx, async (tx) => {
+    const [row] = await tx
+      .select({ v: stepVariants, funnelId: funnelSteps.funnelId })
+      .from(stepVariants)
+      .innerJoin(funnelSteps, eq(funnelSteps.id, stepVariants.stepId))
+      .where(eq(stepVariants.id, variantId));
+    if (!row) throw new Error("Variant not found");
+    const [pv] = await tx
+      .insert(pageVersions)
+      .values({ workspaceId: ctx.workspace.id, stepId: row.v.stepId, data: row.v.draft, createdBy: user.id })
+      .returning();
+    await tx
+      .update(stepVariants)
+      .set({ publishedVersionId: pv!.id, publishedAt: now })
+      .where(eq(stepVariants.id, variantId));
+    return row.funnelId;
+  });
+  await recordAudit(ctx, user.id, {
+    action: "split_test.variant_published",
+    entityType: "variant",
+    entityId: variantId,
+  });
+  revalidateFunnel(workspaceSlug, funnelId);
+  return { ok: true, publishedAt: now.toISOString() };
+}
+
+export async function setVariantWeight(workspaceSlug: string, variantId: string, weight: number): Promise<Result> {
+  const { ctx } = await ctxFor(workspaceSlug);
+  const w = z.number().int().min(0).max(100).safeParse(weight);
+  if (!w.success) return { ok: false, error: "Choose a split between 0 and 100%." };
+  await inWorkspace(ctx, (tx) => tx.update(stepVariants).set({ weight: w.data }).where(eq(stepVariants.id, variantId)));
+  return { ok: true };
+}
+
+/** Ends the test. If the variant wins, it becomes the step's draft and live page. */
+export async function endSplitTest(workspaceSlug: string, stepId: string, winner: "a" | string): Promise<Result> {
+  const { user, ctx } = await ctxFor(workspaceSlug);
+  const funnelId = await inWorkspace(ctx, async (tx) => {
+    const [step] = await tx.select().from(funnelSteps).where(eq(funnelSteps.id, stepId));
+    if (!step) throw new Error("Step not found");
+    if (winner !== "a") {
+      const [v] = await tx
+        .select()
+        .from(stepVariants)
+        .where(and(eq(stepVariants.id, winner), eq(stepVariants.stepId, stepId)));
+      if (!v) throw new Error("Variant not found");
+      const now = new Date();
+      await tx
+        .update(funnelSteps)
+        .set({
+          draft: v.draft,
+          draftUpdatedAt: now,
+          ...(v.publishedVersionId ? { publishedVersionId: v.publishedVersionId, publishedAt: now } : {}),
+        })
+        .where(eq(funnelSteps.id, stepId));
+    }
+    await tx.delete(stepVariants).where(eq(stepVariants.stepId, stepId));
+    return step.funnelId;
+  });
+  await recordAudit(ctx, user.id, {
+    action: "split_test.ended",
+    entityType: "step",
+    entityId: stepId,
+    data: { winner: winner === "a" ? "original" : "variant" },
+  });
+  revalidateFunnel(workspaceSlug, funnelId);
+  return { ok: true, message: winner === "a" ? "Kept the original page" : "The variant is now your live page" };
 }

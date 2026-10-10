@@ -7,10 +7,12 @@ import { FunnelActionsBar } from "@/components/funnels/funnel-actions-bar";
 import { FunnelMap } from "@/components/funnels/funnel-map";
 import { StepList } from "@/components/funnels/step-list";
 import { StepOffers } from "@/components/funnels/step-offers";
+import { SplitTest } from "@/components/funnels/split-test";
 import { StepPanel } from "@/components/funnels/step-panel";
 import { formatMoney } from "@zfunnel/payments/money";
 import { getStepOfferList, listProducts } from "@/lib/commerce";
 import { requireWorkspace } from "@/lib/context";
+import { confidence, getSplitStats, getVariants } from "@/lib/split";
 import { getFunnel, type StepSummary } from "@/lib/funnels";
 import { siteOrigin, stepUrl } from "@/lib/urls";
 import { canManage } from "@/lib/workspaces";
@@ -47,6 +49,14 @@ export default async function FunnelPage({
   const [offers, productList] = sells
     ? await Promise.all([getStepOfferList(ctx, selected.id), listProducts(ctx)])
     : [[], []];
+  const variants = selected ? await getVariants(ctx, selected.id) : [];
+  const variant = variants[0];
+  const splitRows = variant ? await getSplitStats(ctx, funnel.id, selected!.id, variant.createdAt) : [];
+  const statFor = (key: string, label: string) => {
+    const r = splitRows.find((x) => x.key === key);
+    return { key, label, visitors: r?.visitors ?? 0, converted: r?.converted ?? 0, rate: r?.rate ?? 0 };
+  };
+  const splitTable = variant ? [statFor("a", "A · Original"), statFor(variant.id, `${variant.name} · Variant`)] : [];
   const productOptions = productList.flatMap((p) => {
     const price = p.prices.at(-1);
     if (!price) return [];
@@ -138,6 +148,27 @@ export default async function FunnelPage({
                 liveUrl={stepUrl(ws, funnel.slug, selected.slug)}
                 step={{ ...selected, status: status(selected) }}
                 others={steps.filter((s) => s.id !== selected.id).map((s) => ({ id: s.id, name: s.name }))}
+                splitSlot={
+                  <SplitTest
+                    workspaceSlug={ws}
+                    stepId={selected.id}
+                    published={!!selected.publishedAt}
+                    variant={
+                      variant
+                        ? {
+                            id: variant.id,
+                            name: variant.name,
+                            weight: variant.weight,
+                            published: !!variant.publishedVersionId,
+                            changed: !!variant.publishedAt && variant.draftUpdatedAt > variant.publishedAt,
+                            startedAt: variant.createdAt.toISOString(),
+                          }
+                        : null
+                    }
+                    rows={splitTable}
+                    confidence={confidence(splitTable[0], splitTable[1])}
+                  />
+                }
                 offersSlot={
                   sells ? (
                     <StepOffers

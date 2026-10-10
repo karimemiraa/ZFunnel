@@ -1,5 +1,5 @@
 import { findBlock, pickOutcome, scoreAnswers, validateAnswers, type SurveyDef } from "@zfunnel/blocks/survey";
-import { contacts, eq, formSubmissions, pageVersions, sql } from "@zfunnel/db";
+import { contacts, eq, formSubmissions, inArray, or, pageVersions, sql, stepVariants } from "@zfunnel/db";
 import { logActivity, system } from "@zfunnel/payments";
 import { enqueue, enqueueMany } from "@zfunnel/queue";
 import { NextResponse } from "next/server";
@@ -29,10 +29,25 @@ export async function POST(req: Request) {
 
   const step = await resolveStepForWorkspace(g.ws.id, stepId);
   if (!step) return jsonError("This form is no longer available.", 404);
-  const [version] = await system((tx) =>
-    tx.select({ data: pageVersions.data }).from(pageVersions).where(eq(pageVersions.id, step.published!)),
+  // The form can live on the original page or on a split-test variant.
+  const versions = await system((tx) =>
+    tx
+      .select({ data: pageVersions.data })
+      .from(pageVersions)
+      .where(
+        or(
+          eq(pageVersions.id, step.published!),
+          inArray(
+            pageVersions.id,
+            tx
+              .select({ id: sql<string>`${stepVariants.publishedVersionId}` })
+              .from(stepVariants)
+              .where(eq(stepVariants.stepId, step.id)),
+          ),
+        ),
+      ),
   );
-  const block = version ? findBlock(version.data, blockId) : null;
+  const block = versions.map((v) => findBlock(v.data, blockId)).find(Boolean) ?? null;
   if (!block || block.type !== "Survey") return jsonError("This form is no longer available.", 404);
   const def = block.props as unknown as SurveyDef;
 

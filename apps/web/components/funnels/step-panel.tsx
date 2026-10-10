@@ -50,6 +50,7 @@ export function StepPanel({
   liveUrl,
   base,
   offersSlot,
+  splitSlot,
 }: {
   step: Step;
   others: { id: string; name: string }[];
@@ -57,6 +58,7 @@ export function StepPanel({
   liveUrl: string;
   base: string;
   offersSlot?: React.ReactNode;
+  splitSlot?: React.ReactNode;
 }) {
   const router = useRouter();
   const [busy, start] = useTransition();
@@ -188,6 +190,7 @@ export function StepPanel({
       </Link>
 
       {offersSlot}
+      {splitSlot}
 
       <form
         action={action}

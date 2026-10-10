@@ -128,3 +128,11 @@ Format: **ID — Title** · Status (Proposed / Accepted / Superseded) · Date. S
 **Why.** Trees cover welcome series, onboarding, tagging and branching, which is what ClickFunnels workflows do. They can't loop forever, and they're easy to lay out automatically. Keeping state in Postgres means a Redis flush loses at most a pending wake-up, never a contact's position. Each step commits under a row lock, so a retry never repeats a step.
 
 **Consequences.** A contact enters an automation once unless “Allow re-entry” is on; enrollment is idempotent per event. Editing a live automation requires pausing it. Pausing cancels waiting runs when they wake. Deleting a step a contact is waiting on ends that contact's run. Tags added _by_ an automation don't trigger other automations (prevents loops). Webhooks block private and loopback addresses (SSRF).
+
+### ADR-016 — Split tests: sticky cookie assignment, funnel-level conversions · **Accepted** · 2026-10-10
+
+**Decision.** The step itself is variant A. A challenger (`step_variants`) has its own draft and published version and a traffic weight. The renderer picks a version per visitor; the tracker stores the choice in a first-party cookie (`zfv_…`, 30 days) only while a test runs. Only page views record `variant_id`. A visitor counts as converted if, after their first view, the same visitor opts in, buys or takes an upsell anywhere in the funnel (same-day visitor hash). Significance uses a two-proportion z-test, shown once each version has 20 or more visitors.
+
+**Why.** Counting conversions at funnel level credits a sales page for a checkout on the next step, which is what users want to optimize. No attribution plumbing is needed in every API route. The cookie is the minimum needed so a visitor doesn't flip between versions. It holds no personal data.
+
+**Consequences.** One challenger per step for now; the schema allows more. Visitors who clear cookies may be counted in both versions. Declaring B the winner copies B's draft and published version onto the step and deletes the test. Offers attach to the step, so both versions sell the same products.

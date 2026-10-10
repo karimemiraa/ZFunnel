@@ -9,8 +9,10 @@ import {
   funnels,
   funnelSteps,
   getDb,
+  gt,
   isNull,
   pageVersions,
+  stepVariants,
   withSystem,
   workspaces,
 } from "@zfunnel/db";
@@ -25,6 +27,8 @@ export type ResolvedPage = {
   funnel: { id: string; slug: string; name: string };
   step: { id: string; slug: string; name: string; type: string };
   data: PageData;
+  /** Published split-test challengers (the step itself is variant A). */
+  variants: { id: string; weight: number; data: PageData }[];
   nextPath: string | null;
   declinePath: string | null;
 };
@@ -124,6 +128,12 @@ export function resolvePage(ws: SiteWorkspace, segments: string[]): Promise<Reso
         .where(eq(pageVersions.id, step.publishedVersionId));
       if (!version) return null;
 
+      const variantRows = await tx
+        .select({ id: stepVariants.id, weight: stepVariants.weight, data: pageVersions.data })
+        .from(stepVariants)
+        .innerJoin(pageVersions, eq(pageVersions.id, stepVariants.publishedVersionId))
+        .where(and(eq(stepVariants.stepId, step.id), gt(stepVariants.weight, 0)));
+
       const pathOf = (id: string | null) => {
         const s = id ? steps.find((x) => x.id === id) : undefined;
         return s?.publishedVersionId ? `/${funnel.slug}/${s.slug}` : null;
@@ -133,6 +143,7 @@ export function resolvePage(ws: SiteWorkspace, segments: string[]): Promise<Reso
         funnel,
         step: { id: step.id, slug: step.slug, name: step.name, type: step.type },
         data: version.data as unknown as PageData,
+        variants: variantRows.map((v) => ({ id: v.id, weight: v.weight, data: v.data as unknown as PageData })),
         nextPath: pathOf(step.nextStepId),
         declinePath: pathOf(step.declineStepId),
       } satisfies ResolvedPage;

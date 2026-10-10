@@ -30,6 +30,7 @@ export async function track(
     workspaceId: string;
     funnelId: string;
     stepId: string;
+    variantId?: string | null;
     type: EventType;
     revenue?: number;
     currency?: string;
@@ -43,6 +44,7 @@ export async function track(
         workspaceId: e.workspaceId,
         funnelId: e.funnelId,
         stepId: e.stepId,
+        variantId: e.variantId ?? null,
         type: e.type,
         visitor: visitorId(e.workspaceId, headers),
         revenue: e.revenue ?? 0,

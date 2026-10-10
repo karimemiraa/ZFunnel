@@ -2,10 +2,12 @@ import { Render } from "@puckeditor/core/rsc";
 import { config, type BlockRuntime } from "@zfunnel/blocks";
 import { getPaymentSetup, getStepOffers, system, toRuntimeOffers } from "@zfunnel/payments";
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { resolvePage } from "@/lib/resolve";
 import { Tracker } from "../tracker";
 import { currentWorkspace } from "@/lib/site";
+import { pickVariant, variantCookie } from "@/lib/variants";
 
 type Params = { params: Promise<{ path?: string[] }> };
 
@@ -70,10 +72,15 @@ export default async function SitePage(props: Params) {
     stepId: r.page.step.id,
     apiBase: "/api",
   };
+  // Split test: show this visitor's variant (sticky via a cookie the tracker sets).
+  const cookieName = variantCookie(r.page.step.id);
+  const pick = pickVariant(r.page.variants, (await cookies()).get(cookieName)?.value);
+  const data = (pick.id && r.page.variants.find((v) => v.id === pick.id)?.data) || r.page.data;
+  const split = r.page.variants.length ? { cookie: cookieName, value: pick.id ?? "a" } : undefined;
   return (
     <>
-      <Render config={config} data={r.page.data as never} metadata={runtime} />
-      <Tracker stepId={r.page.step.id} />
+      <Render config={config} data={data as never} metadata={runtime} />
+      <Tracker stepId={r.page.step.id} split={split} />
     </>
   );
 }

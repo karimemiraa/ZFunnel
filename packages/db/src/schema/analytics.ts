@@ -17,6 +17,8 @@ export const events = pgTable(
     funnelId: uuid().notNull(),
     stepId: uuid().notNull(),
     type: text().$type<EventType>().notNull(),
+    /** Split-test variant shown (views only); null = the original page (A). */
+    variantId: uuid(),
     visitor: text().notNull(),
     /** Cents, for purchase/upsell/downsell. */
     revenue: integer().notNull().default(0),
@@ -33,6 +35,7 @@ export const events = pgTable(
   (t) => [
     index("events_funnel_time_idx").on(t.workspaceId, t.funnelId, t.createdAt),
     index("events_step_type_idx").on(t.stepId, t.type),
+    index("events_step_variant_idx").on(t.stepId, t.variantId, t.createdAt),
   ],
 );
 

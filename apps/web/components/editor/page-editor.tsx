@@ -30,7 +30,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { publishStep, saveDraft } from "@/lib/funnel-actions";
+import { publishStep, publishVariant, saveDraft, saveVariantDraft } from "@/lib/funnel-actions";
 import { STEP_COLORS } from "../funnels/step-type";
 import type { StepType } from "@/lib/funnels";
 
@@ -47,6 +47,8 @@ type Props = {
   initialData: Data;
   savedAt: string;
   offers: RuntimeOffer[];
+  /** Editing a split-test variant instead of the step's own page. */
+  variant?: { id: string; name: string };
 };
 
 const AUTOSAVE_MS = 1200;
@@ -99,7 +101,14 @@ function EditorHeader({
             <span className="size-2.5 shrink-0 rounded-full" style={{ background: STEP_COLORS[props.step.type] }} />
             <span className="flex min-w-0 flex-col items-start leading-tight">
               <span className="max-w-full truncate text-[11px] text-muted-foreground">{props.funnel.name}</span>
-              <span className="max-w-full truncate text-sm font-semibold">{props.step.name}</span>
+              <span className="max-w-full truncate text-sm font-semibold">
+                {props.step.name}
+                {props.variant && (
+                  <span className="ml-1.5 rounded bg-sky-500/15 px-1.5 py-0.5 text-[10px] font-bold text-sky-700 dark:text-sky-400">
+                    VARIANT {props.variant.name}
+                  </span>
+                )}
+              </span>
             </span>
             <ChevronDownIcon className="text-muted-foreground" />
           </Button>
@@ -141,7 +150,11 @@ function EditorHeader({
       <div className="flex-1" />
       <SaveIndicator state={saveState} />
       <Button variant="outline" asChild>
-        <a href={`/preview/${props.workspaceSlug}/${props.step.id}`} target="_blank" rel="noreferrer">
+        <a
+          href={`/preview/${props.workspaceSlug}/${props.step.id}${props.variant ? `?variant=${props.variant.id}` : ""}`}
+          target="_blank"
+          rel="noreferrer"
+        >
           <EyeIcon /> <span className="max-sm:hidden">Preview</span>
         </a>
       </Button>
@@ -163,7 +176,9 @@ export function PageEditor(props: Props) {
     if (timer.current) clearTimeout(timer.current);
     timer.current = null;
     setSaveState({ kind: "saving" });
-    const p = saveDraft(props.workspaceSlug, props.step.id, latest.current);
+    const p = props.variant
+      ? saveVariantDraft(props.workspaceSlug, props.variant.id, latest.current)
+      : saveDraft(props.workspaceSlug, props.step.id, latest.current);
     inflight.current = p;
     const res = await p;
     inflight.current = null;
@@ -173,7 +188,7 @@ export function PageEditor(props: Props) {
       toast.error(res.error);
     }
     return res.ok;
-  }, [props.workspaceSlug, props.step.id]);
+  }, [props.workspaceSlug, props.step.id, props.variant]);
 
   const onChange = useCallback(
     (data: Data) => {
@@ -188,13 +203,17 @@ export function PageEditor(props: Props) {
   const onPublish = useCallback(async () => {
     setPublishing(true);
     if (timer.current) clearTimeout(timer.current);
-    const res = await publishStep(props.workspaceSlug, props.step.id, latest.current);
+    const res = props.variant
+      ? await publishVariant(props.workspaceSlug, props.variant.id, latest.current)
+      : await publishStep(props.workspaceSlug, props.step.id, latest.current);
     setPublishing(false);
     if (res.ok) {
       setSaveState({ kind: "saved", at: new Date() });
-      toast.success("Published! Your page is live.");
+      toast.success(
+        props.variant ? `Variant ${props.variant.name} is live in your split test.` : "Published! Your page is live.",
+      );
     } else toast.error(res.error);
-  }, [props.workspaceSlug, props.step.id]);
+  }, [props.workspaceSlug, props.step.id, props.variant]);
 
   // ⌘S / Ctrl+S saves immediately; warn before leaving with unsaved changes.
   useEffect(() => {
