@@ -86,9 +86,11 @@ export default async function AnalyticsPage({
           label="Revenue"
           value={formatMoney(data.totals.revenue, cur)}
           hint={
-            data.totals.visitors
-              ? `${formatMoney(Math.round(data.totals.revenue / data.totals.visitors), cur)} earnings per visitor`
-              : undefined
+            data.totals.otherCurrencies.length
+              ? `+ ${data.totals.otherCurrencies.map((o) => formatMoney(o.revenue, o.currency)).join(" + ")}`
+              : data.totals.visitors
+                ? `${formatMoney(Math.round(data.totals.revenue / data.totals.visitors), cur)} earnings per visitor`
+                : undefined
           }
           icon={DollarSignIcon}
         />

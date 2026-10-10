@@ -297,6 +297,9 @@ importers:
       '@stripe/stripe-js':
         specifier: 9.17.0
         version: 9.17.0
+      '@zfunnel/shared':
+        specifier: workspace:*
+        version: link:../shared
       clsx:
         specifier: 2.1.1
         version: 2.1.1
@@ -423,6 +426,9 @@ importers:
       '@zfunnel/db':
         specifier: workspace:*
         version: link:../db
+      '@zfunnel/shared':
+        specifier: workspace:*
+        version: link:../shared
       stripe:
         specifier: 22.6.2
         version: 22.6.2(@types/node@22.20.4)

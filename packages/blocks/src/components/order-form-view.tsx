@@ -242,7 +242,7 @@ export function OrderFormView(p: Props) {
               <span className="block font-semibold">{m.label || m.name}</span>
               {m.description && <span className="block text-sm opacity-65">{m.description}</span>}
             </span>
-            <span className="font-semibold">{describePrice(m)}</span>
+            <span className="font-semibold">{describePrice(m, rt.locale)}</span>
           </label>
         ))}
       </div>
@@ -271,7 +271,8 @@ export function OrderFormView(p: Props) {
           <span className="text-[#1c1917]">
             <span className="block font-bold">
               <span className="mr-1 text-[#dc2626]">➜</span>
-              {b.headline || `Yes! Add ${b.name}`} <span className="whitespace-nowrap">for {describePrice(b)}</span>
+              {b.headline || `Yes! Add ${b.name}`}{" "}
+              <span className="whitespace-nowrap">for {describePrice(b, rt.locale)}</span>
             </span>
             {b.description && <span className="mt-1 block text-sm opacity-75">{b.description}</span>}
           </span>
@@ -288,7 +289,9 @@ export function OrderFormView(p: Props) {
       {lines.map((l) => (
         <div key={l.id} className="flex justify-between gap-4 py-1">
           <span className="opacity-80">{l.label || l.name}</span>
-          <span className="font-medium">{l.trialDays ? "Free trial" : formatMoney(l.amount, l.currency)}</span>
+          <span className="font-medium">
+            {l.trialDays ? "Free trial" : formatMoney(l.amount, l.currency, rt.locale)}
+          </span>
         </div>
       ))}
       <div
@@ -296,15 +299,17 @@ export function OrderFormView(p: Props) {
         style={{ borderColor: "color-mix(in srgb, var(--zf-fg) 12%, transparent)" }}
       >
         <span>Due today</span>
-        <span>{formatMoney(dueNow, currency)}</span>
+        <span>{formatMoney(dueNow, currency, rt.locale)}</span>
       </div>
       {main.type !== "one_time" && (
-        <p className="mt-1 text-xs opacity-60">Then {describePrice({ ...main, trialDays: null })} until cancelled.</p>
+        <p className="mt-1 text-xs opacity-60">
+          Then {describePrice({ ...main, trialDays: null }, rt.locale)} until cancelled.
+        </p>
       )}
     </div>
   );
 
-  const payButtonLabel = `${p.buttonLabel || "Complete order"}${dueNow ? ` · ${formatMoney(dueNow, currency)}` : ""}`;
+  const payButtonLabel = `${p.buttonLabel || "Complete order"}${dueNow ? ` · ${formatMoney(dueNow, currency, rt.locale)}` : ""}`;
   const contactValid = /\S+@\S+\.\S+/.test(email) && name.trim().length > 0;
 
   const testFields = (

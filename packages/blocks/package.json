@@ -26,6 +26,7 @@
     "@puckeditor/core": "0.23.0",
     "@stripe/react-stripe-js": "6.12.0",
     "@stripe/stripe-js": "9.17.0",
+    "@zfunnel/shared": "workspace:*",
     "clsx": "2.1.1",
     "lucide-react": "1.48.0"
   },

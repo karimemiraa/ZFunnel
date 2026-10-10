@@ -10,8 +10,15 @@ import { NativeSelect } from "@zfunnel/ui/select";
 import { Textarea } from "@zfunnel/ui/textarea";
 import { toast } from "@zfunnel/ui/toaster";
 import { Loader2Icon } from "lucide-react";
-import { useActionState, useState } from "react";
+import { startTransition, useActionState, useState } from "react";
 import { saveProduct, type FormState } from "@/lib/commerce-actions";
+import { CURRENCIES, minorUnits } from "@zfunnel/shared";
+
+/** Minor units → the editable major amount ("97", "47.50", "4700" for JPY). */
+const amountInput = (amount: number, currency: string) => {
+  const f = 10 ** minorUnits(currency);
+  return (amount / f).toFixed(amount % f ? minorUnits(currency) : 0);
+};
 
 type Initial = {
   id: string;
@@ -37,8 +44,6 @@ const TYPES = [
   { value: "recurring", label: "Subscription", hint: "Monthly or yearly" },
   { value: "payment_plan", label: "Payment plan", hint: "Split into installments" },
 ] as const;
-
-const CURRENCIES = ["usd", "eur", "gbp", "cad", "aud", "chf", "sar", "aed"];
 
 export function ProductDialog({
   workspaceSlug,
@@ -72,7 +77,15 @@ export function ProductDialog({
             Products can be sold on any checkout, as an order bump, or as a one-click upsell.
           </DialogDescription>
         </DialogHeader>
-        <form action={action} className="grid gap-4">
+        <form
+          // Not `action={action}`: React would reset every field after a validation error.
+          onSubmit={(e) => {
+            e.preventDefault();
+            const fd = new FormData(e.currentTarget);
+            startTransition(() => action(fd));
+          }}
+          className="grid gap-4"
+        >
           <div className="space-y-2">
             <Label htmlFor="p-name">Name</Label>
             <Input
@@ -128,7 +141,7 @@ export function ProductDialog({
                 id="p-amount"
                 name="amount"
                 inputMode="decimal"
-                defaultValue={p ? (p.amount / 100).toFixed(p.amount % 100 ? 2 : 0) : ""}
+                defaultValue={p ? amountInput(p.amount, p.currency) : ""}
                 placeholder="97"
                 required
               />

@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@zfunnel/db": "workspace:*",
+    "@zfunnel/shared": "workspace:*",
     "stripe": "22.6.2"
   },
   "devDependencies": {

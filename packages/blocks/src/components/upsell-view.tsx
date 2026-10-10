@@ -72,7 +72,7 @@ export function UpsellView({ runtime: rt, ...p }: UpsellSettings & { runtime: Bl
         <span className="inline-flex items-center gap-2 text-xl">
           {busy && <Loader2Icon className="size-5 animate-spin" />}
           {p.acceptLabel}
-          {p.showPrice && offer ? ` (${describePrice(offer)})` : ""}
+          {p.showPrice && offer ? ` (${describePrice(offer, rt.locale)})` : ""}
           {!busy && <ArrowRightIcon className="size-5 transition-transform group-hover:translate-x-1" />}
         </span>
         {p.acceptSublabel && <span className="mt-0.5 text-sm font-normal opacity-85">{p.acceptSublabel}</span>}

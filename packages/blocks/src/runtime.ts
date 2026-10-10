@@ -1,3 +1,4 @@
+import { formatMoney } from "@zfunnel/shared";
 /**
  * Context passed to blocks via Puck `metadata`. The editor passes `{ mode: "editor" }`;
  * the public renderer fills in the funnel URLs and endpoints for the current step.
@@ -12,6 +13,8 @@ export type BlockRuntime = {
   stepId?: string;
   /** Store checkout (no funnel step): the price being bought and whether to ask for an address. */
   store?: { priceId: string; shipping: boolean };
+  /** Visitor's locale for number and price formatting (from Accept-Language). */
+  locale?: string;
   /** Public API base for forms and checkout, e.g. "/api". */
   apiBase?: string;
   /** Offers attached to this step, resolved server-side (Phase 1.7+). */
@@ -39,8 +42,9 @@ export type RuntimeOffer = {
 /** "$47", "$29/month", "3 × $99/month", "7-day free trial, then $29/month". */
 export function describePrice(
   o: Pick<RuntimeOffer, "amount" | "currency" | "type" | "interval" | "trialDays" | "installments">,
+  locale?: string,
 ) {
-  const money = formatMoney(o.amount, o.currency);
+  const money = formatMoney(o.amount, o.currency, locale);
   if (o.type === "one_time") return money;
   const per = `${money}/${o.interval ?? "month"}`;
   const base = o.type === "payment_plan" && o.installments ? `${o.installments} × ${per}` : per;
@@ -84,10 +88,4 @@ export function getRuntime(metadata: unknown): BlockRuntime {
   return { ...m, mode: m.mode ?? "editor" };
 }
 
-export function formatMoney(amount: number, currency: string) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currency.toUpperCase(),
-    minimumFractionDigits: amount % 100 === 0 ? 0 : 2,
-  }).format(amount / 100);
-}
+export { formatMoney };

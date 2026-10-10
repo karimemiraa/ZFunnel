@@ -18,14 +18,24 @@ export async function funnelAnalytics(ctx: WorkspaceContext, funnelId: string | 
   const since = new Date(Date.now() - days * 86400_000);
   return inWorkspace(ctx, async (tx) => {
     const scope = and(gte(events.createdAt, since), funnelId ? eq(events.funnelId, funnelId) : undefined);
+    // Revenue is shown in the main currency (most revenue in range); other currencies are listed
+    // separately and never added in.
+    const byCurrency = await tx
+      .select({ currency: events.currency, revenue: sql<number>`sum(${events.revenue})::int` })
+      .from(events)
+      .where(and(scope, sql`${events.currency} is not null`))
+      .groupBy(events.currency);
+    byCurrency.sort((a, b) => b.revenue - a.revenue);
+    const currency = byCurrency[0]?.currency ?? "usd";
+    const otherCurrencies = byCurrency.slice(1).map((r) => ({ currency: r.currency!, revenue: r.revenue }));
+    const rev = sql<number>`coalesce(sum(${events.revenue}) filter (where ${events.currency} = ${currency}), 0)::int`;
     const [totals] = await tx
       .select({
         visitors: sql<number>`count(distinct ${events.visitor}) filter (where ${events.type} = 'view')::int`,
         views: sql<number>`count(*) filter (where ${events.type} = 'view')::int`,
         leads: sql<number>`count(*) filter (where ${events.type} = 'optin')::int`,
         sales: sql<number>`count(*) filter (where ${events.type} = 'purchase')::int`,
-        revenue: sql<number>`coalesce(sum(${events.revenue}), 0)::int`,
-        currency: sql<string>`coalesce(max(${events.currency}), 'usd')`,
+        revenue: rev,
       })
       .from(events)
       .where(scope);
@@ -33,7 +43,7 @@ export async function funnelAnalytics(ctx: WorkspaceContext, funnelId: string | 
       .select({
         day: sql<string>`to_char(date_trunc('day', ${events.createdAt}), 'YYYY-MM-DD')`,
         visitors: sql<number>`count(distinct ${events.visitor}) filter (where ${events.type} = 'view')::int`,
-        revenue: sql<number>`coalesce(sum(${events.revenue}), 0)::int`,
+        revenue: rev,
       })
       .from(events)
       .where(scope)
@@ -50,7 +60,7 @@ export async function funnelAnalytics(ctx: WorkspaceContext, funnelId: string | 
             optins: sql<number>`count(distinct ${events.visitor}) filter (where ${events.type} = 'optin')::int`,
             purchases: sql<number>`count(distinct ${events.visitor}) filter (where ${events.type} = 'purchase')::int`,
             accepts: sql<number>`count(distinct ${events.visitor}) filter (where ${events.type} in ('upsell','downsell'))::int`,
-            revenue: sql<number>`coalesce(sum(${events.revenue}), 0)::int`,
+            revenue: rev,
           })
           .from(funnelSteps)
           .leftJoin(events, and(eq(events.stepId, funnelSteps.id), gte(events.createdAt, since)))
@@ -66,7 +76,7 @@ export async function funnelAnalytics(ctx: WorkspaceContext, funnelId: string | 
       return byDay.get(day) ?? { day, visitors: 0, revenue: 0 };
     });
     return {
-      totals: totals!,
+      totals: { ...totals!, currency, otherCurrencies },
       series,
       steps: steps.map((s) => {
         const key = CONVERSION[s.type];

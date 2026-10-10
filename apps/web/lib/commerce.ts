@@ -122,18 +122,23 @@ export type OrderRow = Awaited<ReturnType<typeof listOrders>>[number];
 
 export async function orderStats(ctx: WorkspaceContext) {
   return inWorkspace(ctx, async (tx) => {
-    const [row] = await tx
+    // Never add different currencies together: one row per currency, the biggest first.
+    const rows = await tx
       .select({
         revenue: sql<number>`coalesce(sum(${orders.total}) filter (where ${orders.status} in ('paid','partially_refunded')), 0)::int`,
         paidCount: sql<number>`count(*) filter (where ${orders.status} in ('paid','partially_refunded'))::int`,
         last30: sql<number>`coalesce(sum(${orders.total}) filter (where ${orders.status} in ('paid','partially_refunded') and ${orders.paidAt} > now() - interval '30 days'), 0)::int`,
-        currency: sql<string>`coalesce(max(${orders.currency}), 'usd')`,
+        currency: orders.currency,
       })
-      .from(orders);
+      .from(orders)
+      .groupBy(orders.currency);
+    rows.sort((a, b) => b.revenue - a.revenue);
+    const row = rows[0] ?? { revenue: 0, paidCount: 0, last30: 0, currency: "usd" };
+    const others = rows.slice(1).filter((r) => r.revenue > 0);
     const [subs] = await tx
       .select({ active: sql<number>`count(*) filter (where ${subscriptions.status} in ('active','trialing'))::int` })
       .from(subscriptions);
-    return { ...row!, activeSubscriptions: subs?.active ?? 0 };
+    return { ...row, others, activeSubscriptions: subs?.active ?? 0 };
   });
 }
 

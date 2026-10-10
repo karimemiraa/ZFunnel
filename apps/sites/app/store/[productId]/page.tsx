@@ -6,6 +6,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentWorkspace } from "@/lib/site";
 import { storeProduct } from "@/lib/store";
+import { visitorLocale } from "@/lib/locale";
 
 type P = { params: Promise<{ productId: string }> };
 
@@ -29,6 +30,7 @@ export default async function ProductPage({ params }: P) {
   const setup = await system((tx) => getPaymentSetup(tx, ws.id));
   const runtime: BlockRuntime = {
     mode: "live",
+    locale: await visitorLocale(),
     apiBase: "/api",
     offers: r.offer ? toRuntimeOffers([r.offer]) : [],
     payments: setup

@@ -8,6 +8,7 @@ import { resolvePage } from "@/lib/resolve";
 import { Tracker } from "../tracker";
 import { currentWorkspace } from "@/lib/site";
 import { pickVariant, variantCookie } from "@/lib/variants";
+import { visitorLocale } from "@/lib/locale";
 
 type Params = { params: Promise<{ path?: string[] }> };
 
@@ -61,6 +62,7 @@ export default async function SitePage(props: Params) {
 
   const runtime: BlockRuntime = {
     mode: "live",
+    locale: await visitorLocale(),
     offers: commerce?.offers,
     payments: commerce?.setup
       ? commerce.setup.provider === "stripe"

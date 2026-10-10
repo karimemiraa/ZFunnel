@@ -135,6 +135,29 @@ The owner asked to continue through all phases without check-ins. Scope is v1 of
 
 Live & evergreen webinars (LiveKit) · AI conversion coach (analyses funnel stats and suggests changes) · Server-side conversion API postbacks (Meta CAPI, Google Ads, TikTok) · Multi-currency + localized checkout.
 
+### Phase 5 plan (addendum, 2026-10-10)
+
+**Problem.** ClickFunnels users run webinars, track ads server-side and sell abroad. ZFunnel has none of this yet, and owners get raw stats but no advice on what to fix.
+
+**Success criteria.** Each item works end to end in the browser and has an e2e test or, where an external service is involved, a mock-backed test. `pnpm verify` stays green.
+
+| #   | Item                 | Scope                                                                                                                                                                                                                                                                                                                                               |
+| --- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 5.1 | Webinars             | Webinar = video (YouTube/Vimeo/MP4 link) + schedule. **Evergreen**: sessions repeat (daily times or “just in time”). **Live**: one date with a stream embed. Registration page, reminder emails (24h/1h), a “watch room” that only plays from the scheduled start, offer button at a set minute, replay, “registered/attended” automation triggers. |
+| 5.2 | AI conversion coach  | Per funnel: send step stats (views, opt-in/sale rates, split-test results, drop-off) plus the page copy to Claude. Get back ranked, concrete suggestions (what, why, expected effect), shown as cards on the funnel analytics page. Plan-gated like other AI features.                                                                              |
+| 5.3 | Conversion postbacks | Settings → Tracking: Meta Conversions API (pixel id + token), TikTok Events API (pixel code + token), Google Analytics 4 Measurement Protocol (measurement id + API secret). Worker sends Lead and Purchase server-side with SHA-256-hashed email/phone, dedup event ids shared with the browser pixel, and a delivery log.                         |
+| 5.4 | Multi-currency       | Correct zero-decimal (JPY, KRW…) and three-decimal (KWD, BHD…) handling. One currency per checkout, enforced when attaching offers. Revenue stats per currency, never summed across currencies. Prices formatted in the visitor's locale.                                                                                                           |
+
+**Constraints and pushback.**
+
+- **No self-hosted LiveKit.** The VPS also runs other apps, and an SFU needs many UDP ports, lots of bandwidth and a TURN server, which would risk them. Live sessions embed an external stream (YouTube Live, Vimeo, Zoom webinar link) instead. LiveKit Cloud can be added later behind the same “live” type.
+- **No Google Ads API.** It needs OAuth plus a developer token approved by Google, so Google conversions go through GA4, which can import them into Google Ads.
+- Ad platform tokens are stored encrypted (`sealSecret`). Each workspace owns its pixels.
+
+**Build order.** 5.4 (small, touches money code everyone uses) → 5.3 → 5.2 → 5.1.
+
+- **5.4 Multi-currency: done.** 30 currencies with correct minor units: JPY and KRW have no decimals; KWD, BHD, OMR and JOD have three. Money helpers now live in `@zfunnel/shared` and are used by the dashboard, payments and checkout blocks. A funnel sells in one currency (checked when attaching an offer). Revenue stats and analytics show the main currency, list others separately, and never add them together. Checkout prices use the visitor's locale. Also fixed: the product dialog no longer clears the form after a validation error. Covered by `e2e/tests/currency.spec.ts`.
+
 ---
 
 ## Working agreement

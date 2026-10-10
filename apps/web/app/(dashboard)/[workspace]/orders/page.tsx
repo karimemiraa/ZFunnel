@@ -51,7 +51,16 @@ export default async function OrdersPage({
         }
       />
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Total revenue" value={formatMoney(stats.revenue, cur)} icon={DollarSignIcon} />
+        <StatCard
+          label="Total revenue"
+          value={formatMoney(stats.revenue, cur)}
+          hint={
+            stats.others.length
+              ? `+ ${stats.others.map((o) => formatMoney(o.revenue, o.currency)).join(" + ")}`
+              : undefined
+          }
+          icon={DollarSignIcon}
+        />
         <StatCard label="Last 30 days" value={formatMoney(stats.last30, cur)} icon={TrendingUpIcon} />
         <StatCard
           label="Paid orders"

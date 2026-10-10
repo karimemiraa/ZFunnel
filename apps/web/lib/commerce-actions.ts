@@ -1,11 +1,13 @@
 "use server";
 
-import { and, eq, funnelSteps, inArray, paymentAccounts, prices, products, stepOffers } from "@zfunnel/db";
+import { and, eq, funnelSteps, ne, inArray, paymentAccounts, prices, products, stepOffers } from "@zfunnel/db";
 import {
   createConnectedAccount,
   createOnboardingLink,
   CURRENCIES,
+  formatMoney,
   getAccountStatus,
+  minimumAmount,
   parseMoney,
   stripeConfigured,
 } from "@zfunnel/payments";
@@ -36,14 +38,7 @@ const productSchema = z
     imageUrl: z.union([z.literal(""), z.string().url("Must be a full URL (https://…)")]).optional(),
     priceLabel: z.string().trim().max(60).optional(),
     type: z.enum(["one_time", "recurring", "payment_plan"]),
-    amount: z.string().transform((v, c) => {
-      const cents = parseMoney(v);
-      if (cents === null || cents < 50) {
-        c.addIssue({ code: "custom", message: "Enter a price of at least 0.50" });
-        return z.NEVER;
-      }
-      return cents;
-    }),
+    amount: z.string(),
     currency: z.enum(CURRENCIES),
     interval: z.enum(["month", "year"]).optional(),
     trialDays: z.coerce.number().int().min(0).max(365).optional(),
@@ -51,6 +46,19 @@ const productSchema = z
     inStore: z.boolean(),
     stock: z.coerce.number().int().min(0).max(1_000_000).optional(),
     requiresShipping: z.boolean(),
+  })
+  .transform((v, c) => {
+    // Parsed with the chosen currency: JPY has no decimals, KWD has three.
+    const amount = parseMoney(v.amount, v.currency);
+    if (amount === null || amount < minimumAmount(v.currency)) {
+      c.addIssue({
+        code: "custom",
+        path: ["amount"],
+        message: `Enter a price of at least ${formatMoney(minimumAmount(v.currency), v.currency)}`,
+      });
+      return z.NEVER;
+    }
+    return { ...v, amount };
   })
   .refine((v) => v.type !== "payment_plan" || v.installments, {
     message: "How many payments?",
@@ -189,11 +197,27 @@ export async function addStepOffer(
   input: { priceId: string; role: "main" | "bump" | "upsell" | "downsell"; headline?: string; description?: string },
 ): Promise<Result> {
   const { ctx } = await ctxFor(workspaceSlug);
-  const ok = await inWorkspace(ctx, async (tx) => {
+  const error = await inWorkspace(ctx, async (tx) => {
     // Both rows are RLS-scoped, but foreign keys bypass RLS, so check explicitly.
-    const [price] = await tx.select({ id: prices.id }).from(prices).where(eq(prices.id, input.priceId));
-    const [step] = await tx.select({ id: funnelSteps.id }).from(funnelSteps).where(eq(funnelSteps.id, stepId));
-    if (!price || !step) return false;
+    const [price] = await tx
+      .select({ id: prices.id, currency: prices.currency })
+      .from(prices)
+      .where(eq(prices.id, input.priceId));
+    const [step] = await tx
+      .select({ id: funnelSteps.id, funnelId: funnelSteps.funnelId })
+      .from(funnelSteps)
+      .where(eq(funnelSteps.id, stepId));
+    if (!price || !step) return "Product or step not found.";
+    // Bumps and upsells join the same order, so a funnel sells in one currency.
+    const [other] = await tx
+      .select({ currency: prices.currency })
+      .from(stepOffers)
+      .innerJoin(prices, eq(prices.id, stepOffers.priceId))
+      .innerJoin(funnelSteps, eq(funnelSteps.id, stepOffers.stepId))
+      .where(and(eq(funnelSteps.funnelId, step.funnelId), ne(prices.currency, price.currency)))
+      .limit(1);
+    if (other)
+      return `This funnel already sells in ${other.currency.toUpperCase()}. All products in one funnel must use the same currency.`;
     const existing = await tx.select().from(stepOffers).where(eq(stepOffers.stepId, stepId));
     await tx.insert(stepOffers).values({
       workspaceId: ctx.workspace.id,
@@ -204,9 +228,9 @@ export async function addStepOffer(
       headline: input.headline?.slice(0, 160) || null,
       description: input.description?.slice(0, 400) || null,
     });
-    return true;
+    return null;
   });
-  if (!ok) return { ok: false, error: "Product or step not found." };
+  if (error) return { ok: false, error };
   revalidatePath(`/${workspaceSlug}/funnels`, "layout");
   return { ok: true };
 }
