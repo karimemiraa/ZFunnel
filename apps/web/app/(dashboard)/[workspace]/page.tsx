@@ -43,7 +43,8 @@ export default async function OverviewPage({ params }: { params: Promise<{ works
     { done: progress.funnel, label: t("overview.stepFunnel") },
     { done: progress.domain, label: t("overview.stepDomain") },
   ];
-  const allDone = steps.every((s) => s.done);
+  const doneCount = steps.filter((s) => s.done).length;
+  const allDone = doneCount === steps.length;
   const siteUrl = `${workspace.slug}.${ROOT_DOMAIN}`;
 
   return (
@@ -62,15 +63,28 @@ export default async function OverviewPage({ params }: { params: Promise<{ works
           </a>
         }
       />
-      <Card className="mb-8">
+      <Card className="mb-10 overflow-hidden">
         <CardHeader>
-          <CardTitle>{t("overview.gettingStarted")}</CardTitle>
-          <CardDescription>{allDone ? t("overview.allDone") : t("overview.gettingStartedHint")}</CardDescription>
-          <ol className="mt-4 space-y-3">
+          <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
+            <div className="space-y-1.5">
+              <CardTitle className="text-lg">{t("overview.gettingStarted")}</CardTitle>
+              <CardDescription>{allDone ? t("overview.allDone") : t("overview.gettingStartedHint")}</CardDescription>
+            </div>
+            <span className="text-sm font-medium text-muted-foreground tabular-nums">
+              {t("overview.progress", { done: doneCount, total: steps.length })}
+            </span>
+          </div>
+          <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden>
+            <div
+              className="h-full rounded-full bg-brand-orange transition-[width]"
+              style={{ width: `${(doneCount / steps.length) * 100}%` }}
+            />
+          </div>
+          <ol className="mt-5 space-y-3">
             {steps.map((s) => (
               <li key={s.label} className="flex items-center gap-3 text-sm">
                 {s.done ? (
-                  <CheckCircle2Icon className="size-5 text-emerald-500" />
+                  <CheckCircle2Icon className="size-5 text-emerald-600 dark:text-emerald-400" />
                 ) : (
                   <CircleIcon className="size-5 text-muted-foreground" />
                 )}
@@ -84,10 +98,10 @@ export default async function OverviewPage({ params }: { params: Promise<{ works
         {NAV_MODULES.filter((m) => m.segment).map((m) => {
           const Icon = m.icon;
           return (
-            <Link key={m.segment} href={`/${workspace.slug}/${m.segment}`} className="group">
-              <Card className="h-full transition-colors group-hover:border-primary/40">
+            <Link key={m.segment} href={`/${workspace.slug}/${m.segment}`} className="group rounded-xl outline-none">
+              <Card className="h-full transition-[border-color,box-shadow] group-hover:border-brand-orange/50 group-hover:shadow-md group-focus-visible:border-brand-orange">
                 <CardHeader>
-                  <div className="mb-2 flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <div className="mb-2 flex size-10 items-center justify-center rounded-lg bg-brand-navy/[0.06] text-brand-navy transition-colors group-hover:bg-brand-orange/15 group-hover:text-brand-orange-text dark:bg-white/[0.08] dark:text-white">
                     <Icon className="size-5" />
                   </div>
                   <CardTitle className="text-base">{navText(t, m.segment, "label")}</CardTitle>

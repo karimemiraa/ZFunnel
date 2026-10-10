@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@zfunnel/ui/card";
 import { redirect } from "next/navigation";
-import { Logo } from "@/components/logo";
+import { BrandedShell } from "@/components/branded-shell";
 import { WorkspaceForm } from "@/components/workspace-form";
 import { createFirstWorkspace } from "@/lib/actions";
 import { ROOT_DOMAIN } from "@/lib/env";
@@ -18,11 +18,12 @@ export default async function OnboardingPage() {
   if ((await getMemberships(user.id)).length > 0) redirect("/workspaces/new");
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-8 bg-muted/40 px-4 py-12">
-      <Logo className="text-xl" />
-      <Card className="w-full max-w-md">
+    <BrandedShell>
+      <Card className="w-full max-w-md shadow-xl shadow-brand-navy/10">
         <CardHeader>
-          <CardTitle className="text-xl">{t("workspace.welcome", { name: user.name.split(" ")[0] ?? "" })}</CardTitle>
+          <CardTitle className="text-2xl font-bold tracking-tight">
+            {t("workspace.welcome", { name: user.name.split(" ")[0] ?? "" })}
+          </CardTitle>
           <CardDescription>{t("workspace.onboardingIntro")}</CardDescription>
         </CardHeader>
         <CardContent>
@@ -34,6 +35,6 @@ export default async function OnboardingPage() {
           />
         </CardContent>
       </Card>
-    </main>
+    </BrandedShell>
   );
 }

@@ -29,9 +29,9 @@ export default async function WorkspaceLayout({
 
   return (
     <div className="flex min-h-dvh">
-      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col gap-4 border-e bg-sidebar p-4 lg:flex">
-        <Link href={`/${workspace.slug}`} className="px-2 py-1">
-          <Logo />
+      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col gap-4 overflow-y-auto border-e bg-sidebar p-4 lg:flex">
+        <Link href={`/${workspace.slug}`} className="px-2 py-1.5">
+          <Logo className="text-[1.0625rem]" />
         </Link>
         {switcher}
         <SidebarNav workspaceSlug={workspace.slug} />
@@ -50,7 +50,7 @@ export default async function WorkspaceLayout({
           <div
             className={
               billing.status === "trial"
-                ? "border-b bg-violet-500/10 px-4 py-2 text-center text-sm text-violet-900 dark:text-violet-200"
+                ? "border-b bg-brand-orange/10 px-4 py-2 text-center text-sm text-orange-950 dark:text-orange-100"
                 : "border-b bg-amber-500/15 px-4 py-2 text-center text-sm text-amber-900 dark:text-amber-200"
             }
           >

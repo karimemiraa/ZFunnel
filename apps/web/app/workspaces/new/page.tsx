@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@zfun
 import { EmptyState } from "@zfunnel/ui/empty-state";
 import { LockIcon } from "lucide-react";
 import Link from "next/link";
-import { Logo } from "@/components/logo";
+import { BrandedShell } from "@/components/branded-shell";
 import { WorkspaceForm } from "@/components/workspace-form";
 import { createWorkspace } from "@/lib/actions";
 import { ROOT_DOMAIN } from "@/lib/env";
@@ -21,13 +21,10 @@ export default async function NewWorkspacePage() {
   const manageable = (await getMemberships(user.id)).filter((m) => canManage(m.role));
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-8 bg-muted/40 px-4 py-12">
-      <Link href="/">
-        <Logo className="text-xl" />
-      </Link>
-      <Card className="w-full max-w-md">
+    <BrandedShell homeHref="/">
+      <Card className="w-full max-w-md shadow-xl shadow-brand-navy/10">
         <CardHeader>
-          <CardTitle className="text-xl">{t("workspace.newWorkspace")}</CardTitle>
+          <CardTitle className="text-2xl font-bold tracking-tight">{t("workspace.newWorkspace")}</CardTitle>
           <CardDescription>{t("workspace.newIntro")}</CardDescription>
         </CardHeader>
         <CardContent>
@@ -52,6 +49,6 @@ export default async function NewWorkspacePage() {
           )}
         </CardContent>
       </Card>
-    </main>
+    </BrandedShell>
   );
 }

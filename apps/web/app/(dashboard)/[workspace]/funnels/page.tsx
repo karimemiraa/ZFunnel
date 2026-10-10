@@ -60,7 +60,7 @@ export default async function FunnelsPage({ params }: { params: Promise<{ worksp
               <Link
                 key={fn.id}
                 href={`/${ws}/funnels/${fn.id}`}
-                className="group overflow-hidden rounded-xl border bg-card transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-black/5"
+                className="group overflow-hidden rounded-xl border bg-card transition-all hover:border-brand-orange/50 hover:shadow-lg hover:shadow-brand-navy/5"
               >
                 <div className="relative h-40 overflow-hidden border-b bg-muted/60">
                   {fn.firstStepId ? (

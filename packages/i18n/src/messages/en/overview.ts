@@ -4,6 +4,7 @@ export const overview = {
   happening: "Here's what's happening in {workspace}.",
   gettingStarted: "Getting started",
   gettingStartedHint: "Finish these steps to launch your first funnel.",
+  progress: "{done} of {total} done",
   stepWorkspace: "Create your workspace",
   stepPayments: "Connect Stripe to accept payments",
   stepFunnel: "Build your first funnel from a template",

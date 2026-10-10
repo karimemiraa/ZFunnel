@@ -7,6 +7,7 @@ export const overview: Shape<typeof en> = {
   happening: "إليك آخر المستجدات في {workspace}.",
   gettingStarted: "خطواتك الأولى",
   gettingStartedHint: "أكمل هذه الخطوات وأطلق أول قمع مبيعات لك.",
+  progress: "أنجزت {done} من {total}",
   stepWorkspace: "أنشئ مساحة عملك",
   stepPayments: "اربط حسابك في Stripe لتستقبل المدفوعات",
   stepFunnel: "ابنِ أول قمع مبيعات انطلاقًا من قالب جاهز",
