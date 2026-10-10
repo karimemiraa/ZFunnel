@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7
-# Multi-arch (amd64 + arm64/Oracle Ampere). Targets: web, sites, tools (worker + migrations).
+# Multi-arch (amd64 + arm64/Oracle Ampere). Targets: web, sites, worker, migrate.
 
 FROM node:22.20.0-alpine3.22 AS base
 RUN apk add --no-cache libc6-compat && corepack enable
@@ -42,8 +42,17 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s CMD node -e "fetch('http://127.0.0.1:3001/api/tls/ask').then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))"
 CMD ["node", "apps/sites/server.js"]
 
-# Background worker and database migrations run from the full workspace.
-FROM build AS tools
-RUN chown -R node:node /repo
-USER node
-CMD ["pnpm", "--filter", "@zfunnel/worker", "start"]
+# Worker and migrations: copy only each package and its production dependencies.
+FROM build AS pruned
+RUN pnpm deploy --legacy --filter @zfunnel/worker --prod /out/worker \
+ && pnpm deploy --legacy --filter @zfunnel/db /out/db
+
+FROM runtime AS worker
+COPY --from=pruned --chown=app:app /out/worker ./
+USER app
+CMD ["node_modules/.bin/tsx", "src/index.ts"]
+
+FROM runtime AS migrate
+COPY --from=pruned --chown=app:app /out/db ./
+USER app
+CMD ["node_modules/.bin/tsx", "src/migrate.ts"]

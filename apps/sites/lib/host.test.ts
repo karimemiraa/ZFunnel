@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { subdomainFromHost } from "./host";
+import { isPlatformHost, subdomainFromHost } from "./host";
 
 describe("subdomainFromHost", () => {
   it("extracts a single-label subdomain", () => {
@@ -14,5 +14,15 @@ describe("subdomainFromHost", () => {
     expect(subdomainFromHost("evilzfunnel.app", "zfunnel.app")).toBeNull();
     expect(subdomainFromHost("shop.example.com", "zfunnel.app")).toBeNull();
     expect(subdomainFromHost(null, "zfunnel.app")).toBeNull();
+  });
+});
+
+describe("isPlatformHost", () => {
+  it("approves the platform's own hosts only", () => {
+    expect(isPlatformHost("zfunnel.app", "zfunnel.app")).toBe(true);
+    expect(isPlatformHost("app.zfunnel.app", "zfunnel.app")).toBe(true);
+    expect(isPlatformHost("sites.zfunnel.app", "zfunnel.app")).toBe(true);
+    expect(isPlatformHost("evil.zfunnel.app", "zfunnel.app")).toBe(false);
+    expect(isPlatformHost("app.evil.com", "zfunnel.app")).toBe(false);
   });
 });

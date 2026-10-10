@@ -12,3 +12,9 @@ export function subdomainFromHost(host: string | null | undefined, rootDomain: s
   if (!label || label.includes(".")) return null;
   return label;
 }
+
+/** The platform's own hostnames: the root domain, the dashboard and the CNAME target. */
+export function isPlatformHost(host: string, rootDomain: string) {
+  const root = rootDomain.toLowerCase().replace(/:\d+$/, "");
+  return host === root || host === `app.${root}` || host === `sites.${root}`;
+}

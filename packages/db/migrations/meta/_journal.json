@@ -92,6 +92,20 @@
       "when": 1791632880425,
       "tag": "0012_analytics_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791634230571,
+      "tag": "0013_crm",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791634231590,
+      "tag": "0014_crm_rls",
+      "breakpoints": true
     }
   ]
 }

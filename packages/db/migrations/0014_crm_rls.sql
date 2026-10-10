@@ -1,0 +1,11 @@
+SELECT app_enable_workspace_rls('contact_fields');
+--> statement-breakpoint
+SELECT app_enable_workspace_rls('contact_activities');
+--> statement-breakpoint
+SELECT app_enable_workspace_rls('segments');
+--> statement-breakpoint
+SELECT app_enable_workspace_rls('pipelines');
+--> statement-breakpoint
+SELECT app_enable_workspace_rls('pipeline_stages');
+--> statement-breakpoint
+SELECT app_enable_workspace_rls('opportunities');

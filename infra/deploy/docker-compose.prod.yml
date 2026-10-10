@@ -43,9 +43,8 @@ services:
     networks: [internal]
 
   migrate:
-    build: { context: ../.., target: tools }
-    image: zfunnel-tools:latest
-    command: ["pnpm", "db:migrate"]
+    build: { context: ../.., target: migrate }
+    image: zfunnel-migrate:latest
     environment: *app-env
     depends_on:
       postgres: { condition: service_healthy }
@@ -75,7 +74,8 @@ services:
     networks: [internal]
 
   worker:
-    image: zfunnel-tools:latest
+    build: { context: ../.., target: worker }
+    image: zfunnel-worker:latest
     restart: unless-stopped
     environment: *app-env
     depends_on:
