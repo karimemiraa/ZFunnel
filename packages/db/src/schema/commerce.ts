@@ -41,6 +41,12 @@ export const products = pgTable(
     name: text().notNull(),
     description: text(),
     imageUrl: text(),
+    /** Listed in the public /store. */
+    inStore: boolean().notNull().default(false),
+    /** Units left; null = unlimited. Decremented when an order is paid. */
+    stock: integer(),
+    /** Ask for a shipping address at checkout. */
+    requiresShipping: boolean().notNull().default(false),
     archivedAt: timestamp({ withTimezone: true }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true })
@@ -157,6 +163,15 @@ export const orders = pgTable(
     refundedAmount: integer().notNull().default(0),
     /** Referring affiliate (set at checkout from the zf_aff cookie). */
     affiliateId: uuid(),
+    shipping: jsonb().$type<{
+      name: string;
+      line1: string;
+      line2?: string;
+      city: string;
+      postalCode: string;
+      region?: string;
+      country: string;
+    }>(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     paidAt: timestamp({ withTimezone: true }),
   },

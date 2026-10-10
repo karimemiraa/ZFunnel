@@ -281,6 +281,13 @@
       "when": 1791643950950,
       "tag": "0039_community_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1791644316261,
+      "tag": "0040_store",
+      "breakpoints": true
     }
   ]
 }

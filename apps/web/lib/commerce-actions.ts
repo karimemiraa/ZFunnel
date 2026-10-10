@@ -48,6 +48,9 @@ const productSchema = z
     interval: z.enum(["month", "year"]).optional(),
     trialDays: z.coerce.number().int().min(0).max(365).optional(),
     installments: z.coerce.number().int().min(2).max(36).optional(),
+    inStore: z.boolean(),
+    stock: z.coerce.number().int().min(0).max(1_000_000).optional(),
+    requiresShipping: z.boolean(),
   })
   .refine((v) => v.type !== "payment_plan" || v.installments, {
     message: "How many payments?",
@@ -68,6 +71,9 @@ function readProductForm(formData: FormData) {
     interval: raw.type === "one_time" ? undefined : val("interval"),
     trialDays: raw.type === "recurring" ? val("trialDays") : undefined,
     installments: raw.type === "payment_plan" ? val("installments") : undefined,
+    inStore: raw.inStore === "on",
+    stock: val("stock"),
+    requiresShipping: raw.requiresShipping === "on",
   });
 }
 
@@ -94,7 +100,14 @@ export async function saveProduct(
     if (productId) {
       await tx
         .update(products)
-        .set({ name: d.name, description: d.description || null, imageUrl: d.imageUrl || null })
+        .set({
+          name: d.name,
+          description: d.description || null,
+          imageUrl: d.imageUrl || null,
+          inStore: d.inStore,
+          stock: d.stock ?? null,
+          requiresShipping: d.requiresShipping,
+        })
         .where(eq(products.id, productId));
       const [current] = await tx
         .select()
@@ -132,6 +145,9 @@ export async function saveProduct(
         name: d.name,
         description: d.description || null,
         imageUrl: d.imageUrl || null,
+        inStore: d.inStore,
+        stock: d.stock ?? null,
+        requiresShipping: d.requiresShipping,
       })
       .returning();
     await tx.insert(prices).values({ workspaceId: ctx.workspace.id, productId: p!.id, ...priceValues });

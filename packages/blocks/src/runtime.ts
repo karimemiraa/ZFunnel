@@ -10,6 +10,8 @@ export type BlockRuntime = {
   /** Where "No thanks" links go on upsell steps. */
   declineUrl?: string;
   stepId?: string;
+  /** Store checkout (no funnel step): the price being bought and whether to ask for an address. */
+  store?: { priceId: string; shipping: boolean };
   /** Public API base for forms and checkout, e.g. "/api". */
   apiBase?: string;
   /** Offers attached to this step, resolved server-side (Phase 1.7+). */

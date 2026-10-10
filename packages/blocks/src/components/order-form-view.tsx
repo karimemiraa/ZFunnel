@@ -70,6 +70,7 @@ export function OrderFormView(p: Props) {
   const [bumpIds, setBumpIds] = useState<string[]>([]);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
+  const [ship, setShip] = useState({ line1: "", line2: "", city: "", postalCode: "", region: "", country: "" });
   const [stage, setStage] = useState<1 | 2>(1);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -125,12 +126,20 @@ export function OrderFormView(p: Props) {
     );
 
   async function start() {
+    const who = { email, name };
+    if (rt.store)
+      return post<StartResponse>(`${rt.apiBase ?? "/api"}/checkout/start`, {
+        ...who,
+        storePriceId: rt.store.priceId,
+        shipping: rt.store.shipping
+          ? { name, ...ship, line2: ship.line2 || undefined, region: ship.region || undefined }
+          : undefined,
+      });
     return post<StartResponse>(`${rt.apiBase ?? "/api"}/checkout/start`, {
+      ...who,
       stepId: rt.stepId,
       mainOfferId: main!.id,
       bumpOfferIds: bumpIds,
-      email,
-      name,
     });
   }
   async function complete(orderId: string, extra?: object) {
@@ -181,6 +190,31 @@ export function OrderFormView(p: Props) {
           required
         />
       </div>
+      {rt.store?.shipping &&
+        (
+          [
+            ["line1", "Address", "address-line1", true, "sm:col-span-2"],
+            ["line2", "Apartment, suite (optional)", "address-line2", false, "sm:col-span-2"],
+            ["city", "City", "address-level2", true, ""],
+            ["postalCode", "Postal code", "postal-code", true, ""],
+            ["region", "State / region (optional)", "address-level1", false, ""],
+            ["country", "Country", "country-name", true, ""],
+          ] as const
+        ).map(([k, l, ac, req, span]) => (
+          <div key={k} className={span}>
+            <label className={label} htmlFor={`zf-ship-${k}`}>
+              {l}
+            </label>
+            <input
+              id={`zf-ship-${k}`}
+              className={field}
+              autoComplete={`shipping ${ac}`}
+              value={ship[k]}
+              onChange={(e) => setShip({ ...ship, [k]: e.target.value })}
+              required={req}
+            />
+          </div>
+        ))}
     </div>
   );
 

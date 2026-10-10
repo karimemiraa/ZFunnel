@@ -18,6 +18,9 @@ type Initial = {
   name: string;
   description: string | null;
   imageUrl: string | null;
+  inStore?: boolean;
+  stock?: number | null;
+  requiresShipping?: boolean;
   price?: {
     label: string | null;
     type: "one_time" | "recurring" | "payment_plan";
@@ -189,6 +192,33 @@ export function ProductDialog({
             <Input id="p-image" name="imageUrl" defaultValue={initial?.imageUrl ?? ""} placeholder="https://…" />
             <FormMessage message={err("imageUrl")} />
           </div>
+          <fieldset className="grid gap-3 rounded-lg border p-3">
+            <legend className="px-1 text-sm font-medium">Store</legend>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" name="inStore" className="size-4" defaultChecked={initial?.inStore ?? false} />{" "}
+              Sell in my online store (/store)
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                name="requiresShipping"
+                className="size-4"
+                defaultChecked={initial?.requiresShipping ?? false}
+              />{" "}
+              Physical product: ask for a shipping address
+            </label>
+            <div className="space-y-1">
+              <Label htmlFor="p-stock">Stock (leave empty for unlimited)</Label>
+              <Input
+                id="p-stock"
+                name="stock"
+                type="number"
+                min={0}
+                defaultValue={initial?.stock ?? ""}
+                className="w-40"
+              />
+            </div>
+          </fieldset>
           <FormMessage message={state?.error} />
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>

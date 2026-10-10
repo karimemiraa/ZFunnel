@@ -110,6 +110,23 @@ export default async function OrdersPage({
                   <td className="px-4 py-3">
                     <div className="max-w-[16rem] truncate font-medium">{o.name ?? "—"}</div>
                     <div className="max-w-[16rem] truncate text-xs text-muted-foreground">{o.email}</div>
+                    {o.shipping && (
+                      <div
+                        className="mt-1 max-w-[16rem] truncate text-xs text-muted-foreground"
+                        title={[
+                          o.shipping.name,
+                          o.shipping.line1,
+                          o.shipping.line2,
+                          `${o.shipping.postalCode} ${o.shipping.city}`,
+                          o.shipping.region,
+                          o.shipping.country,
+                        ]
+                          .filter(Boolean)
+                          .join(", ")}
+                      >
+                        📦 Ship to {o.shipping.city}, {o.shipping.country}
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3 max-lg:hidden">
                     <ul className="space-y-0.5">

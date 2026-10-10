@@ -7,6 +7,7 @@ import {
   getPaymentSetup,
   getProfile,
   getStepOffers,
+  getStoreOffer,
   saveProfile,
   system,
   upsertContact,
@@ -20,9 +21,22 @@ import { affiliateForOrder } from "@/lib/affiliate";
 import { jsonError, publicPost } from "@/lib/api";
 import { resolveStepForWorkspace } from "@/lib/resolve";
 
+const shippingSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  line1: z.string().trim().min(1, "Please enter your address.").max(200),
+  line2: z.string().trim().max(200).optional(),
+  city: z.string().trim().min(1, "Please enter your city.").max(100),
+  postalCode: z.string().trim().min(1, "Please enter your postal code.").max(20),
+  region: z.string().trim().max(100).optional(),
+  country: z.string().trim().min(2, "Please choose your country.").max(60),
+});
+
 const bodySchema = z.object({
-  stepId: z.string().uuid(),
-  mainOfferId: z.string().uuid(),
+  // Funnel checkout: a step and its offer. Store checkout: just a price.
+  stepId: z.string().uuid().optional(),
+  mainOfferId: z.string().uuid().optional(),
+  storePriceId: z.string().uuid().optional(),
+  shipping: shippingSchema.optional(),
   bumpOfferIds: z.array(z.string().uuid()).max(5).default([]),
   email: z.string().trim().toLowerCase().email("Please enter a valid email address.").max(254),
   name: z.string().trim().min(1, "Please enter your name.").max(120),
@@ -37,35 +51,53 @@ export async function POST(req: Request) {
   if ("error" in g) return g.error;
   const parsed = bodySchema.safeParse(g.body);
   if (!parsed.success) return jsonError(parsed.error.issues[0]?.message ?? "Invalid checkout.");
-  const { stepId, mainOfferId, bumpOfferIds, email, name } = parsed.data;
+  const { stepId, mainOfferId, storePriceId, shipping, bumpOfferIds, email, name } = parsed.data;
+  const store = Boolean(storePriceId);
+  if (!store && (!stepId || !mainOfferId)) return jsonError("Invalid checkout.");
   const affCookie = (await cookies()).get("zf_aff")?.value;
 
-  const step = await resolveStepForWorkspace(g.ws.id, stepId);
-  if (!step) return jsonError("This checkout is no longer available.", 404);
+  const step = store ? null : await resolveStepForWorkspace(g.ws.id, stepId!);
+  if (!store && !step) return jsonError("This checkout is no longer available.", 404);
 
   try {
     // 1) Short transaction: validate the cart and create the pending order.
     const prep = await system(async (tx) => {
       const setup = await getPaymentSetup(tx, g.ws.id);
       if (!setup) return { error: "This store isn't accepting payments yet." } as const;
-      const offers = await getStepOffers(tx, stepId);
-      const main = offers.find((o) => o.offerId === mainOfferId && o.role === "main");
+      let main: OfferView | undefined;
+      let bumps: OfferView[] = [];
+      if (store) {
+        const offer = await getStoreOffer(tx, g.ws.id, storePriceId!);
+        if (!offer) return { error: "Sorry, this product is sold out or no longer available." } as const;
+        if (offer.requiresShipping && !shipping) return { error: "Please enter your shipping address." } as const;
+        main = offer;
+      } else {
+        const offers = await getStepOffers(tx, stepId!);
+        main = offers.find((o) => o.offerId === mainOfferId && o.role === "main");
+        bumps = offers.filter((o) => o.role === "bump" && bumpOfferIds.includes(o.offerId));
+      }
       if (!main) return { error: "Please choose a product." } as const;
-      const bumps = offers.filter((o) => o.role === "bump" && bumpOfferIds.includes(o.offerId));
       const cart: OfferView[] = [main, ...bumps];
       if (cart.some((o) => o.currency !== main.currency))
         return { error: "All products in one order must use the same currency." } as const;
-      const contact = await upsertContact(tx, g.ws.id, { email, name, funnelId: step.funnelId, stepId, ip: g.ip });
+      const contact = await upsertContact(tx, g.ws.id, {
+        email,
+        name,
+        funnelId: step?.funnelId ?? null,
+        stepId: stepId ?? null,
+        ip: g.ip,
+      });
       const affiliateId = await affiliateForOrder(tx, g.ws.id, affCookie, contact.id);
       const order = await createPendingOrder(tx, {
         workspaceId: g.ws.id,
         contactId: contact.id,
-        funnelId: step.funnelId,
-        stepId,
+        funnelId: step?.funnelId ?? null,
+        stepId: stepId ?? null,
         provider: setup.provider,
         test: setup.provider === "test" || !setup.livemode,
         items: cart,
         affiliateId,
+        shipping: shipping ?? null,
       });
       const profile = setup.provider === "stripe" ? await getProfile(tx, contact.id, "stripe") : null;
       return { setup, main, bumps, cart, contact, order, profile } as const;

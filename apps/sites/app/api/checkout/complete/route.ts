@@ -152,7 +152,7 @@ export async function POST(req: Request) {
         },
       });
     });
-  if (payment.status !== "succeeded")
+  if (payment.status !== "succeeded" && order.funnelId && order.stepId)
     await track(req.headers, {
       workspaceId: g.ws.id,
       funnelId: order.funnelId!,
@@ -161,6 +161,8 @@ export async function POST(req: Request) {
       revenue: payment.amount,
       currency: payment.currency,
     });
+  // Store orders have no funnel: no upsell session, the page shows its own thank-you.
+  if (!order.funnelId) return NextResponse.json({ ok: true, redirect: null });
   const session = await system((tx) =>
     startFunnelSession(tx, {
       workspaceId: g.ws.id,

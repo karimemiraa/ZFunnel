@@ -116,6 +116,9 @@ export default async function ProductsPage({ params }: { params: Promise<{ works
                             name: p.name,
                             description: p.description,
                             imageUrl: p.imageUrl,
+                            inStore: p.inStore,
+                            stock: p.stock,
+                            requiresShipping: p.requiresShipping,
                             price: price as never,
                           }}
                           trigger={

@@ -97,7 +97,7 @@ export async function getPaymentSetup(tx: Tx, workspaceId: string): Promise<Paym
 export async function upsertContact(
   tx: Tx,
   workspaceId: string,
-  input: { email: string; name?: string | null; funnelId: string; stepId: string; ip: string },
+  input: { email: string; name?: string | null; funnelId?: string | null; stepId?: string | null; ip: string },
 ) {
   const now = new Date();
   const [c] = await tx
@@ -106,8 +106,8 @@ export async function upsertContact(
       workspaceId,
       email: input.email,
       name: input.name || null,
-      sourceFunnelId: input.funnelId,
-      sourceStepId: input.stepId,
+      sourceFunnelId: input.funnelId ?? null,
+      sourceStepId: input.stepId ?? null,
       consentAt: now,
       consentIp: input.ip,
     })
@@ -135,12 +135,13 @@ export async function createPendingOrder(
   input: {
     workspaceId: string;
     contactId: string;
-    funnelId: string;
-    stepId: string;
+    funnelId: string | null;
+    stepId: string | null;
     provider: PaymentProvider;
     test: boolean;
     items: OfferView[];
     affiliateId?: string | null;
+    shipping?: (typeof orders.$inferInsert)["shipping"];
   },
 ) {
   const number = await nextOrderNumber(tx, input.workspaceId);
@@ -157,6 +158,7 @@ export async function createPendingOrder(
       test: input.test,
       currency,
       affiliateId: input.affiliateId ?? null,
+      shipping: input.shipping ?? null,
     })
     .returning();
   await tx.insert(orderItems).values(
@@ -184,7 +186,58 @@ export async function markPaymentSucceeded(tx: Tx, paymentId: string, raw?: unkn
   await tx.update(orderItems).set({ status: "paid" }).where(eq(orderItems.paymentId, paymentId));
   await recomputeOrder(tx, p.orderId);
   await grantCoursesForPayment(tx, paymentId);
+  await decrementStock(tx, paymentId);
   return p;
+}
+
+/** Store inventory: one unit per paid item, never below zero. */
+async function decrementStock(tx: Tx, paymentId: string) {
+  await tx.execute(sql`
+    update products pr set stock = greatest(pr.stock - x.n, 0)
+    from (select p.product_id, count(*)::int as n from order_items oi join prices p on p.id = oi.price_id
+          where oi.payment_id = ${paymentId} and oi.status = 'paid' group by p.product_id) x
+    where pr.id = x.product_id and pr.stock is not null`);
+}
+
+/** A store product's price as a checkout offer (validates visibility and stock). */
+export async function getStoreOffer(
+  tx: Tx,
+  workspaceId: string,
+  priceId: string,
+): Promise<(OfferView & { requiresShipping: boolean }) | null> {
+  const [r] = await tx
+    .select({
+      priceId: prices.id,
+      productId: products.id,
+      label: prices.label,
+      type: prices.type,
+      amount: prices.amount,
+      currency: prices.currency,
+      interval: prices.interval,
+      trialDays: prices.trialDays,
+      installments: prices.installments,
+      stripePriceId: prices.stripePriceId,
+      productName: products.name,
+      productDescription: products.description,
+      stock: products.stock,
+      requiresShipping: products.requiresShipping,
+    })
+    .from(prices)
+    .innerJoin(products, eq(products.id, prices.productId))
+    .where(
+      and(
+        eq(prices.id, priceId),
+        eq(products.workspaceId, workspaceId),
+        eq(products.inStore, true),
+        sql`${prices.archivedAt} is null`,
+        sql`${products.archivedAt} is null`,
+      ),
+    );
+  if (!r || (r.stock !== null && r.stock <= 0)) return null;
+  const { stock: _stock, ...rest } = r;
+  return { ...rest, offerId: r.priceId, role: "main", headline: null, description: null } as OfferView & {
+    requiresShipping: boolean;
+  };
 }
 
 /** Enrolls the buyer in every course linked to the products just paid for (idempotent). */
