@@ -26,6 +26,7 @@ import {
 } from "@zfunnel/ui/dropdown-menu";
 import { cn } from "@zfunnel/ui/lib/utils";
 import { PlusIcon, ZapIcon } from "lucide-react";
+import { useT } from "@zfunnel/i18n/react";
 import { useTheme } from "next-themes";
 import { createContext, useContext, useMemo } from "react";
 import { layout, type NodeType, type Slot } from "@/lib/workflow-graph";
@@ -38,16 +39,19 @@ const NODE_W = 256;
 
 function AddMenu({ slot, children }: { slot: Slot; children: React.ReactNode }) {
   const { onAdd, readOnly } = useContext(CanvasCtx);
+  const t = useT();
   if (readOnly) return null;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
       <DropdownMenuContent align="center" className="w-60">
-        <DropdownMenuLabel className="text-xs text-muted-foreground">Add a step</DropdownMenuLabel>
-        {NODE_ORDER.map((t) => {
-          const m = NODE_META[t];
+        <DropdownMenuLabel className="text-xs text-muted-foreground">
+          {t("automations.canvas.addAStep")}
+        </DropdownMenuLabel>
+        {NODE_ORDER.map((type) => {
+          const m = NODE_META[type];
           return (
-            <DropdownMenuItem key={t} onClick={() => onAdd(slot, t)} className="gap-3 py-2">
+            <DropdownMenuItem key={type} onClick={() => onAdd(slot, type)} className="gap-3 py-2">
               <span
                 className="flex size-7 items-center justify-center rounded-md text-white"
                 style={{ background: m.color }}
@@ -55,8 +59,8 @@ function AddMenu({ slot, children }: { slot: Slot; children: React.ReactNode }) 
                 <m.icon className="size-4" />
               </span>
               <span className="flex flex-col">
-                <span className="text-sm font-medium">{m.label}</span>
-                <span className="text-xs text-muted-foreground">{m.hint}</span>
+                <span className="text-sm font-medium">{t(m.label)}</span>
+                <span className="text-xs text-muted-foreground">{t(m.hint)}</span>
               </span>
             </DropdownMenuItem>
           );
@@ -114,18 +118,21 @@ function CardNode({ data, selected }: NodeProps<Node<CardData>>) {
 
 function AdderNode({ data }: NodeProps<Node<{ slot: Slot; label?: string }>>) {
   const { readOnly } = useContext(CanvasCtx);
+  const t = useT();
   return (
     <div className="flex flex-col items-center" style={{ width: NODE_W }}>
       <Handle type="target" position={Position.Top} className="!opacity-0" isConnectable={false} />
       {readOnly ? (
-        <span className="rounded-full border bg-muted px-3 py-1 text-xs text-muted-foreground">End</span>
+        <span className="rounded-full border bg-muted px-3 py-1 text-xs text-muted-foreground">
+          {t("automations.canvas.end")}
+        </span>
       ) : (
         <AddMenu slot={data.slot}>
           <button
             type="button"
             className="nodrag nopan flex items-center gap-1.5 rounded-full border border-dashed border-primary/50 bg-background px-3 py-1.5 text-xs font-medium text-primary shadow-sm transition-colors hover:bg-primary/10"
           >
-            <PlusIcon className="size-3.5" /> {data.label ?? "Add step"}
+            <PlusIcon className="size-3.5" /> {data.label ?? t("automations.canvas.addStep")}
           </button>
         </AddMenu>
       )}
@@ -141,7 +148,8 @@ function InsertEdge({
   targetY,
   data,
   style,
-}: EdgeProps<Edge<{ slot: Slot; label?: string; adder?: boolean }>>) {
+}: EdgeProps<Edge<{ slot: Slot; label?: string; yes?: boolean; adder?: boolean }>>) {
+  const t = useT();
   const [path, , ly] = getSmoothStepPath({ sourceX, sourceY, targetX, targetY, borderRadius: 16 });
   return (
     <>
@@ -155,7 +163,7 @@ function InsertEdge({
             <span
               className={cn(
                 "rounded-full px-2 py-0.5 text-[10px] font-bold text-white",
-                data.label === "Yes" ? "bg-emerald-500" : "bg-rose-500",
+                data.yes ? "bg-emerald-500" : "bg-rose-500",
               )}
             >
               {data.label}
@@ -165,7 +173,7 @@ function InsertEdge({
             <AddMenu slot={data.slot}>
               <button
                 type="button"
-                aria-label="Insert step"
+                aria-label={t("automations.canvas.insertStep")}
                 className="flex size-6 items-center justify-center rounded-full border bg-background text-muted-foreground shadow-sm transition-colors hover:border-primary hover:text-primary"
               >
                 <PlusIcon className="size-3.5" />
@@ -199,53 +207,56 @@ export function WorkflowCanvas({
   readOnly: boolean;
 }) {
   const { resolvedTheme } = useTheme();
+  const t = useT();
   const { nodes, edges } = useMemo(() => {
     const { pos, ends } = layout(graph);
     const nodes: Node[] = [];
     const edges: Edge[] = [];
     const tm = TRIGGER_META[trigger.type];
-    const tSummary = triggerSummary(trigger, lookups);
+    const tSummary = triggerSummary(trigger, lookups, t);
     nodes.push({
       id: "trigger",
       type: "card",
       position: { x: pos.trigger!.x - NODE_W / 2, y: pos.trigger!.y },
       selected: selected === "trigger",
       data: {
-        title: tm.label,
-        summary: tSummary,
+        title: t(tm.label),
+        summary: tSummary.text,
         color: "#7c3aed",
         icon: ZapIcon,
-        kicker: "Trigger",
-        error: tSummary === "Choose a tag",
+        kicker: t("automations.canvas.trigger"),
+        error: Boolean(tSummary.missing),
       } satisfies CardData,
     });
     const stroke = { stroke: "var(--color-border, #d4d4d8)", strokeWidth: 2 };
-    const edgeTo = (source: string, target: string, slot: Slot, label?: string, adder?: boolean) =>
+    const branchLabel = (b?: string) =>
+      b === "yes" ? t("automations.canvas.yes") : b === "no" ? t("automations.canvas.no") : undefined;
+    const edgeTo = (source: string, target: string, slot: Slot, branch?: string, adder?: boolean) =>
       edges.push({
         id: `${source}->${target}`,
         source,
         target,
         type: "insert",
         style: stroke,
-        data: { slot, label, adder },
+        data: { slot, label: branchLabel(branch), yes: branch === "yes", adder },
       });
     for (const n of Object.values(graph.nodes) as WorkflowNode[]) {
       const p = pos[n.id];
       if (!p) continue;
       const m = NODE_META[n.type];
-      const summary = nodeSummary(n, lookups);
+      const summary = nodeSummary(n, lookups, t);
       nodes.push({
         id: n.id,
         type: "card",
         position: { x: p.x - NODE_W / 2, y: p.y },
         selected: selected === n.id,
         data: {
-          title: m.label,
-          summary,
+          title: t(m.label),
+          summary: summary.text,
           color: m.color,
           icon: m.icon,
-          kicker: "Step",
-          error: /^(Choose|Set)/.test(summary),
+          kicker: t("automations.canvas.step"),
+          error: Boolean(summary.missing),
         } satisfies CardData,
       });
     }
@@ -253,8 +264,8 @@ export function WorkflowCanvas({
     const parentOf = (slot: Slot) => slot.parent;
     for (const n of Object.values(graph.nodes) as WorkflowNode[]) {
       if (n.type === "condition") {
-        if (n.yes) edgeTo(n.id, n.yes, { parent: n.id, branch: "yes" }, "Yes");
-        if (n.no) edgeTo(n.id, n.no, { parent: n.id, branch: "no" }, "No");
+        if (n.yes) edgeTo(n.id, n.yes, { parent: n.id, branch: "yes" }, "yes");
+        if (n.no) edgeTo(n.id, n.no, { parent: n.id, branch: "no" }, "no");
       } else if (n.next) edgeTo(n.id, n.next, { parent: n.id, branch: "next" });
     }
     if (graph.start) edgeTo("trigger", graph.start, { parent: "trigger" });
@@ -269,10 +280,10 @@ export function WorkflowCanvas({
         selectable: false,
         data: { slot: e.slot },
       });
-      edgeTo(parent, id, e.slot, branch === "yes" ? "Yes" : branch === "no" ? "No" : undefined, true);
+      edgeTo(parent, id, e.slot, branch === "next" ? undefined : branch, true);
     });
     return { nodes, edges };
-  }, [graph, trigger, lookups, selected]);
+  }, [graph, trigger, lookups, selected, t]);
 
   return (
     <CanvasCtx.Provider value={{ onAdd, readOnly }}>

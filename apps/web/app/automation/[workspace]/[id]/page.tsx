@@ -8,10 +8,13 @@ import { listCalendars } from "@/lib/calendars";
 import { listCourses } from "@/lib/courses";
 import { listFunnels } from "@/lib/funnels";
 import { listWebinars } from "@/lib/webinars";
+import { getT } from "@/lib/i18n";
 import { requireUser } from "@/lib/session";
 import { getWorkspaceForUser } from "@/lib/workspaces";
 
-export const metadata = { title: "Automation" };
+export async function generateMetadata() {
+  return { title: (await getT())("automations.automationTitle") };
+}
 
 export default async function AutomationPage({
   params,

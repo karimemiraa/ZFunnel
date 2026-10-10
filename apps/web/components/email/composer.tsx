@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@zfunnel/i18n/react";
 import { Button } from "@zfunnel/ui/button";
 import { Input } from "@zfunnel/ui/input";
 import { Label } from "@zfunnel/ui/label";
@@ -18,6 +19,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { aiRewrite } from "@/lib/ai-actions";
+import { useFmt } from "@/lib/use-fmt";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { cancelSchedule, deleteBroadcast, saveBroadcastDraft, sendBroadcast, sendTestEmail } from "@/lib/email-actions";
 
@@ -34,12 +36,26 @@ type Props = {
   aiEnabled: boolean;
 };
 
+/** Renders `<b>…</b>` in a translated string as <strong>. */
+const rich = (s: string, className?: string) =>
+  s.split(/<b>(.*?)<\/b>/).map((part, i) =>
+    i % 2 ? (
+      <strong key={i} className={className}>
+        {part}
+      </strong>
+    ) : (
+      part
+    ),
+  );
+
 function localInput(d: Date) {
   const off = d.getTimezoneOffset() * 60_000;
   return new Date(d.getTime() - off).toISOString().slice(0, 16);
 }
 
 export function Composer(p: Props) {
+  const t = useT();
+  const f = useFmt();
   const [v, setV] = useState(p.initial);
   const [count, setCount] = useState(p.initialCount);
   const [saving, setSaving] = useState(false);
@@ -72,8 +88,8 @@ export function Composer(p: Props) {
   const run = (fn: () => Promise<{ ok: boolean; message?: string; error?: string }>) =>
     start(async () => {
       const r = await fn();
-      if (r.ok) toast.success(r.message ?? "Done");
-      else toast.error(r.error ?? "Something went wrong");
+      if (r.ok) toast.success(r.message ?? t("email.composer.done"));
+      else toast.error(r.error ?? t("email.actions.somethingWrong"));
     });
 
   return (
@@ -81,12 +97,12 @@ export function Composer(p: Props) {
       <div className="grid content-start gap-5">
         <section className="grid gap-4 rounded-xl border bg-card p-5">
           <div className="grid gap-2">
-            <Label htmlFor="name">Internal name</Label>
+            <Label htmlFor="name">{t("email.composer.internalName")}</Label>
             <Input id="name" value={v.name} onChange={(e) => update("name", e.target.value)} disabled={!editable} />
           </div>
           <div className="grid gap-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="subject">Subject line</Label>
+              <Label htmlFor="subject">{t("email.composer.subjectLine")}</Label>
               {p.aiEnabled && editable && (
                 <button
                   type="button"
@@ -99,8 +115,8 @@ export function Composer(p: Props) {
                       role: "email subject",
                       text: v.subject,
                       instruction: v.subject
-                        ? "Write a more compelling subject line that gets opened (under 60 characters)"
-                        : `Write a compelling subject line (under 60 characters) for an email named "${v.name}"`,
+                        ? t("email.composer.aiImprove")
+                        : t("email.composer.aiWrite", { name: v.name }),
                       context: "marketing email",
                     });
                     setSuggesting(false);
@@ -109,7 +125,7 @@ export function Composer(p: Props) {
                   }}
                 >
                   {suggesting ? <Loader2Icon className="size-3 animate-spin" /> : <SparklesIcon className="size-3" />}{" "}
-                  Suggest
+                  {t("email.composer.suggest")}
                 </button>
               )}
             </div>
@@ -118,33 +134,35 @@ export function Composer(p: Props) {
               value={v.subject}
               onChange={(e) => update("subject", e.target.value)}
               disabled={!editable}
-              placeholder="Your free guide is inside"
+              placeholder={t("email.composer.subjectPlaceholder")}
             />
-            <p className="text-xs text-muted-foreground">Personalize with {"{{first_name|there}}"}.</p>
+            <p className="text-xs text-muted-foreground">
+              {t("email.composer.personalize", { tag: "{{first_name|there}}" })}
+            </p>
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="preheader">Preview text</Label>
+            <Label htmlFor="preheader">{t("email.composer.previewText")}</Label>
             <Input
               id="preheader"
               value={v.preheader}
               onChange={(e) => update("preheader", e.target.value)}
               disabled={!editable}
-              placeholder="Shown after the subject in most inboxes"
+              placeholder={t("email.composer.preheaderPlaceholder")}
             />
           </div>
         </section>
 
         <section className="grid gap-3 rounded-xl border bg-card p-5">
-          <Label htmlFor="audience">Audience</Label>
+          <Label htmlFor="audience">{t("email.composer.audience")}</Label>
           <NativeSelect
             id="audience"
             value={v.audience}
             onChange={(e) => update("audience", e.target.value)}
             disabled={!editable}
           >
-            <option value="all">All subscribed contacts</option>
+            <option value="all">{t("email.composer.allContacts")}</option>
             {p.segments.length > 0 && (
-              <optgroup label="Segments">
+              <optgroup label={t("email.composer.segments")}>
                 {p.segments.map((s) => (
                   <option key={s.id} value={`segment:${s.id}`}>
                     {s.name}
@@ -153,10 +171,10 @@ export function Composer(p: Props) {
               </optgroup>
             )}
             {p.tags.length > 0 && (
-              <optgroup label="Tags">
-                {p.tags.map((t) => (
-                  <option key={t} value={`tag:${t}`}>
-                    Tagged “{t}”
+              <optgroup label={t("email.composer.tags")}>
+                {p.tags.map((tag) => (
+                  <option key={tag} value={`tag:${tag}`}>
+                    {t("email.composer.tagged", { tag })}
                   </option>
                 ))}
               </optgroup>
@@ -164,10 +182,7 @@ export function Composer(p: Props) {
           </NativeSelect>
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
             <UsersIcon className="size-4" />
-            <span>
-              <strong className="text-foreground tabular-nums">{count.toLocaleString()}</strong> subscribed{" "}
-              {count === 1 ? "contact" : "contacts"}
-            </span>
+            <span>{rich(t("email.composer.subscribedContacts", { count }), "text-foreground tabular-nums")}</span>
           </p>
         </section>
 
@@ -178,24 +193,24 @@ export function Composer(p: Props) {
                 disabled={pending || saving}
                 onClick={() => run(() => sendBroadcast(p.workspaceSlug, p.broadcastId, null))}
               >
-                {pending ? <Loader2Icon className="animate-spin" /> : <SendIcon />} Send now
+                {pending ? <Loader2Icon className="animate-spin" /> : <SendIcon />} {t("email.composer.sendNow")}
               </Button>
               <Button variant="outline" onClick={() => setScheduling((s) => !s)}>
-                <CalendarClockIcon /> Schedule
+                <CalendarClockIcon /> {t("email.composer.schedule")}
               </Button>
               <Button
                 variant="ghost"
                 disabled={pending || saving}
                 onClick={() => run(() => sendTestEmail(p.workspaceSlug, p.broadcastId))}
               >
-                <FlaskConicalIcon /> Send test
+                <FlaskConicalIcon /> {t("email.composer.sendTest")}
               </Button>
             </div>
             {scheduling && (
               <div className="flex flex-wrap items-end gap-2">
                 <div className="grid flex-1 gap-1.5">
                   <Label htmlFor="when" className="text-xs">
-                    Send at (your time)
+                    {t("email.composer.sendAt")}
                   </Label>
                   <Input id="when" type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} />
                 </div>
@@ -203,16 +218,22 @@ export function Composer(p: Props) {
                   disabled={pending}
                   onClick={() => run(() => sendBroadcast(p.workspaceSlug, p.broadcastId, new Date(when).toISOString()))}
                 >
-                  Schedule
+                  {t("email.composer.schedule")}
                 </Button>
               </div>
             )}
-            <p className="text-xs text-muted-foreground">{saving ? "Saving…" : "All changes saved"}</p>
+            <p className="text-xs text-muted-foreground">
+              {saving ? t("email.composer.saving") : t("email.composer.allSaved")}
+            </p>
           </section>
         ) : p.status === "scheduled" ? (
           <section className="flex items-center justify-between gap-3 rounded-xl border bg-card p-5 text-sm">
             <span>
-              Scheduled for <strong>{p.scheduledAt ? new Date(p.scheduledAt).toLocaleString() : "now"}</strong>
+              {rich(
+                t("email.composer.scheduledFor", {
+                  when: p.scheduledAt ? f.dateTime(p.scheduledAt) : t("email.composer.now"),
+                }),
+              )}
             </span>
             <Button
               variant="outline"
@@ -220,7 +241,7 @@ export function Composer(p: Props) {
               disabled={pending}
               onClick={() => run(() => cancelSchedule(p.workspaceSlug, p.broadcastId))}
             >
-              <XIcon /> Cancel
+              <XIcon /> {t("email.composer.cancel")}
             </Button>
           </section>
         ) : null}
@@ -229,11 +250,11 @@ export function Composer(p: Props) {
           <form
             action={deleteBroadcast.bind(null, p.workspaceSlug, p.broadcastId)}
             onSubmit={(e) => {
-              if (!confirm("Delete this broadcast? Its stats will be lost.")) e.preventDefault();
+              if (!confirm(t("email.composer.confirmDelete"))) e.preventDefault();
             }}
           >
             <Button type="submit" variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive">
-              <Trash2Icon /> Delete broadcast
+              <Trash2Icon /> {t("email.composer.deleteBroadcast")}
             </Button>
           </form>
         )}
@@ -242,20 +263,20 @@ export function Composer(p: Props) {
       <div className="flex min-h-[640px] flex-col overflow-hidden rounded-xl border bg-card">
         <div className="flex items-center gap-3 border-b px-4 py-3">
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold">{v.subject || "No subject"}</p>
-            <p className="truncate text-xs text-muted-foreground">{v.preheader || "Preview text"}</p>
+            <p className="truncate text-sm font-semibold">{v.subject || t("email.composer.noSubject")}</p>
+            <p className="truncate text-xs text-muted-foreground">{v.preheader || t("email.composer.previewText")}</p>
           </div>
           {editable && (
             <Button size="sm" asChild>
               <Link href={`/email-editor/${p.workspaceSlug}/${p.emailId}?b=${p.broadcastId}`}>
-                <PaletteIcon /> Design email
+                <PaletteIcon /> {t("email.composer.designEmail")}
               </Link>
             </Button>
           )}
         </div>
         <iframe
           key={previewKey}
-          title="Email preview"
+          title={t("email.composer.previewTitle")}
           src={`/email-preview/${p.workspaceSlug}/${p.emailId}`}
           className="w-full flex-1 bg-white"
           sandbox="allow-same-origin"

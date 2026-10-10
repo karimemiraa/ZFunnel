@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@zfunnel/i18n/react";
 import { Button } from "@zfunnel/ui/button";
 import {
   Dialog,
@@ -29,6 +30,7 @@ export function SenderSettings({
   settings: Settings;
   trigger: React.ReactNode;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -37,10 +39,8 @@ export function SenderSettings({
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Sender settings</DialogTitle>
-          <DialogDescription>
-            Shown on every email you send. Anti-spam laws require a real postal address in the footer.
-          </DialogDescription>
+          <DialogTitle>{t("email.senderSettings.title")}</DialogTitle>
+          <DialogDescription>{t("email.senderSettings.description")}</DialogDescription>
         </DialogHeader>
         <form
           className="grid gap-4"
@@ -55,40 +55,40 @@ export function SenderSettings({
               });
               if (!r.ok) return setError(r.error);
               setError(null);
-              toast.success(r.message ?? "Saved");
+              toast.success(r.message ?? t("email.senderSettings.saved"));
               setOpen(false);
             });
           }}
         >
           <div className="grid gap-2">
-            <Label htmlFor="fromName">Sender name</Label>
+            <Label htmlFor="fromName">{t("email.senderSettings.fromName")}</Label>
             <Input
               id="fromName"
               name="fromName"
               defaultValue={settings?.fromName ?? ""}
-              placeholder="Jane from Acme"
+              placeholder={t("email.senderSettings.fromNamePlaceholder")}
               required
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="replyTo">Reply-to email</Label>
+            <Label htmlFor="replyTo">{t("email.senderSettings.replyTo")}</Label>
             <Input
               id="replyTo"
               name="replyTo"
               type="email"
               defaultValue={settings?.replyTo ?? ""}
-              placeholder="jane@acme.com"
+              placeholder={t("email.senderSettings.replyToPlaceholder")}
               required
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="postalAddress">Postal address</Label>
+            <Label htmlFor="postalAddress">{t("email.senderSettings.postalAddress")}</Label>
             <Textarea
               id="postalAddress"
               name="postalAddress"
               rows={2}
               defaultValue={settings?.postalAddress ?? ""}
-              placeholder="Acme Inc, 1 Main St, Springfield, 12345, USA"
+              placeholder={t("email.senderSettings.postalAddressPlaceholder")}
               required
             />
           </div>
@@ -99,7 +99,7 @@ export function SenderSettings({
           )}
           <DialogFooter>
             <Button type="submit" disabled={pending}>
-              {pending && <Loader2Icon className="animate-spin" />} Save
+              {pending && <Loader2Icon className="animate-spin" />} {t("email.senderSettings.save")}
             </Button>
           </DialogFooter>
         </form>

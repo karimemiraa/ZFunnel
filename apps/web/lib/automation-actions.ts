@@ -12,13 +12,15 @@ import {
   type WorkflowNode,
   type WorkflowTrigger,
 } from "@zfunnel/db";
-import { starterEmail } from "@zfunnel/email/editor";
 import { enqueue } from "@zfunnel/queue";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { enforce } from "./billing";
+import { localizedStarterEmail } from "./email";
+import { getTranslator, type T } from "@zfunnel/i18n";
 import { inWorkspace } from "./funnels";
+import { getT, localizeMessage } from "./i18n";
 import { ruleSchema } from "./rule-schema";
 import { requireUser } from "./session";
 import { validateGraph } from "./workflow-graph";
@@ -34,10 +36,13 @@ async function ctxFor(workspaceSlug: string) {
 }
 
 const uuid = z.string().uuid();
+/** Trigger schema messages are i18n keys; zod's own messages fall back to "Invalid input". */
+const triggerError = (t: T, msg: string | undefined) =>
+  msg?.startsWith("automations.") ? localizeMessage(t, msg)! : t("automations.actions.invalidInput");
 const triggerSchema: z.ZodType<WorkflowTrigger> = z.union([
   z.object({ type: z.literal("optin"), funnelId: uuid.nullish() }),
   z.object({ type: z.literal("purchase"), productId: uuid.nullish() }),
-  z.object({ type: z.literal("tag_added"), tag: z.string().trim().min(1, "Choose a tag").max(40) }),
+  z.object({ type: z.literal("tag_added"), tag: z.string().trim().min(1, "automations.actions.chooseTag").max(40) }),
   z.object({ type: z.literal("form_submitted"), funnelId: uuid.nullish() }),
   z.object({ type: z.literal("booked"), calendarId: uuid.nullish() }),
   z.object({ type: z.enum(["webinar_registered", "webinar_attended"]), webinarId: uuid.nullish() }),
@@ -63,29 +68,11 @@ const nodeSchema: z.ZodType<WorkflowNode> = z.union([
 ]);
 const graphSchema = z.object({ start: ref.transform((v) => v ?? null), nodes: z.record(z.string(), nodeSchema) });
 
+/** Starter emails per recipe; their copy is written in the workspace's site language. */
 const RECIPES = {
-  blank: { trigger: null, emails: [] as { name: string; subject: string; preheader: string }[] },
-  welcome: {
-    trigger: { type: "optin" } as WorkflowTrigger,
-    emails: [
-      {
-        name: "Welcome",
-        subject: "Welcome, {{first_name|friend}}! Here's your guide",
-        preheader: "Everything you need to get started",
-      },
-      { name: "Follow-up", subject: "Did you get a chance to look?", preheader: "A quick tip to get results faster" },
-    ],
-  },
-  customer: {
-    trigger: { type: "purchase" } as WorkflowTrigger,
-    emails: [
-      {
-        name: "Thank you",
-        subject: "Thank you for your order, {{first_name|friend}}!",
-        preheader: "Here's how to get started",
-      },
-    ],
-  },
+  blank: { trigger: null, emails: [] as const },
+  welcome: { trigger: { type: "optin" } as WorkflowTrigger, emails: ["welcome", "followUp"] as const },
+  customer: { trigger: { type: "purchase" } as WorkflowTrigger, emails: ["thanks"] as const },
 } as const;
 export type Recipe = keyof typeof RECIPES;
 
@@ -116,17 +103,26 @@ export async function createWorkflow(
   input: { name: string; trigger: unknown; recipe?: Recipe },
 ): Promise<Result> {
   const { user, ctx } = await ctxFor(workspaceSlug);
-  const name = z.string().trim().min(1, "Name your automation").max(80).safeParse(input.name);
-  if (!name.success) return { ok: false, error: name.error.issues[0]!.message };
+  const t = await getT();
+  const name = z.string().trim().min(1).max(80).safeParse(input.name);
+  if (!name.success) return { ok: false, error: t("automations.actions.nameRequired") };
   const trigger = triggerSchema.safeParse(input.trigger);
-  if (!trigger.success) return { ok: false, error: trigger.error.issues[0]!.message };
+  if (!trigger.success) return { ok: false, error: triggerError(t, trigger.error.issues[0]?.message) };
+  const site = getTranslator(ctx.workspace.siteLocale);
   const recipe: Recipe = input.recipe && input.recipe in RECIPES ? input.recipe : "blank";
   const [w] = await inWorkspace(ctx, async (tx) => {
     const ids: string[] = [];
-    for (const e of RECIPES[recipe].emails) {
+    for (const key of RECIPES[recipe].emails) {
       const [row] = await tx
         .insert(emails)
-        .values({ workspaceId: ctx.workspace.id, ...e, content: starterEmail() as never, kind: "automation" })
+        .values({
+          workspaceId: ctx.workspace.id,
+          name: site(`automations.recipes.${key}.name`),
+          subject: site(`automations.recipes.${key}.subject`),
+          preheader: site(`automations.recipes.${key}.preheader`),
+          content: localizedStarterEmail(ctx.workspace.siteLocale) as never,
+          kind: "automation",
+        })
         .returning({ id: emails.id });
       ids.push(row!.id);
     }
@@ -151,21 +147,22 @@ export async function saveWorkflow(
   input: { name?: string; trigger?: unknown; graph?: unknown; allowReentry?: boolean },
 ): Promise<Result> {
   const { ctx } = await ctxFor(workspaceSlug);
+  const t = await getT();
   const set: Partial<typeof workflows.$inferInsert> = {};
   if (input.name !== undefined) {
     const n = z.string().trim().min(1).max(80).safeParse(input.name);
-    if (!n.success) return { ok: false, error: "Name your automation" };
+    if (!n.success) return { ok: false, error: t("automations.actions.nameRequired") };
     set.name = n.data;
   }
   if (input.trigger !== undefined) {
-    const t = triggerSchema.safeParse(input.trigger);
-    if (!t.success) return { ok: false, error: t.error.issues[0]!.message };
-    set.trigger = t.data;
+    const tr = triggerSchema.safeParse(input.trigger);
+    if (!tr.success) return { ok: false, error: triggerError(t, tr.error.issues[0]?.message) };
+    set.trigger = tr.data;
   }
   if (input.graph !== undefined) {
     const g = graphSchema.safeParse(input.graph);
-    if (!g.success) return { ok: false, error: "This automation has an invalid step." };
-    const err = validateGraph(g.data as WorkflowGraph);
+    if (!g.success) return { ok: false, error: t("automations.actions.invalidStep") };
+    const err = validateGraph(g.data as WorkflowGraph, t);
     if (err) return { ok: false, error: err };
     set.graph = g.data as WorkflowGraph;
   }
@@ -173,7 +170,7 @@ export async function saveWorkflow(
   const [w] = await inWorkspace(ctx, (tx) =>
     tx.update(workflows).set(set).where(eq(workflows.id, workflowId)).returning({ id: workflows.id }),
   );
-  if (!w) return { ok: false, error: "Automation not found" };
+  if (!w) return { ok: false, error: t("automations.actions.notFound") };
   return { ok: true };
 }
 
@@ -183,34 +180,35 @@ export async function setWorkflowStatus(
   status: "active" | "paused",
 ): Promise<Result> {
   const { user, ctx } = await ctxFor(workspaceSlug);
+  const t = await getT();
   if (status === "active") {
     const blocked = await enforce(ctx.membership.organizationId, "automations");
     if (blocked) return { ok: false, error: blocked };
   }
   const err = await inWorkspace(ctx, async (tx) => {
     const [w] = await tx.select().from(workflows).where(eq(workflows.id, workflowId));
-    if (!w) return "Automation not found";
+    if (!w) return t("automations.actions.notFound");
     if (status === "active") {
       const nodes = Object.values(w.graph.nodes);
-      if (!nodes.length) return "Add at least one step before activating.";
+      if (!nodes.length) return t("automations.actions.needStep");
       for (const n of nodes) {
-        if (n.type === "send_email" && !n.emailId) return "Every “Send email” step needs an email.";
-        if ((n.type === "add_tag" || n.type === "remove_tag") && !n.tag.trim()) return "Every tag step needs a tag.";
-        if (n.type === "webhook" && !/^https?:\/\/.+/.test(n.url)) return "Every webhook step needs a valid URL.";
-        if (n.type === "condition" && !n.rule) return "Every condition needs a rule.";
-        if (n.type === "send_sms" && !n.message.trim()) return "Every SMS step needs a message.";
-        if (n.type === "grant_course" && !n.courseId) return "Choose a course for every “Give course access” step.";
+        if (n.type === "send_email" && !n.emailId) return t("automations.actions.needEmail");
+        if ((n.type === "add_tag" || n.type === "remove_tag") && !n.tag.trim()) return t("automations.actions.needTag");
+        if (n.type === "webhook" && !/^https?:\/\/.+/.test(n.url)) return t("automations.actions.needUrl");
+        if (n.type === "condition" && !n.rule) return t("automations.actions.needRule");
+        if (n.type === "send_sms" && !n.message.trim()) return t("automations.actions.needSms");
+        if (n.type === "grant_course" && !n.courseId) return t("automations.actions.needCourse");
       }
       const emailIds = nodes.flatMap((n) => (n.type === "send_email" && n.emailId ? [n.emailId] : []));
       if (emailIds.length) {
         const [settings] = await tx.select().from(emailSettings);
-        if (!settings) return "Set up your sender details first (Email → Sender).";
+        if (!settings) return t("automations.actions.needSender");
         const rows = await tx
           .select({ id: emails.id, subject: emails.subject })
           .from(emails)
           .where(inArray(emails.id, emailIds));
-        if (rows.length !== new Set(emailIds).size) return "An email used in this automation was deleted.";
-        if (rows.some((r) => !r.subject.trim())) return "Every email needs a subject line.";
+        if (rows.length !== new Set(emailIds).size) return t("automations.actions.emailDeleted");
+        if (rows.some((r) => !r.subject.trim())) return t("automations.actions.needSubject");
       }
     }
     await tx.update(workflows).set({ status }).where(eq(workflows.id, workflowId));
@@ -224,19 +222,20 @@ export async function setWorkflowStatus(
     entityId: workflowId,
   });
   revalidatePath(`/${workspaceSlug}/automations`, "layout");
-  return { ok: true, message: status === "active" ? "Automation is live" : "Automation paused" };
+  return { ok: true, message: t(status === "active" ? "automations.actions.live" : "automations.actions.paused") };
 }
 
 export async function createAutomationEmail(workspaceSlug: string): Promise<Result> {
   const { ctx } = await ctxFor(workspaceSlug);
+  const t = await getT();
   const [e] = await inWorkspace(ctx, (tx) =>
     tx
       .insert(emails)
       .values({
         workspaceId: ctx.workspace.id,
-        name: "Automation email",
+        name: t("automations.actions.automationEmail"),
         subject: "",
-        content: starterEmail() as never,
+        content: localizedStarterEmail(ctx.workspace.siteLocale) as never,
         kind: "automation",
       })
       .returning({ id: emails.id }),
@@ -257,11 +256,13 @@ export async function updateAutomationEmail(
       preheader: z.string().trim().max(200),
     })
     .safeParse(input);
-  if (!d.success || !uuid.safeParse(emailId).success) return { ok: false, error: "Invalid input" };
+  const t = await getT();
+  if (!d.success || !uuid.safeParse(emailId).success)
+    return { ok: false, error: t("automations.actions.invalidInput") };
   await inWorkspace(ctx, (tx) =>
     tx
       .update(emails)
-      .set({ ...d.data, name: d.data.name || "Automation email" })
+      .set({ ...d.data, name: d.data.name || t("automations.actions.automationEmail") })
       .where(and(eq(emails.id, emailId), eq(emails.kind, "automation"))),
   );
   return { ok: true };
@@ -276,7 +277,7 @@ export async function cancelRun(workspaceSlug: string, runId: string): Promise<R
       .where(and(eq(workflowRuns.id, runId), inArray(workflowRuns.status, ["active", "waiting"]))),
   );
   revalidatePath(`/${workspaceSlug}/automations`, "layout");
-  return { ok: true, message: "Contact removed from automation" };
+  return { ok: true, message: (await getT())("automations.actions.removed") };
 }
 
 export async function deleteWorkflow(workspaceSlug: string, workflowId: string) {
@@ -290,16 +291,17 @@ export async function deleteWorkflow(workspaceSlug: string, workflowId: string) 
 /** "Add to automation" from a contact's profile. Works for any live automation. */
 export async function enrollContact(workspaceSlug: string, contactId: string, workflowId: string): Promise<Result> {
   const { user, ctx } = await ctxFor(workspaceSlug);
+  const t = await getT();
   if (!uuid.safeParse(contactId).success || !uuid.safeParse(workflowId).success)
-    return { ok: false, error: "Invalid request" };
+    return { ok: false, error: t("automations.actions.invalidRequest") };
   const [w] = await inWorkspace(ctx, (tx) => tx.select().from(workflows).where(eq(workflows.id, workflowId)));
-  if (!w || w.status !== "active") return { ok: false, error: "That automation isn't live." };
+  if (!w || w.status !== "active") return { ok: false, error: t("automations.actions.notLive") };
   const ok = await enqueue("workflow-events", {
     workspaceId: ctx.workspace.id,
     contactId,
     type: "manual",
     data: { workflowId, by: user.id },
   });
-  if (!ok) return { ok: false, error: "The automation queue is unavailable. Is the worker running?" };
-  return { ok: true, message: `Added to “${w.name}”` };
+  if (!ok) return { ok: false, error: t("automations.actions.queueDown") };
+  return { ok: true, message: t("automations.actions.addedTo", { name: w.name }) };
 }

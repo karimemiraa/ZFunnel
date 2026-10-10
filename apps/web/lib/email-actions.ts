@@ -1,14 +1,14 @@
 "use server";
 
 import { broadcasts, emailMessages, emails, emailSettings, eq, segments } from "@zfunnel/db";
-import { starterEmail } from "@zfunnel/email/editor";
 import { enqueue } from "@zfunnel/queue";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { audienceCount } from "./email";
+import { audienceCount, localizedStarterEmail } from "./email";
 import { enforce } from "./billing";
 import { inWorkspace } from "./funnels";
+import { getT, localizeMessage } from "./i18n";
 import { requireUser } from "./session";
 import { canManage, getWorkspaceForUser, recordAudit } from "./workspaces";
 
@@ -22,17 +22,17 @@ async function ctxFor(workspaceSlug: string) {
 }
 
 const settingsSchema = z.object({
-  fromName: z.string().trim().min(2, "Sender name is required").max(80),
-  replyTo: z.string().trim().toLowerCase().email("Enter a valid reply-to email"),
-  postalAddress: z.string().trim().min(8, "A postal address is required by anti-spam laws (CAN-SPAM, GDPR)").max(300),
+  fromName: z.string().trim().min(2, "email.actions.fromNameRequired").max(80),
+  replyTo: z.string().trim().toLowerCase().email("email.actions.replyToInvalid"),
+  postalAddress: z.string().trim().min(8, "email.actions.postalRequired").max(300),
 });
 
 export async function saveEmailSettings(workspaceSlug: string, input: z.input<typeof settingsSchema>): Promise<Result> {
   const { user, ctx } = await ctxFor(workspaceSlug);
-  if (!canManage(ctx.membership.role))
-    return { ok: false, error: "Only owners and admins can change sender settings." };
+  const t = await getT();
+  if (!canManage(ctx.membership.role)) return { ok: false, error: t("email.actions.onlyAdmins") };
   const s = settingsSchema.safeParse(input);
-  if (!s.success) return { ok: false, error: s.error.issues[0]!.message };
+  if (!s.success) return { ok: false, error: localizeMessage(t, s.error.issues[0]!.message)! };
   await inWorkspace(ctx, (tx) =>
     tx
       .insert(emailSettings)
@@ -41,20 +41,21 @@ export async function saveEmailSettings(workspaceSlug: string, input: z.input<ty
   );
   await recordAudit(ctx, user.id, { action: "email.settings_updated", entityType: "email_settings" });
   revalidatePath(`/${workspaceSlug}/email`, "layout");
-  return { ok: true, message: "Sender settings saved" };
+  return { ok: true, message: t("email.actions.settingsSaved") };
 }
 
 export async function createBroadcast(workspaceSlug: string) {
   const { ctx } = await ctxFor(workspaceSlug);
+  const t = await getT();
   const id = await inWorkspace(ctx, async (tx) => {
     const [e] = await tx
       .insert(emails)
       .values({
         workspaceId: ctx.workspace.id,
-        name: "Untitled broadcast",
+        name: t("email.actions.untitledBroadcast"),
         subject: "",
         preheader: "",
-        content: starterEmail() as never,
+        content: localizedStarterEmail(ctx.workspace.siteLocale) as never,
         kind: "broadcast",
       })
       .returning();
@@ -78,22 +79,28 @@ export async function saveBroadcastDraft(
   input: z.input<typeof draftSchema>,
 ): Promise<Result> {
   const { ctx } = await ctxFor(workspaceSlug);
+  const t = await getT();
   const d = draftSchema.safeParse(input);
-  if (!d.success) return { ok: false, error: "Invalid input" };
+  if (!d.success) return { ok: false, error: t("email.actions.invalidInput") };
   const segmentId = d.data.audience.startsWith("segment:") ? d.data.audience.slice(8) : null;
   const tag = d.data.audience.startsWith("tag:") ? d.data.audience.slice(4) : null;
-  if (segmentId && !z.string().uuid().safeParse(segmentId).success) return { ok: false, error: "Invalid segment" };
+  if (segmentId && !z.string().uuid().safeParse(segmentId).success)
+    return { ok: false, error: t("email.actions.invalidSegment") };
   const err = await inWorkspace(ctx, async (tx) => {
     const [b] = await tx.select().from(broadcasts).where(eq(broadcasts.id, broadcastId));
-    if (!b) return "Broadcast not found";
-    if (b.status !== "draft" && b.status !== "scheduled") return "This broadcast was already sent.";
+    if (!b) return t("email.actions.notFound");
+    if (b.status !== "draft" && b.status !== "scheduled") return t("email.actions.alreadySent");
     if (segmentId) {
       const [s] = await tx.select({ id: segments.id }).from(segments).where(eq(segments.id, segmentId));
-      if (!s) return "Segment not found";
+      if (!s) return t("email.actions.segmentNotFound");
     }
     await tx
       .update(emails)
-      .set({ name: d.data.name || "Untitled broadcast", subject: d.data.subject, preheader: d.data.preheader })
+      .set({
+        name: d.data.name || t("email.actions.untitledBroadcast"),
+        subject: d.data.subject,
+        preheader: d.data.preheader,
+      })
       .where(eq(emails.id, b.emailId));
     await tx.update(broadcasts).set({ segmentId, tag }).where(eq(broadcasts.id, broadcastId));
     return null;
@@ -115,7 +122,7 @@ export async function saveEmailDesign(
     .passthrough()
     .safeParse(data);
   if (!parsed.success || JSON.stringify(data).length > 500_000)
-    return { ok: false, error: "This email is invalid or too large." };
+    return { ok: false, error: (await getT())("email.actions.invalidDesign") };
   await inWorkspace(ctx, (tx) =>
     tx
       .update(emails)
@@ -126,6 +133,7 @@ export async function saveEmailDesign(
 }
 
 async function ready(ctx: Awaited<ReturnType<typeof ctxFor>>["ctx"], broadcastId: string) {
+  const t = await getT();
   return inWorkspace(ctx, async (tx) => {
     const [settings] = await tx.select().from(emailSettings);
     const [row] = await tx
@@ -133,10 +141,9 @@ async function ready(ctx: Awaited<ReturnType<typeof ctxFor>>["ctx"], broadcastId
       .from(broadcasts)
       .innerJoin(emails, eq(emails.id, broadcasts.emailId))
       .where(eq(broadcasts.id, broadcastId));
-    if (!settings)
-      return { error: "Add your sender name, reply-to and postal address first (Email → Settings)." } as const;
-    if (!row) return { error: "Broadcast not found" } as const;
-    if (!row.e.subject.trim()) return { error: "Add a subject line first." } as const;
+    if (!settings) return { error: t("email.actions.noSettings") } as const;
+    if (!row) return { error: t("email.actions.notFound") } as const;
+    if (!row.e.subject.trim()) return { error: t("email.actions.noSubject") } as const;
     return { row } as const;
   });
 }
@@ -158,20 +165,23 @@ export async function sendTestEmail(workspaceSlug: string, broadcastId: string):
       .returning(),
   );
   const ok = await enqueue("email", { messageId: m!.id });
-  if (!ok) return { ok: false, error: "The email queue is unavailable. Is the worker/Redis running?" };
-  return { ok: true, message: `Test sent to ${user.email}` };
+  const t = await getT();
+  if (!ok) return { ok: false, error: t("email.actions.queueDown") };
+  return { ok: true, message: t("email.actions.testSent", { email: user.email }) };
 }
 
 export async function sendBroadcast(workspaceSlug: string, broadcastId: string, when: string | null): Promise<Result> {
   const { user, ctx } = await ctxFor(workspaceSlug);
+  const t = await getT();
   const r = await ready(ctx, broadcastId);
   if ("error" in r) return { ok: false, error: r.error! };
-  if (r.row.b.status !== "draft" && r.row.b.status !== "scheduled") return { ok: false, error: "Already sent." };
+  if (r.row.b.status !== "draft" && r.row.b.status !== "scheduled")
+    return { ok: false, error: t("email.actions.alreadySentShort") };
   const at = when ? new Date(when) : null;
   if (at && (Number.isNaN(at.getTime()) || at.getTime() < Date.now() - 60_000))
-    return { ok: false, error: "Pick a time in the future." };
+    return { ok: false, error: t("email.actions.futureTime") };
   const count = await audienceCount(ctx, { segmentId: r.row.b.segmentId, tag: r.row.b.tag });
-  if (!count) return { ok: false, error: "This audience has no subscribed contacts." };
+  if (!count) return { ok: false, error: t("email.actions.emptyAudience") };
   const blocked = await enforce(ctx.membership.organizationId, "emailsPerMonth", count);
   if (blocked) return { ok: false, error: blocked };
   await inWorkspace(ctx, (tx) =>
@@ -192,7 +202,7 @@ export async function sendBroadcast(workspaceSlug: string, broadcastId: string, 
     await inWorkspace(ctx, (tx) =>
       tx.update(broadcasts).set({ status: "draft" }).where(eq(broadcasts.id, broadcastId)),
     );
-    return { ok: false, error: "The email queue is unavailable. Is the worker/Redis running?" };
+    return { ok: false, error: t("email.actions.queueDown") };
   }
   await recordAudit(ctx, user.id, {
     action: at ? "broadcast.scheduled" : "broadcast.sent",
@@ -201,7 +211,11 @@ export async function sendBroadcast(workspaceSlug: string, broadcastId: string, 
     data: { recipients: count },
   });
   revalidatePath(`/${workspaceSlug}/email`, "layout");
-  return { ok: true, message: at ? `Scheduled for ${count} contacts` : `Sending to ${count} contacts…`, count };
+  return {
+    ok: true,
+    message: t(at ? "email.actions.scheduled" : "email.actions.sending", { count: String(count) }),
+    count,
+  };
 }
 
 export async function cancelSchedule(workspaceSlug: string, broadcastId: string): Promise<Result> {
@@ -211,7 +225,7 @@ export async function cancelSchedule(workspaceSlug: string, broadcastId: string)
     tx.update(broadcasts).set({ status: "draft", scheduledAt: null }).where(eq(broadcasts.id, broadcastId)),
   );
   revalidatePath(`/${workspaceSlug}/email`, "layout");
-  return { ok: true, message: "Back to draft" };
+  return { ok: true, message: (await getT())("email.actions.backToDraft") };
 }
 
 export async function deleteBroadcast(workspaceSlug: string, broadcastId: string) {

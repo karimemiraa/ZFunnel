@@ -14,6 +14,8 @@ import {
   segments,
   sql,
 } from "@zfunnel/db";
+import { starterEmail } from "@zfunnel/email/editor";
+import { getTranslator, type Locale } from "@zfunnel/i18n";
 import { inWorkspace } from "./funnels";
 import type { WorkspaceContext } from "./workspaces";
 
@@ -87,4 +89,25 @@ export async function getEmailDesign(ctx: WorkspaceContext, emailId: string) {
   if (!/^[0-9a-f-]{36}$/i.test(emailId)) return null;
   const [e] = await inWorkspace(ctx, (tx) => tx.select().from(emails).where(eq(emails.id, emailId)));
   return e ?? null;
+}
+
+/** The starter email design, with its copy written in the workspace's site language. */
+export function localizedStarterEmail(locale: Locale) {
+  const doc = starterEmail();
+  if (locale === "en") return doc;
+  const t = getTranslator(locale);
+  const copy = [
+    t("email.starter.heading"),
+    t("email.starter.body"),
+    t("email.starter.button"),
+    t("email.starter.signoff"),
+  ];
+  return {
+    ...doc,
+    // The renderer mirrors alignment for RTL site languages, so only the copy changes.
+    content: doc.content.map((block, i) => ({
+      ...block,
+      props: { ...block.props, ...(block.type === "Button" ? { label: copy[i] } : { text: copy[i] }) },
+    })),
+  };
 }
