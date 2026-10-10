@@ -8,6 +8,7 @@ import {
   KanbanIcon,
   LayoutDashboardIcon,
   MailIcon,
+  MessagesSquareIcon,
   NewspaperIcon,
   PackageIcon,
   ReceiptIcon,
@@ -83,6 +84,12 @@ export const NAV_MODULES: NavModule[] = [
     icon: WorkflowIcon,
 
     description: "Visual workflows: triggers, waits, branches and actions.",
+  },
+  {
+    segment: "community",
+    label: "Community",
+    icon: MessagesSquareIcon,
+    description: "Members-only discussion spaces with moderation.",
   },
   {
     segment: "affiliates",

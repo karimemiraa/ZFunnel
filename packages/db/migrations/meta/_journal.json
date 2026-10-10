@@ -267,6 +267,20 @@
       "when": 1791643366108,
       "tag": "0037_affiliates_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1791643949527,
+      "tag": "0038_community",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1791643950950,
+      "tag": "0039_community_rls",
+      "breakpoints": true
     }
   ]
 }
