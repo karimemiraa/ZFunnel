@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { EmailEditor } from "@/components/email/email-editor";
+import { aiConfigured } from "@/lib/ai";
 import { getEmailDesign } from "@/lib/email";
 import { requireUser } from "@/lib/session";
 import { getWorkspaceForUser } from "@/lib/workspaces";
@@ -22,6 +23,7 @@ export default async function EmailEditorPage({
   const back = isId(w) ? `/automation/${workspace}/${w}` : isId(b) ? `/${workspace}/email/${b}` : `/${workspace}/email`;
   return (
     <EmailEditor
+      aiEnabled={aiConfigured()}
       workspaceSlug={workspace}
       emailId={email.id}
       name={email.name}

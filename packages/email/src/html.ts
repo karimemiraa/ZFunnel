@@ -69,3 +69,12 @@ export function htmlToText(html: string) {
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
+
+/** Generic rich-text sanitizer (AI output, pasted HTML): basic formatting and safe links only. */
+export function sanitizeRichText(html: string) {
+  return sanitize(String(html ?? ""), {
+    allowedTags: ["p", "br", "strong", "b", "em", "i", "u", "ul", "ol", "li", "a"],
+    allowedAttributes: { a: ["href"] },
+    allowedSchemes: ["http", "https", "mailto"],
+  }).trim();
+}

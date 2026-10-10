@@ -79,6 +79,11 @@ sudo ./infra/deploy/deploy.sh
 
 `PAYMENTS_TEST_MODE=true` enables a fake card gateway for workspaces without Stripe (ADR-011). Keep it `false` once you have real customers.
 
+## 8. Email and AI
+
+- **Email.** Set `SMTP_URL` and `EMAIL_FROM` in `.env.production`, using any SMTP provider (Postmark, Amazon SES, Mailgun, Brevo…). Verify the `EMAIL_FROM` domain with your provider (SPF and DKIM), then redeploy. Without SMTP, broadcasts, automation emails and customer sign-in links stay queued and fail.
+- **AI copywriter (optional).** Set `ANTHROPIC_API_KEY`. Without it, the AI buttons explain that AI isn't set up.
+
 ## Sharing ports (another proxy already uses 80/443)
 
 1. Set `CADDY_HTTP_PORT=8080` and `CADDY_HTTPS_PORT=8443` in `.env`, then deploy.

@@ -11,11 +11,13 @@ import {
   Loader2Icon,
   PaletteIcon,
   SendIcon,
+  SparklesIcon,
   Trash2Icon,
   UsersIcon,
   XIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { aiRewrite } from "@/lib/ai-actions";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { cancelSchedule, deleteBroadcast, saveBroadcastDraft, sendBroadcast, sendTestEmail } from "@/lib/email-actions";
 
@@ -29,6 +31,7 @@ type Props = {
   initialCount: number;
   segments: { id: string; name: string }[];
   tags: string[];
+  aiEnabled: boolean;
 };
 
 function localInput(d: Date) {
@@ -44,6 +47,7 @@ export function Composer(p: Props) {
   const [scheduling, setScheduling] = useState(false);
   const [when, setWhen] = useState(() => localInput(new Date(Date.now() + 3600_000)));
   const [previewKey, setPreviewKey] = useState(0);
+  const [suggesting, setSuggesting] = useState(false);
   const editable = p.status === "draft";
 
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -81,7 +85,34 @@ export function Composer(p: Props) {
             <Input id="name" value={v.name} onChange={(e) => update("name", e.target.value)} disabled={!editable} />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="subject">Subject line</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="subject">Subject line</Label>
+              {p.aiEnabled && editable && (
+                <button
+                  type="button"
+                  disabled={suggesting}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-violet-600 hover:text-violet-500 disabled:opacity-50"
+                  onClick={async () => {
+                    setSuggesting(true);
+                    const r = await aiRewrite(p.workspaceSlug, {
+                      format: "plain",
+                      role: "email subject",
+                      text: v.subject,
+                      instruction: v.subject
+                        ? "Write a more compelling subject line that gets opened (under 60 characters)"
+                        : `Write a compelling subject line (under 60 characters) for an email named "${v.name}"`,
+                      context: "marketing email",
+                    });
+                    setSuggesting(false);
+                    if (r.ok) update("subject", r.text);
+                    else toast.error(r.error);
+                  }}
+                >
+                  {suggesting ? <Loader2Icon className="size-3 animate-spin" /> : <SparklesIcon className="size-3" />}{" "}
+                  Suggest
+                </button>
+              )}
+            </div>
             <Input
               id="subject"
               value={v.subject}

@@ -29,9 +29,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { publishStep, publishVariant, saveDraft, saveVariantDraft } from "@/lib/funnel-actions";
 import { STEP_COLORS } from "../funnels/step-type";
+import { AiAssist, PAGE_AI_TARGETS } from "./ai-assist";
 import type { StepType } from "@/lib/funnels";
 
 const usePuck = createUsePuck<typeof config>();
@@ -49,6 +50,7 @@ type Props = {
   offers: RuntimeOffer[];
   /** Editing a split-test variant instead of the step's own page. */
   variant?: { id: string; name: string };
+  aiEnabled: boolean;
 };
 
 const AUTOSAVE_MS = 1200;
@@ -70,6 +72,13 @@ function SaveIndicator({ state }: { state: SaveState }) {
       {map.text}
     </span>
   );
+}
+
+type Chrome = { props: Props; saveState: SaveState; onPublish: () => void; publishing: boolean };
+const ChromeContext = createContext<Chrome | null>(null);
+function HeaderFromContext() {
+  const c = useContext(ChromeContext)!;
+  return <EditorHeader {...c} />;
 }
 
 function EditorHeader({
@@ -149,6 +158,12 @@ function EditorHeader({
 
       <div className="flex-1" />
       <SaveIndicator state={saveState} />
+      <AiAssist
+        workspaceSlug={props.workspaceSlug}
+        enabled={props.aiEnabled}
+        targets={PAGE_AI_TARGETS}
+        context={`${props.step.type} page in a funnel called “${props.funnel.name}”`}
+      />
       <Button variant="outline" asChild>
         <a
           href={`/preview/${props.workspaceSlug}/${props.step.id}${props.variant ? `?variant=${props.variant.id}` : ""}`}
@@ -238,31 +253,34 @@ export function PageEditor(props: Props) {
     () => ({ mode: "editor", offers: props.offers, payments: { provider: "test" } }),
     [props.offers],
   );
-  const overrides = useMemo(
-    () => ({
-      header: () => <EditorHeader props={props} saveState={saveState} onPublish={onPublish} publishing={publishing} />,
-    }),
+  // Overrides must stay referentially stable: a new header component would remount it
+  // (and lose open panels or a pending AI answer) on every autosave. Live values flow via context.
+  const chrome = useMemo(
+    () => ({ props, saveState, onPublish, publishing }),
     [props, saveState, onPublish, publishing],
   );
+  const overrides = useMemo(() => ({ header: HeaderFromContext }), []);
 
   return (
-    <div className="zf-editor h-dvh">
-      <Puck
-        config={config}
-        data={props.initialData}
-        metadata={metadata}
-        onChange={onChange}
-        onPublish={onPublish}
-        overrides={overrides}
-        iframe={{ enabled: true, waitForStyles: true }}
-        viewports={[
-          { width: 1280, height: "auto", label: "Desktop", icon: "Monitor" },
-          { width: 820, height: "auto", label: "Tablet", icon: "Tablet" },
-          { width: 390, height: "auto", label: "Mobile", icon: "Smartphone" },
-        ]}
-        height="100dvh"
-      />
-      <Toaster />
-    </div>
+    <ChromeContext.Provider value={chrome}>
+      <div className="zf-editor h-dvh">
+        <Puck
+          config={config}
+          data={props.initialData}
+          metadata={metadata}
+          onChange={onChange}
+          onPublish={onPublish}
+          overrides={overrides}
+          iframe={{ enabled: true, waitForStyles: true }}
+          viewports={[
+            { width: 1280, height: "auto", label: "Desktop", icon: "Monitor" },
+            { width: 820, height: "auto", label: "Tablet", icon: "Tablet" },
+            { width: 390, height: "auto", label: "Mobile", icon: "Smartphone" },
+          ]}
+          height="100dvh"
+        />
+        <Toaster />
+      </div>
+    </ChromeContext.Provider>
   );
 }

@@ -17,6 +17,12 @@ x-app-env: &app-env
   STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
   PAYMENTS_TEST_MODE: ${PAYMENTS_TEST_MODE:-false}
   ANALYTICS_SALT: ${ANALYTICS_SALT}
+  # Email (broadcasts, automations, customer sign-in links). Any SMTP provider.
+  SMTP_URL: ${SMTP_URL:-}
+  EMAIL_FROM: ${EMAIL_FROM:-}
+  # Optional AI copywriter.
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  AI_MODEL: ${AI_MODEL:-claude-sonnet-5-5}
 
 services:
   postgres:

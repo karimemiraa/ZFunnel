@@ -5,6 +5,7 @@ import { Composer } from "@/components/email/composer";
 import { BroadcastStatusBadge } from "@/components/email/status-badge";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
+import { aiConfigured } from "@/lib/ai";
 import { requireWorkspace } from "@/lib/context";
 import { allTags, listSegments } from "@/lib/crm";
 import { audienceCount, getBroadcast } from "@/lib/email";
@@ -70,6 +71,7 @@ export default async function BroadcastPage({
         initialCount={count}
         segments={segs.map((s) => ({ id: s.id, name: s.name }))}
         tags={tags.map((t) => t.tag)}
+        aiEnabled={aiConfigured()}
       />
     </>
   );

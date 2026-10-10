@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { PageEditor } from "@/components/editor/page-editor";
 import { getEditorOffers } from "@/lib/commerce";
 import { getFunnel, getStepWithDraft } from "@/lib/funnels";
+import { aiConfigured } from "@/lib/ai";
 import { getVariant } from "@/lib/split";
 import { requireUser } from "@/lib/session";
 import { getWorkspaceForUser } from "@/lib/workspaces";
@@ -41,6 +42,7 @@ export default async function EditorPage({
       initialData={(variant?.draft ?? row.step.draft) as never}
       savedAt={(variant?.draftUpdatedAt ?? row.step.draftUpdatedAt).toISOString()}
       variant={variant ? { id: variant.id, name: variant.name } : undefined}
+      aiEnabled={aiConfigured()}
       offers={offers}
     />
   );
