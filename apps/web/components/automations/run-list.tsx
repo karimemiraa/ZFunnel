@@ -1,3 +1,6 @@
+"use client";
+
+import { useIntlLocale, useT } from "@zfunnel/i18n/react";
 import { Badge } from "@zfunnel/ui/badge";
 import { EmptyState } from "@zfunnel/ui/empty-state";
 import { ActivityIcon } from "lucide-react";
@@ -6,15 +9,12 @@ import type { listRuns } from "@/lib/automations";
 import { NODE_META } from "./meta";
 
 const STATUS = {
-  active: { label: "Running", variant: "default" },
-  waiting: { label: "Waiting", variant: "outline" },
-  completed: { label: "Completed", variant: "success" },
-  failed: { label: "Failed", variant: "warning" },
-  cancelled: { label: "Stopped", variant: "secondary" },
+  active: { label: "automations.runs.status.active", variant: "default" },
+  waiting: { label: "automations.runs.status.waiting", variant: "outline" },
+  completed: { label: "automations.runs.status.completed", variant: "success" },
+  failed: { label: "automations.runs.status.failed", variant: "warning" },
+  cancelled: { label: "automations.runs.status.cancelled", variant: "secondary" },
 } as const;
-
-const fmt = (d: Date) =>
-  d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 export function RunList({
   runs,
@@ -23,12 +23,16 @@ export function RunList({
   runs: Awaited<ReturnType<typeof listRuns>>;
   workspaceSlug: string;
 }) {
+  const t = useT();
+  const tag = useIntlLocale();
+  const dateTime = (d: Date) =>
+    new Date(d).toLocaleString(tag, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
   if (!runs.length)
     return (
       <EmptyState
         icon={<ActivityIcon />}
-        title="No contacts yet"
-        description="When this automation is live, every contact who triggers it shows up here with each step it ran."
+        title={t("automations.runs.emptyTitle")}
+        description={t("automations.runs.emptyBody")}
       />
     );
   return (
@@ -44,13 +48,17 @@ export function RunList({
                 </Link>
                 {name && <span className="ms-2 text-xs text-muted-foreground">{email}</span>}
                 <p className="text-xs text-muted-foreground">
-                  Started {fmt(r.startedAt)}
-                  {r.status === "waiting" && r.resumeAt && ` · resumes ${fmt(r.resumeAt)}`}
+                  {t("automations.runs.started", { when: dateTime(r.startedAt) })}
+                  {r.status === "waiting" &&
+                    r.resumeAt &&
+                    t("automations.runs.resumes", { when: dateTime(r.resumeAt) })}
                   {r.error && ` · ${r.error}`}
                 </p>
               </div>
-              <span className="text-xs text-muted-foreground tabular-nums">{logs.length} steps</span>
-              <Badge variant={s.variant}>{s.label}</Badge>
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {t("automations.runs.steps", { count: logs.length })}
+              </span>
+              <Badge variant={s.variant}>{t(s.label)}</Badge>
             </summary>
             <ol className="grid gap-2 border-t px-4 py-3">
               {logs.map((l) => {
@@ -63,16 +71,18 @@ export function RunList({
                     >
                       {m && <m.icon className="size-3.5" />}
                     </span>
-                    <span className="font-medium">{m?.label ?? l.nodeType}</span>
+                    <span className="font-medium">{m ? t(m.label) : l.nodeType}</span>
                     <span className="min-w-0 flex-1 truncate text-muted-foreground">{l.message}</span>
                     {l.status !== "ok" && (
-                      <Badge variant={l.status === "error" ? "warning" : "secondary"}>{l.status}</Badge>
+                      <Badge variant={l.status === "error" ? "warning" : "secondary"}>
+                        {t(`automations.runs.logStatus.${l.status}`)}
+                      </Badge>
                     )}
-                    <span className="text-xs text-muted-foreground tabular-nums">{fmt(l.createdAt)}</span>
+                    <span className="text-xs text-muted-foreground tabular-nums">{dateTime(l.createdAt)}</span>
                   </li>
                 );
               })}
-              {!logs.length && <li className="text-sm text-muted-foreground">No steps run yet.</li>}
+              {!logs.length && <li className="text-sm text-muted-foreground">{t("automations.runs.noSteps")}</li>}
             </ol>
           </details>
         );

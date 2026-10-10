@@ -1,5 +1,7 @@
 "use client";
 
+import type { MessageKey } from "@zfunnel/i18n";
+import { useT } from "@zfunnel/i18n/react";
 import { Button } from "@zfunnel/ui/button";
 import {
   Dialog,
@@ -20,47 +22,49 @@ import { createWorkflow, type Recipe } from "@/lib/automation-actions";
 
 const RECIPES: {
   id: Recipe;
-  title: string;
-  desc: string;
+  title: MessageKey;
+  desc: MessageKey;
   icon: React.ComponentType<{ className?: string }>;
   color: string;
-  name: string;
+  /** Pre-filled automation name (an i18n key), or null for none. */
+  name: MessageKey | null;
   trigger: object;
 }[] = [
   {
     id: "welcome",
-    title: "Welcome series",
-    desc: "New lead → welcome email → wait 2 days → follow-up",
+    title: "automations.create.welcomeTitle",
+    desc: "automations.create.welcomeDesc",
     icon: MailOpenIcon,
     color: "#6366f1",
-    name: "Welcome series",
+    name: "automations.create.welcomeTitle",
     trigger: { type: "optin" },
   },
   {
     id: "customer",
-    title: "Customer onboarding",
-    desc: "Purchase → tag “customer” → thank-you email",
+    title: "automations.create.customerTitle",
+    desc: "automations.create.customerDesc",
     icon: CreditCardIcon,
     color: "#10b981",
-    name: "Customer onboarding",
+    name: "automations.create.customerTitle",
     trigger: { type: "purchase" },
   },
   {
     id: "blank",
-    title: "Start from scratch",
-    desc: "Pick a trigger and add your own steps",
+    title: "automations.create.blankTitle",
+    desc: "automations.create.blankDesc",
     icon: SparklesIcon,
     color: "#7c3aed",
-    name: "",
+    name: null,
     trigger: { type: "optin" },
   },
 ];
 
 export function NewAutomation({ workspaceSlug, trigger }: { workspaceSlug: string; trigger: React.ReactNode }) {
   const router = useRouter();
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [recipe, setRecipe] = useState<Recipe>("welcome");
-  const [name, setName] = useState("Welcome series");
+  const [name, setName] = useState(() => t("automations.create.welcomeTitle"));
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   return (
@@ -68,8 +72,8 @@ export function NewAutomation({ workspaceSlug, trigger }: { workspaceSlug: strin
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>New automation</DialogTitle>
-          <DialogDescription>Start from a proven recipe or build your own.</DialogDescription>
+          <DialogTitle>{t("automations.create.title")}</DialogTitle>
+          <DialogDescription>{t("automations.create.description")}</DialogDescription>
         </DialogHeader>
         <form
           className="grid gap-5"
@@ -83,7 +87,7 @@ export function NewAutomation({ workspaceSlug, trigger }: { workspaceSlug: strin
             });
           }}
         >
-          <div className="grid gap-2" role="radiogroup" aria-label="Recipe">
+          <div className="grid gap-2" role="radiogroup" aria-label={t("automations.create.recipe")}>
             {RECIPES.map((r) => (
               <button
                 key={r.id}
@@ -92,7 +96,7 @@ export function NewAutomation({ workspaceSlug, trigger }: { workspaceSlug: strin
                 aria-checked={recipe === r.id}
                 onClick={() => {
                   setRecipe(r.id);
-                  setName(r.name);
+                  setName(r.name ? t(r.name) : "");
                 }}
                 className={cn(
                   "flex items-center gap-3 rounded-xl border p-3 text-start transition-colors",
@@ -106,19 +110,19 @@ export function NewAutomation({ workspaceSlug, trigger }: { workspaceSlug: strin
                   <r.icon className="size-5" />
                 </span>
                 <span>
-                  <span className="block text-sm font-semibold">{r.title}</span>
-                  <span className="block text-xs text-muted-foreground">{r.desc}</span>
+                  <span className="block text-sm font-semibold">{t(r.title)}</span>
+                  <span className="block text-xs text-muted-foreground">{t(r.desc)}</span>
                 </span>
               </button>
             ))}
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="automation-name">Name</Label>
+            <Label htmlFor="automation-name">{t("automations.create.name")}</Label>
             <Input
               id="automation-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Webinar reminders"
+              placeholder={t("automations.create.namePlaceholder")}
               required
               maxLength={80}
             />
@@ -130,7 +134,7 @@ export function NewAutomation({ workspaceSlug, trigger }: { workspaceSlug: strin
           )}
           <DialogFooter>
             <Button type="submit" disabled={pending}>
-              {pending && <Loader2Icon className="animate-spin" />} Create automation
+              {pending && <Loader2Icon className="animate-spin" />} {t("automations.create.submit")}
             </Button>
           </DialogFooter>
         </form>

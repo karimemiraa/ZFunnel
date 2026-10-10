@@ -2,10 +2,13 @@ import { notFound } from "next/navigation";
 import { EmailEditor } from "@/components/email/email-editor";
 import { aiConfigured } from "@/lib/ai";
 import { getEmailDesign } from "@/lib/email";
+import { getT } from "@/lib/i18n";
 import { requireUser } from "@/lib/session";
 import { getWorkspaceForUser } from "@/lib/workspaces";
 
-export const metadata = { title: "Email editor" };
+export async function generateMetadata() {
+  return { title: (await getT())("email.editorTitle") };
+}
 
 export default async function EmailEditorPage({
   params,

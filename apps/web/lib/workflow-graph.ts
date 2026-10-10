@@ -1,4 +1,5 @@
 import type { WorkflowGraph, WorkflowNode } from "@zfunnel/db/schema";
+import { getTranslator, type T } from "@zfunnel/i18n";
 
 /**
  * Pure operations on an automation's step tree. Shared by the builder (client)
@@ -79,21 +80,21 @@ export function updateNode(g: WorkflowGraph, node: WorkflowNode): WorkflowGraph 
   return { ...g, nodes: { ...g.nodes, [node.id]: node } };
 }
 
-/** Server-side check: a tree rooted at start, every node reachable exactly once, no cycles. */
-export function validateGraph(g: WorkflowGraph): string | null {
+/** Server-side check: a tree rooted at start, every node reachable exactly once, no cycles. Messages use `t`. */
+export function validateGraph(g: WorkflowGraph, t: T = getTranslator("en")): string | null {
   const ids = Object.keys(g.nodes);
-  if (ids.length > MAX_NODES) return `An automation can have at most ${MAX_NODES} steps.`;
+  if (ids.length > MAX_NODES) return t("automations.graph.tooMany", { max: MAX_NODES });
   const seen = new Set<string>();
   const stack = g.start ? [g.start] : [];
   while (stack.length) {
     const id = stack.pop()!;
     const n = g.nodes[id];
-    if (!n || n.id !== id) return "Broken step reference.";
-    if (seen.has(id)) return "Steps cannot loop back.";
+    if (!n || n.id !== id) return t("automations.graph.broken");
+    if (seen.has(id)) return t("automations.graph.loop");
     seen.add(id);
     for (const c of children(n)) if (c) stack.push(c);
   }
-  if (seen.size !== ids.length) return "Some steps are disconnected.";
+  if (seen.size !== ids.length) return t("automations.graph.disconnected");
   return null;
 }
 

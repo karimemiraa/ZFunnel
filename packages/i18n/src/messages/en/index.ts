@@ -1,6 +1,7 @@
 import { account } from "./account";
 import { affiliate } from "./affiliate";
 import { affiliatesAdmin } from "./affiliatesAdmin";
+import { automations } from "./automations";
 import { blocks } from "./blocks";
 import { blog } from "./blog";
 import { blogAdmin } from "./blogAdmin";
@@ -13,6 +14,7 @@ import { communityAdmin } from "./communityAdmin";
 import { contacts } from "./contacts";
 import { courses } from "./courses";
 import { coursesAdmin } from "./coursesAdmin";
+import { email } from "./email";
 import { emails } from "./emails";
 import { errors } from "./errors";
 import { forms } from "./forms";
@@ -30,4 +32,4 @@ import { store } from "./store";
 import { webinar } from "./webinar";
 import { webinarsAdmin } from "./webinarsAdmin";
 
-export const en = { account, affiliate, affiliatesAdmin, blocks, blog, blogAdmin, booking, calendarsAdmin, checkout, common, community, communityAdmin, contacts, courses, coursesAdmin, emails, errors, forms, formsAdmin, inbox, nav, orders, overview, pipelines, products, settings, shell, site, store, webinar, webinarsAdmin };
+export const en = { account, affiliate, affiliatesAdmin, automations, blocks, blog, blogAdmin, booking, calendarsAdmin, checkout, common, community, communityAdmin, contacts, courses, coursesAdmin, email, emails, errors, forms, formsAdmin, inbox, nav, orders, overview, pipelines, products, settings, shell, site, store, webinar, webinarsAdmin };

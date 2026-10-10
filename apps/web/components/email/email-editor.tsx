@@ -4,6 +4,7 @@ import { Puck, type Data } from "@puckeditor/core";
 import "@puckeditor/core/puck.css";
 import { DEFAULT_EMAIL_THEME, type EmailTheme } from "@zfunnel/email";
 import { emailConfig } from "@zfunnel/email/editor";
+import { useT } from "@zfunnel/i18n/react";
 import { Button } from "@zfunnel/ui/button";
 import { toast, Toaster } from "@zfunnel/ui/toaster";
 import { ArrowLeftIcon, CheckIcon, CloudIcon, Loader2Icon, TriangleAlertIcon } from "lucide-react";
@@ -28,15 +29,16 @@ const EmailChrome = createContext<Chrome | null>(null);
 
 function EmailHeader() {
   const c = useContext(EmailChrome)!;
+  const t = useT();
   return (
     <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-background px-3">
       <Button variant="ghost" size="icon" asChild>
-        <Link href={c.backHref} aria-label="Back" onClick={() => void (c.dirty() && c.flush())}>
+        <Link href={c.backHref} aria-label={t("email.editor.back")} onClick={() => void (c.dirty() && c.flush())}>
           <ArrowLeftIcon className="rtl:-scale-x-100" />
         </Link>
       </Button>
       <div className="flex min-w-0 flex-col leading-tight">
-        <span className="text-[11px] text-muted-foreground">Email</span>
+        <span className="text-[11px] text-muted-foreground">{t("email.title")}</span>
         <span className="truncate text-sm font-semibold">{c.name}</span>
       </div>
       <div className="flex-1" />
@@ -58,7 +60,7 @@ function EmailHeader() {
           if (await c.flush()) window.location.href = c.backHref;
         }}
       >
-        Done
+        {t("email.editor.done")}
       </Button>
     </header>
   );
@@ -79,6 +81,7 @@ export function EmailEditor({
   backHref: string;
   initialData: Data;
 }) {
+  const t = useT();
   const [state, setState] = useState<State>("saved");
   const [theme, setTheme] = useState<EmailTheme>({
     ...DEFAULT_EMAIL_THEME,
@@ -128,10 +131,10 @@ export function EmailEditor({
 
   const metadata = useMemo(() => ({ theme }), [theme]);
   const indicator = {
-    saved: [<CheckIcon key="i" className="size-3.5" />, "Saved"],
-    dirty: [<CloudIcon key="i" className="size-3.5" />, "Unsaved changes"],
-    saving: [<Loader2Icon key="i" className="size-3.5 animate-spin" />, "Saving…"],
-    error: [<TriangleAlertIcon key="i" className="size-3.5 text-destructive" />, "Not saved"],
+    saved: [<CheckIcon key="i" className="size-3.5" />, t("email.editor.saved")],
+    dirty: [<CloudIcon key="i" className="size-3.5" />, t("email.editor.unsaved")],
+    saving: [<Loader2Icon key="i" className="size-3.5 animate-spin" />, t("email.editor.saving")],
+    error: [<TriangleAlertIcon key="i" className="size-3.5 text-destructive" />, t("email.editor.notSaved")],
   }[state];
 
   // Stable override (see page editor): live values come from context so the header never remounts.

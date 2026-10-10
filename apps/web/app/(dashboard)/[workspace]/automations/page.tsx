@@ -8,31 +8,34 @@ import { NewAutomation } from "@/components/automations/new-automation";
 import { PageHeader } from "@/components/page-header";
 import { listWorkflows } from "@/lib/automations";
 import { requireWorkspace } from "@/lib/context";
+import { getFmt, getT } from "@/lib/i18n";
 import { flowOrder } from "@/lib/workflow-graph";
 
-export const metadata = { title: "Automations" };
+export async function generateMetadata() {
+  return { title: (await getT())("automations.title") };
+}
 
 export default async function AutomationsPage({ params }: { params: Promise<{ workspace: string }> }) {
   const ctx = await requireWorkspace(params);
   const ws = ctx.workspace.slug;
-  const list = await listWorkflows(ctx);
+  const [list, t, f] = await Promise.all([listWorkflows(ctx), getT(), getFmt()]);
   const newButton = (
     <Button>
-      <PlusIcon /> New automation
+      <PlusIcon /> {t("automations.newAutomation")}
     </Button>
   );
   return (
     <>
       <PageHeader
-        title="Automations"
-        description="Follow up automatically: emails, waits, tags and branches that run on their own."
+        title={t("automations.title")}
+        description={t("automations.description")}
         actions={<NewAutomation workspaceSlug={ws} trigger={newButton} />}
       />
       {list.length === 0 ? (
         <EmptyState
           icon={<WorkflowIcon />}
-          title="Put your follow-up on autopilot"
-          description="Send a welcome series to new leads, onboard customers after a purchase, or tag and branch contacts by what they do."
+          title={t("automations.emptyTitle")}
+          description={t("automations.emptyBody")}
           action={<NewAutomation workspaceSlug={ws} trigger={newButton} />}
         />
       ) : (
@@ -52,7 +55,9 @@ export default async function AutomationsPage({ params }: { params: Promise<{ wo
                   </span>
                   <div className="min-w-0 flex-1">
                     <h3 className="truncate font-semibold group-hover:underline">{w.name}</h3>
-                    <p className="truncate text-xs text-muted-foreground">When a contact {T.label.toLowerCase()}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {t("automations.whenContact", { trigger: t(T.label).toLowerCase() })}
+                    </p>
                   </div>
                   <span
                     className={cn(
@@ -64,7 +69,11 @@ export default async function AutomationsPage({ params }: { params: Promise<{ wo
                           : "bg-muted text-muted-foreground",
                     )}
                   >
-                    {w.status === "active" ? "Live" : w.status === "paused" ? "Paused" : "Draft"}
+                    {w.status === "active"
+                      ? t("automations.status.active")
+                      : w.status === "paused"
+                        ? t("automations.status.paused")
+                        : t("automations.status.draft")}
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
@@ -73,7 +82,7 @@ export default async function AutomationsPage({ params }: { params: Promise<{ wo
                     return (
                       <span
                         key={n.id}
-                        title={m.label}
+                        title={t(m.label)}
                         className="flex size-6 items-center justify-center rounded-md text-white"
                         style={{ background: m.color }}
                       >
@@ -82,17 +91,17 @@ export default async function AutomationsPage({ params }: { params: Promise<{ wo
                     );
                   })}
                   {steps.length > 8 && <span className="text-xs text-muted-foreground">+{steps.length - 8}</span>}
-                  {!steps.length && <span className="text-xs text-muted-foreground">No steps yet</span>}
+                  {!steps.length && <span className="text-xs text-muted-foreground">{t("automations.noSteps")}</span>}
                 </div>
                 <dl className="mt-auto grid grid-cols-3 gap-2 border-t pt-3 text-center">
                   {[
-                    ["Entered", total],
-                    ["In progress", inProgress],
-                    ["Completed", completed],
+                    [t("automations.stats.entered"), total],
+                    [t("automations.stats.inProgress"), inProgress],
+                    [t("automations.stats.completed"), completed],
                   ].map(([k, v]) => (
                     <div key={k}>
                       <dt className="text-[11px] text-muted-foreground">{k}</dt>
-                      <dd className="font-semibold tabular-nums">{Number(v).toLocaleString()}</dd>
+                      <dd className="font-semibold tabular-nums">{f.number(Number(v))}</dd>
                     </div>
                   ))}
                 </dl>

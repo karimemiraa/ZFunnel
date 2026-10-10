@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@zfunnel/i18n/react";
 import { Button } from "@zfunnel/ui/button";
 import {
   DropdownMenu,
@@ -22,21 +23,22 @@ export function EnrollMenu({
   contactId: string;
   workflows: { id: string; name: string }[];
 }) {
+  const t = useT();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline">
-          <WorkflowIcon /> Add to automation
+          <WorkflowIcon /> {t("automations.enroll.add")}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
-        <DropdownMenuLabel className="text-xs text-muted-foreground">Live automations</DropdownMenuLabel>
+        <DropdownMenuLabel className="text-xs text-muted-foreground">{t("automations.enroll.live")}</DropdownMenuLabel>
         {workflows.map((w) => (
           <DropdownMenuItem
             key={w.id}
             onClick={async () => {
               const r = await enrollContact(workspaceSlug, contactId, w.id);
-              if (r.ok) toast.success(r.message ?? "Added");
+              if (r.ok) toast.success(r.message ?? t("automations.enroll.added"));
               else toast.error(r.error);
             }}
           >
@@ -45,7 +47,7 @@ export function EnrollMenu({
         ))}
         {!workflows.length && (
           <DropdownMenuItem asChild>
-            <Link href={`/${workspaceSlug}/automations`}>No live automations yet. Create one →</Link>
+            <Link href={`/${workspaceSlug}/automations`}>{t("automations.enroll.none")}</Link>
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>

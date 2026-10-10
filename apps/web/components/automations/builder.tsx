@@ -1,6 +1,7 @@
 "use client";
 
 import type { WorkflowGraph, WorkflowNode, WorkflowStatus, WorkflowTrigger } from "@zfunnel/db/schema";
+import { useT } from "@zfunnel/i18n/react";
 import { Button } from "@zfunnel/ui/button";
 import { cn } from "@zfunnel/ui/lib/utils";
 import { toast, Toaster } from "@zfunnel/ui/toaster";
@@ -33,6 +34,7 @@ type SaveState = "saved" | "dirty" | "saving" | "error";
 
 export function AutomationBuilder({ workspaceSlug, workflow, lookups: initialLookups, tab, activity }: Props) {
   const router = useRouter();
+  const t = useT();
   const [name, setName] = useState(workflow.name);
   const [trigger, setTrigger] = useState(workflow.trigger);
   const [graph, setGraph] = useState(workflow.graph);
@@ -92,15 +94,15 @@ export function AutomationBuilder({ workspaceSlug, workflow, lookups: initialLoo
       const r = await setWorkflowStatus(workspaceSlug, workflow.id, next);
       if (!r.ok) return void toast.error(r.error);
       setStatus(next);
-      toast.success(r.message ?? "Saved");
+      toast.success(r.message ?? t("automations.builder.saved"));
       router.refresh();
     });
 
   const indicator = {
-    saved: [<CheckIcon key="i" className="size-3.5" />, "Saved"],
-    dirty: [<CloudIcon key="i" className="size-3.5" />, "Unsaved"],
-    saving: [<Loader2Icon key="i" className="size-3.5 animate-spin" />, "Saving…"],
-    error: [<TriangleAlertIcon key="i" className="size-3.5 text-destructive" />, "Not saved"],
+    saved: [<CheckIcon key="i" className="size-3.5" />, t("automations.builder.saved")],
+    dirty: [<CloudIcon key="i" className="size-3.5" />, t("automations.builder.unsaved")],
+    saving: [<Loader2Icon key="i" className="size-3.5 animate-spin" />, t("automations.builder.saving")],
+    error: [<TriangleAlertIcon key="i" className="size-3.5 text-destructive" />, t("automations.builder.notSaved")],
   }[save];
 
   const base = `/automation/${workspaceSlug}/${workflow.id}`;
@@ -108,12 +110,12 @@ export function AutomationBuilder({ workspaceSlug, workflow, lookups: initialLoo
     <div className="flex h-dvh flex-col bg-background">
       <header className="flex h-14 shrink-0 items-center gap-2 border-b px-3">
         <Button variant="ghost" size="icon" asChild>
-          <Link href={`/${workspaceSlug}/automations`} aria-label="Back to automations">
+          <Link href={`/${workspaceSlug}/automations`} aria-label={t("automations.builder.back")}>
             <ArrowLeftIcon className="rtl:-scale-x-100" />
           </Link>
         </Button>
         <input
-          aria-label="Automation name"
+          aria-label={t("automations.builder.nameLabel")}
           value={name}
           maxLength={80}
           onChange={(e) => {
@@ -132,19 +134,23 @@ export function AutomationBuilder({ workspaceSlug, workflow, lookups: initialLoo
                 : "bg-muted text-muted-foreground",
           )}
         >
-          {status === "active" ? "● Live" : status === "paused" ? "Paused" : "Draft"}
+          {status === "active"
+            ? t("automations.status.activeDot")
+            : status === "paused"
+              ? t("automations.status.paused")
+              : t("automations.status.draft")}
         </span>
-        <nav className="mx-auto hidden rounded-lg bg-muted p-0.5 sm:flex" aria-label="View">
-          {(["builder", "activity"] as const).map((t) => (
+        <nav className="mx-auto hidden rounded-lg bg-muted p-0.5 sm:flex" aria-label={t("automations.builder.view")}>
+          {(["builder", "activity"] as const).map((v) => (
             <Link
-              key={t}
-              href={t === "builder" ? base : `${base}?tab=activity`}
+              key={v}
+              href={v === "builder" ? base : `${base}?tab=activity`}
               className={cn(
                 "rounded-md px-3 py-1 text-sm font-medium capitalize transition-colors",
-                tab === t ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground",
+                tab === v ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground",
               )}
             >
-              {t === "builder" ? "Workflow" : "Activity"}
+              {v === "builder" ? t("automations.builder.workflow") : t("automations.builder.activity")}
             </Link>
           ))}
         </nav>
@@ -157,7 +163,7 @@ export function AutomationBuilder({ workspaceSlug, workflow, lookups: initialLoo
         </span>
         <Button onClick={toggle} disabled={pending} variant={status === "active" ? "outline" : "default"}>
           {pending ? <Loader2Icon className="animate-spin" /> : status === "active" ? <PauseIcon /> : <PlayIcon />}
-          {status === "active" ? "Pause" : "Activate"}
+          {status === "active" ? t("automations.builder.pause") : t("automations.builder.activate")}
         </Button>
       </header>
 
@@ -167,7 +173,9 @@ export function AutomationBuilder({ workspaceSlug, workflow, lookups: initialLoo
         <div className="relative flex min-h-0 flex-1">
           {readOnly && (
             <div className="absolute top-3 left-1/2 z-10 -translate-x-1/2 rounded-full border bg-background/95 px-4 py-1.5 text-xs shadow-sm backdrop-blur">
-              This automation is live. <strong>Pause</strong> it to make changes.
+              {t("automations.builder.liveNotice")
+                .split(/<b>(.*?)<\/b>/)
+                .map((part, i) => (i % 2 ? <strong key={i}>{part}</strong> : part))}
             </div>
           )}
           <div className="min-w-0 flex-1">
@@ -186,17 +194,17 @@ export function AutomationBuilder({ workspaceSlug, workflow, lookups: initialLoo
               {selected === "trigger" ? (
                 <div className="grid gap-5">
                   <div>
-                    <h2 className="text-sm font-semibold">Trigger</h2>
-                    <p className="text-xs text-muted-foreground">What starts this automation</p>
+                    <h2 className="text-sm font-semibold">{t("automations.builder.trigger")}</h2>
+                    <p className="text-xs text-muted-foreground">{t("automations.builder.triggerHint")}</p>
                   </div>
                   <TriggerPanel
                     trigger={trigger}
                     allowReentry={reentry}
                     lookups={lookups}
                     readOnly={readOnly}
-                    onChange={(t) => {
-                      setTrigger(t);
-                      if (t.type !== "tag_added" || t.tag.trim()) queue({ trigger: t });
+                    onChange={(next) => {
+                      setTrigger(next);
+                      if (next.type !== "tag_added" || next.tag.trim()) queue({ trigger: next });
                     }}
                     onReentry={(v) => {
                       setReentry(v);
@@ -204,7 +212,7 @@ export function AutomationBuilder({ workspaceSlug, workflow, lookups: initialLoo
                     }}
                   />
                   <Button variant="outline" onClick={() => setSelected(null)}>
-                    Done
+                    {t("automations.builder.done")}
                   </Button>
                 </div>
               ) : node ? (
