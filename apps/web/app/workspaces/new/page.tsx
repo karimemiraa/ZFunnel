@@ -18,7 +18,7 @@ export async function generateMetadata() {
 export default async function NewWorkspacePage() {
   const user = await requireUser();
   const t = await getT();
-  const manageable = (await getMemberships(user.id)).filter((m) => canManage(m.role));
+  const manageable = (await getMemberships(user.id)).filter((m) => !m.suspended && canManage(m.role));
 
   return (
     <BrandedShell homeHref="/">

@@ -5,6 +5,7 @@ import { createDb, type Db } from "./client";
 import { organization } from "./schema/auth";
 import { orgBilling } from "./schema/billing";
 import { contacts } from "./schema/contacts";
+import { organizationSuspensions, platformAuditLog } from "./schema/platform";
 import { funnels, funnelSteps, pageVersions } from "./schema/funnels";
 import { auditLogs, workspaces } from "./schema/tenancy";
 import { withOrganization, withSystem, withWorkspace } from "./tenant";
@@ -146,6 +147,38 @@ describe.skipIf(!url)("row-level security", () => {
     expect(rows.length).toBeGreaterThanOrEqual(15);
     const unprotected = rows.filter((r) => !r.enabled || !r.forced || r.policies === 0).map((r) => r.table);
     expect(unprotected).toEqual([]);
+  });
+
+  it("keeps the platform audit log to system code only", async () => {
+    await withSystem(db, (tx) =>
+      tx.insert(platformAuditLog).values({ action: "org.suspend", targetType: "organization", targetId: orgB }),
+    );
+    expect(await db.select().from(platformAuditLog)).toHaveLength(0);
+    expect(await withOrganization(db, orgB, (tx) => tx.select().from(platformAuditLog))).toHaveLength(0);
+    await expect(
+      withOrganization(db, orgA, (tx) =>
+        tx.insert(platformAuditLog).values({ action: "forged", targetType: "organization" }),
+      ),
+    ).rejects.toThrow();
+    expect(await withSystem(db, (tx) => tx.select().from(platformAuditLog))).toHaveLength(1);
+  });
+
+  it("lets only system code suspend or unsuspend an organization", async () => {
+    await expect(
+      withOrganization(db, orgA, (tx) => tx.insert(organizationSuspensions).values({ organizationId: orgA })),
+    ).rejects.toThrow();
+    await withSystem(db, (tx) => tx.insert(organizationSuspensions).values({ organizationId: orgB }));
+    // Readable without context (the dashboard checks it next to the membership lookup)...
+    expect(await db.select().from(organizationSuspensions)).toHaveLength(1);
+    // ...but a tenant cannot lift its own suspension.
+    const lifted = await withOrganization(db, orgB, (tx) =>
+      tx.delete(organizationSuspensions).where(eq(organizationSuspensions.organizationId, orgB)).returning(),
+    );
+    expect(lifted).toHaveLength(0);
+    await withSystem(db, (tx) =>
+      tx.delete(organizationSuspensions).where(eq(organizationSuspensions.organizationId, orgB)),
+    );
+    expect(await db.select().from(organizationSuspensions)).toHaveLength(0);
   });
 
   it("lets trusted system code see across tenants", async () => {

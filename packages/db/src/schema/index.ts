@@ -20,3 +20,4 @@ export * from "./community";
 export * from "./inbox";
 export * from "./tracking";
 export * from "./webinars";
+export * from "./platform";

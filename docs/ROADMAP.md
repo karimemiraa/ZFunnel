@@ -276,6 +276,16 @@ Live & evergreen webinars (LiveKit) · AI conversion coach (analyses funnel stat
 
 **7.2 status: done (2026-10-10).** The mark is hand-drawn SVG from the source artwork in three variants (app icon, mark for dark and light backgrounds, wordmark), used for the favicon, the apple-touch icon, the dashboard and the "Powered by" badge. Brand tokens in light and dark mode only style the platform chrome; funnel pages keep their own themes. Primary is a darker orange (`#B85A06`, AA with white) on light backgrounds and the bright orange with navy text in dark mode. The auth screens have a branded navy panel, onboarding has a navy brand band, and the sidebar, workspace home, page headers and empty states were polished. Customer emails stay in the workspace's own brand, and the platform sends no emails of its own yet, so no email header changed. See `docs/brand/README.md`.
 
+**Owner decisions (7.1).** First admin: `karim@zealmarketing.net`. The area stays at `app.…/admin` on the same host. "View as" is allowed, read-only, logged and with a visible banner.
+
+### 7.1 status — **Done** (2026-10-10)
+
+- `/admin`: an overview (sign-ups total and last 30 days, organizations, active organizations, workspaces, platform MRR from `org_billing`, GMV from paid orders, and a 30-day sign-ups chart), organizations with search and pagination, an organization page (members, workspaces, plan, funnel/contact/order counts), users with search, and the admin audit log.
+- Actions: suspend/unsuspend (members get a suspended screen; public sites show a neutral "unavailable" page), plan override, and read-only "view as" with a banner and an exit button.
+- Access: `PLATFORM_ADMIN_EMAILS` plus a verified email. Everyone else gets a 404. An **Admin** link appears in the account menu for admins.
+- New platform tables `platform_audit_log` and `organization_suspensions` (migrations 0051–0052, system-only writes). Design in ADR-024; setup in `docs/DEPLOYMENT.md` §9.
+- English and Arabic (`admin` namespace). Tests: guard and token unit tests, RLS tests for both tables, and `e2e/tests/admin.spec.ts`.
+
 ---
 
 ## Working agreement

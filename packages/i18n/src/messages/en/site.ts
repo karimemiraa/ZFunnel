@@ -1,6 +1,8 @@
 export const site = {
   notFound: "Page not found",
   notFoundText: "This page doesn't exist or hasn't been published.",
+  unavailable: "This site is unavailable",
+  unavailableText: "It can't be shown right now. Please check back later.",
   nothingYet: "Nothing has been published here yet.",
   chatWith: "Chat with {name}",
   replyTime: "We usually reply within a few hours, by email too.",

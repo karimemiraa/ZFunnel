@@ -6,6 +6,9 @@ import { MobileNav } from "@/components/mobile-nav";
 import { SidebarNav } from "@/components/sidebar-nav";
 import { UserMenu } from "@/components/user-menu";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
+import { ViewAsBanner } from "@/components/admin/view-as-banner";
+import { SuspendedScreen } from "@/components/admin/suspended-screen";
+import { currentAdmin } from "@/lib/admin";
 import { getBillingState } from "@/lib/billing";
 import { requireWorkspace } from "@/lib/context";
 import { getT } from "@/lib/i18n";
@@ -18,7 +21,9 @@ export default async function WorkspaceLayout({
   children: React.ReactNode;
   params: Promise<{ workspace: string }>;
 }) {
-  const { user, workspace, membership } = await requireWorkspace(params);
+  const { user, workspace, membership, suspended, viewAs } = await requireWorkspace(params);
+  if (suspended) return <SuspendedScreen organizationName={membership.organizationName} />;
+  const isAdmin = (await currentAdmin()) !== null;
   const billing = await getBillingState(membership.organizationId);
   const t = await getT();
   const groups = (await listUserWorkspaces(user.id)).map((g) => ({
@@ -42,8 +47,9 @@ export default async function WorkspaceLayout({
           <Logo className="lg:hidden" showText={false} />
           <div className="flex-1" />
           <ThemeToggle />
-          <UserMenu name={user.name} email={user.email} />
+          <UserMenu name={user.name} email={user.email} isAdmin={isAdmin} />
         </header>
+        {viewAs && <ViewAsBanner workspaceName={workspace.name} />}
         {(billing.status === "expired" ||
           billing.status === "past_due" ||
           (billing.status === "trial" && (billing.daysLeft ?? 99) <= 3)) && (

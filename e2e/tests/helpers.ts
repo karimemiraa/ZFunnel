@@ -2,7 +2,7 @@ import { expect, type Page } from "@playwright/test";
 
 export const unique = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
 
-export async function signUpWithWorkspace(page: Page, opts: { name?: string; workspace: string }) {
+export async function signUpWithWorkspace(page: Page, opts: { name?: string; workspace: string; business?: string }) {
   const id = unique();
   await page.goto("/sign-up");
   await page.getByLabel("Full name").fill(opts.name ?? "Test Owner");
@@ -10,7 +10,7 @@ export async function signUpWithWorkspace(page: Page, opts: { name?: string; wor
   await page.getByLabel("Password").fill("correct-horse-battery");
   await page.getByRole("button", { name: "Create account" }).click();
   await page.waitForURL(/onboarding/);
-  await page.getByLabel("Business name").fill("E2E Inc");
+  await page.getByLabel("Business name").fill(opts.business ?? "E2E Inc");
   await page.getByLabel("Workspace name").fill(opts.workspace);
   const slug = await page.getByLabel("Free subdomain").inputValue();
   await page.getByRole("button", { name: "Create workspace" }).click();
@@ -36,4 +36,5 @@ export async function publishFunnel(page: Page, steps: number) {
   await expect(page.getByText(`Published ${steps} steps`)).toBeVisible();
 }
 
-export const siteUrl = (ws: string, path = "") => `http://${ws}.localhost:3001${path}`;
+const SITES_PORT = process.env.E2E_SITES_PORT ?? "3001";
+export const siteUrl = (ws: string, path = "") => `http://${ws}.localhost:${SITES_PORT}${path}`;

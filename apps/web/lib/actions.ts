@@ -80,7 +80,7 @@ export async function createFirstWorkspace(_prev: ActionState, formData: FormDat
 
   try {
     await insertWorkspace(
-      { organizationId: created.id, organizationName: created.name, role: "owner" },
+      { organizationId: created.id, organizationName: created.name, role: "owner", suspended: false },
       user.id,
       parsed.data,
     );
@@ -105,7 +105,7 @@ export async function createWorkspace(_prev: ActionState, formData: FormData): P
 
   const organizationId = String(formData.get("organizationId") ?? "");
   const membership = (await getMemberships(user.id)).find((m) => m.organizationId === organizationId);
-  if (!membership || !canManage(membership.role)) return { error: t("workspace.noPermission") };
+  if (!membership || membership.suspended || !canManage(membership.role)) return { error: t("workspace.noPermission") };
   const blocked = await enforce(organizationId, "workspaces");
   if (blocked) return { error: blocked };
   if (!(await isSlugAvailable(parsed.data.slug))) return { fieldErrors: { slug: [SLUG_TAKEN] } };

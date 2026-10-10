@@ -5,6 +5,7 @@ import {
   desc,
   eq,
   getDb,
+  organizationSuspensions,
   schema,
   withOrganization,
   withSystem,
@@ -15,7 +16,7 @@ import {
 import type { Role } from "@zfunnel/shared";
 import { cache } from "react";
 
-export type Membership = { organizationId: string; organizationName: string; role: Role };
+export type Membership = { organizationId: string; organizationName: string; role: Role; suspended: boolean };
 export type WorkspaceContext = { workspace: Workspace; membership: Membership };
 
 /** Organizations the user belongs to (auth tables are not tenant-scoped). */
@@ -25,12 +26,14 @@ export const getMemberships = cache(async (userId: string): Promise<Membership[]
       organizationId: schema.member.organizationId,
       organizationName: schema.organization.name,
       role: schema.member.role,
+      suspendedAt: organizationSuspensions.createdAt,
     })
     .from(schema.member)
     .innerJoin(schema.organization, eq(schema.member.organizationId, schema.organization.id))
+    .leftJoin(organizationSuspensions, eq(organizationSuspensions.organizationId, schema.member.organizationId))
     .where(eq(schema.member.userId, userId))
     .orderBy(schema.organization.name);
-  return rows.map((r) => ({ ...r, role: r.role as Role }));
+  return rows.map(({ suspendedAt, ...r }) => ({ ...r, role: r.role as Role, suspended: suspendedAt !== null }));
 });
 
 /** All workspaces the user can open, grouped by organization. */
@@ -46,13 +49,23 @@ export const listUserWorkspaces = cache(async (userId: string) => {
   );
 });
 
-/** Resolves a workspace slug for this user, or null if they are not a member. */
-export const getWorkspaceForUser = cache(async (userId: string, slug: string): Promise<WorkspaceContext | null> => {
+/** Membership lookup that also finds workspaces of suspended organizations (to show the suspended screen). */
+export const findMemberWorkspace = cache(async (userId: string, slug: string): Promise<WorkspaceContext | null> => {
   for (const { membership, workspaces: list } of await listUserWorkspaces(userId)) {
     const workspace = list.find((w) => w.slug === slug);
     if (workspace) return { workspace, membership };
   }
   return null;
+});
+
+/**
+ * Resolves a workspace slug for this user, or null if they are not a member or the
+ * organization is suspended. Every server action goes through this, so a suspended
+ * organization (and an admin in read-only "view as", who is not a member) can change nothing.
+ */
+export const getWorkspaceForUser = cache(async (userId: string, slug: string): Promise<WorkspaceContext | null> => {
+  const ctx = await findMemberWorkspace(userId, slug);
+  return ctx && !ctx.membership.suspended ? ctx : null;
 });
 
 export async function recordAudit(

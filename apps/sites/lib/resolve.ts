@@ -13,6 +13,7 @@ import {
   gt,
   isNull,
   orgBilling,
+  organizationSuspensions,
   pageVersions,
   sql,
   stepVariants,
@@ -34,6 +35,8 @@ export type SiteWorkspace = {
   /** False only when the owner hid it AND the plan includes white-label. */
   showBadge: boolean;
   siteLocale: "en" | "ar";
+  /** The organization is suspended by the platform (ADR-024): nothing may be served. */
+  suspended: boolean;
 };
 
 const WHITE_LABEL_PLANS = Object.values(PLANS)
@@ -45,6 +48,7 @@ const brandColumns = {
   logoUrl: workspaces.logoUrl,
   brandColor: workspaces.brandColor,
   siteLocale: workspaces.siteLocale,
+  suspended: sql<boolean>`exists (select 1 from ${organizationSuspensions} s where s.organization_id = ${workspaces.organizationId})`,
   showBadge: sql<boolean>`not (${workspaces.hideBadge} and exists (
     select 1 from ${orgBilling} b where b.organization_id = ${workspaces.organizationId}
       and b.status in ('active', 'trialing', 'past_due')
