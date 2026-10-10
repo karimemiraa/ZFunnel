@@ -1,5 +1,6 @@
 import { bigserial, index, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { workspaces } from "./tenancy";
+import { funnels } from "./funnels";
 
 export type EventType = "view" | "optin" | "purchase" | "upsell" | "downsell";
 
@@ -40,3 +41,33 @@ export const events = pgTable(
 );
 
 export type AnalyticsEvent = typeof events.$inferSelect;
+
+export type CoachSuggestion = {
+  title: string;
+  /** Step name the advice is about, or null for the whole funnel. */
+  step: string | null;
+  why: string;
+  change: string;
+  impact: "high" | "medium" | "low";
+};
+
+/** AI conversion coach results; the newest row per funnel is shown. */
+export const funnelInsights = pgTable(
+  "funnel_insights",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    workspaceId: uuid()
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    funnelId: uuid()
+      .notNull()
+      .references(() => funnels.id, { onDelete: "cascade" }),
+    summary: text().notNull(),
+    suggestions: jsonb().$type<CoachSuggestion[]>().notNull(),
+    /** Range (days) and visitor count the advice was based on. */
+    days: integer().notNull(),
+    visitors: integer().notNull(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("funnel_insights_funnel_idx").on(t.funnelId, t.createdAt)],
+);

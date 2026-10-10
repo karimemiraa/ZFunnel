@@ -7,9 +7,12 @@ import { BarChart } from "@/components/bar-chart";
 import { STEP_COLORS } from "@/components/funnels/step-type";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
+import { CoachPanel } from "@/components/coach-panel";
+import { aiConfigured } from "@/lib/ai";
+import { desc, eq, funnelInsights } from "@zfunnel/db";
+import { inWorkspace, listFunnels } from "@/lib/funnels";
 import { funnelAnalytics, RANGES, type RangeKey } from "@/lib/analytics";
 import { requireWorkspace } from "@/lib/context";
-import { listFunnels } from "@/lib/funnels";
 
 export const metadata = { title: "Analytics" };
 
@@ -26,6 +29,16 @@ export default async function AnalyticsPage({
   const funnels = await listFunnels(ctx);
   const funnel = funnels.find((f) => f.id === sp.funnel) ?? null;
   const data = await funnelAnalytics(ctx, funnel?.id ?? null, RANGES[range]);
+  const [insight] = funnel
+    ? await inWorkspace(ctx, (tx) =>
+        tx
+          .select()
+          .from(funnelInsights)
+          .where(eq(funnelInsights.funnelId, funnel.id))
+          .orderBy(desc(funnelInsights.createdAt))
+          .limit(1),
+      )
+    : [];
   const ws = ctx.workspace.slug;
   const cur = data.totals.currency;
   const href = (o: { funnel?: string | null; range?: string }) => {
@@ -122,6 +135,25 @@ export default async function AnalyticsPage({
               />
             </div>
           </div>
+          {funnel && (
+            <CoachPanel
+              workspaceSlug={ws}
+              funnelId={funnel.id}
+              range={range}
+              aiReady={aiConfigured()}
+              insight={
+                insight
+                  ? {
+                      summary: insight.summary,
+                      suggestions: insight.suggestions,
+                      days: insight.days,
+                      visitors: insight.visitors,
+                      at: insight.createdAt.toISOString(),
+                    }
+                  : null
+              }
+            />
+          )}
           {funnel ? (
             <div className="overflow-hidden rounded-xl border bg-card">
               <table className="w-full text-sm">
