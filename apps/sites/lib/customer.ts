@@ -1,6 +1,7 @@
 import "server-only";
 
 import { signValue, verifyValue } from "@zfunnel/email";
+import { getTranslator, type Locale } from "@zfunnel/i18n";
 import {
   and,
   contacts,
@@ -115,6 +116,7 @@ export async function queueLoginLink(
   input: {
     workspaceId: string;
     workspaceName: string;
+    locale?: Locale;
     contactId: string;
     email: string;
     origin: string;
@@ -139,7 +141,7 @@ export async function queueLoginLink(
       workspaceId: input.workspaceId,
       contactId: input.contactId,
       toEmail: input.email,
-      subject: `Your sign-in link for ${input.workspaceName}`,
+      subject: getTranslator(input.locale ?? "en")("emails.loginSubject", { name: input.workspaceName }),
       meta: { kind: "login", siteOrigin: input.origin, next: input.next },
     })
     .returning({ id: emailMessages.id });

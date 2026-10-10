@@ -7,7 +7,9 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { isLocale } from "@zfunnel/i18n";
 import { enforce } from "./billing";
+import { getT } from "./i18n";
 import { requireUser } from "./session";
 import {
   canManage,
@@ -172,6 +174,29 @@ export async function saveBranding(
     data: { hideBadge: d.data.hideBadge },
   });
   revalidatePath(`/${slug}/settings`);
+  return { ok: true };
+}
+
+/** Language of the workspace's public pages, checkout and customer emails. */
+export async function saveSiteLanguage(
+  slug: string,
+  locale: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const user = await requireUser();
+  const ctx = await getWorkspaceForUser(user.id, slug);
+  const t = await getT();
+  if (!ctx || !canManage(ctx.membership.role)) return { ok: false, error: t("settings.onlyAdmins") };
+  if (!isLocale(locale)) return { ok: false, error: t("common.somethingWrong") };
+  await withOrganization(getDb(), ctx.membership.organizationId, (tx) =>
+    tx.update(workspaces).set({ siteLocale: locale }).where(eq(workspaces.id, ctx.workspace.id)),
+  );
+  await recordAudit(ctx, user.id, {
+    action: "workspace.site_language",
+    entityType: "workspace",
+    entityId: ctx.workspace.id,
+    data: { locale },
+  });
+  revalidatePath(`/${slug}`, "layout");
   return { ok: true };
 }
 

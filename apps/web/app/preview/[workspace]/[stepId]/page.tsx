@@ -1,3 +1,4 @@
+import { dir } from "@zfunnel/i18n";
 import { Render } from "@puckeditor/core/rsc";
 import { config, type BlockRuntime } from "@zfunnel/blocks";
 import { notFound } from "next/navigation";
@@ -37,17 +38,21 @@ export default async function PreviewPage({
     stepId,
     offers: await getEditorOffers(ctx, stepId),
     payments: { provider: "test" },
+    lang: ctx.workspace.siteLocale,
   };
 
   return (
     <div className={thumb ? "pointer-events-none overflow-hidden" : undefined}>
       {!thumb && (
-        <div className="fixed right-3 bottom-3 z-50 rounded-full bg-black/80 px-3 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur">
+        <div className="fixed end-3 bottom-3 z-50 rounded-full bg-black/80 px-3 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur">
           Draft preview · {row.step.name}
           {variant ? ` · Variant ${variant.name}` : ""}
         </div>
       )}
-      <Render config={config} data={(variant?.draft ?? row.step.draft) as never} metadata={runtime} />
+      {/* The page speaks the site's language, whatever the dashboard language is. */}
+      <div dir={dir(ctx.workspace.siteLocale)} lang={ctx.workspace.siteLocale}>
+        <Render config={config} data={(variant?.draft ?? row.step.draft) as never} metadata={runtime} />
+      </div>
     </div>
   );
 }

@@ -1,14 +1,38 @@
 import type { CSSProperties } from "react";
 
 export const FONTS = {
-  inter: { label: "Inter", stack: "'Inter Variable', ui-sans-serif, system-ui, sans-serif" },
-  jakarta: { label: "Plus Jakarta Sans", stack: "'Plus Jakarta Sans Variable', ui-sans-serif, system-ui, sans-serif" },
-  dmsans: { label: "DM Sans", stack: "'DM Sans Variable', ui-sans-serif, system-ui, sans-serif" },
-  manrope: { label: "Manrope", stack: "'Manrope Variable', ui-sans-serif, system-ui, sans-serif" },
-  outfit: { label: "Outfit", stack: "'Outfit Variable', ui-sans-serif, system-ui, sans-serif" },
-  grotesk: { label: "Space Grotesk", stack: "'Space Grotesk Variable', ui-sans-serif, system-ui, sans-serif" },
-  playfair: { label: "Playfair Display (serif)", stack: "'Playfair Display Variable', ui-serif, Georgia, serif" },
-  fraunces: { label: "Fraunces (serif)", stack: "'Fraunces Variable', ui-serif, Georgia, serif" },
+  inter: {
+    label: "Inter",
+    stack: "'Inter Variable', 'Noto Sans Arabic Variable', ui-sans-serif, system-ui, sans-serif",
+  },
+  jakarta: {
+    label: "Plus Jakarta Sans",
+    stack: "'Plus Jakarta Sans Variable', 'Noto Sans Arabic Variable', ui-sans-serif, system-ui, sans-serif",
+  },
+  dmsans: {
+    label: "DM Sans",
+    stack: "'DM Sans Variable', 'Noto Sans Arabic Variable', ui-sans-serif, system-ui, sans-serif",
+  },
+  manrope: {
+    label: "Manrope",
+    stack: "'Manrope Variable', 'Noto Sans Arabic Variable', ui-sans-serif, system-ui, sans-serif",
+  },
+  outfit: {
+    label: "Outfit",
+    stack: "'Outfit Variable', 'Noto Sans Arabic Variable', ui-sans-serif, system-ui, sans-serif",
+  },
+  grotesk: {
+    label: "Space Grotesk",
+    stack: "'Space Grotesk Variable', 'Noto Sans Arabic Variable', ui-sans-serif, system-ui, sans-serif",
+  },
+  playfair: {
+    label: "Playfair Display (serif)",
+    stack: "'Playfair Display Variable', 'Noto Sans Arabic Variable', ui-serif, Georgia, serif",
+  },
+  fraunces: {
+    label: "Fraunces (serif)",
+    stack: "'Fraunces Variable', 'Noto Sans Arabic Variable', ui-serif, Georgia, serif",
+  },
 } as const;
 export type FontKey = keyof typeof FONTS;
 

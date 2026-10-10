@@ -3,13 +3,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { postBySlug } from "@/lib/blog";
 import { currentWorkspace } from "@/lib/site";
+import { siteFormat } from "@/lib/format";
+import { getT } from "@/lib/i18n";
 
 type P = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: P): Promise<Metadata> {
   const ws = await currentWorkspace();
   const post = ws ? await postBySlug(ws.id, (await params).slug) : null;
-  if (!post) return { title: "Not found" };
+  if (!post) return { title: (await getT())("shell.notFound") };
   const title = post.seoTitle || post.title;
   const description = post.seoDescription || post.excerpt || undefined;
   return {
@@ -31,7 +33,10 @@ export default async function PostPage({ params }: P) {
   if (!ws) notFound();
   const post = await postBySlug(ws.id, (await params).slug);
   if (!post) notFound();
+  const t = await getT();
+  const { longDate } = siteFormat(ws.siteLocale);
   const jsonLd = {
+    inLanguage: ws.siteLocale,
     "@context": "https://schema.org",
     "@type": "BlogPosting",
     headline: post.title,
@@ -45,14 +50,12 @@ export default async function PostPage({ params }: P) {
       <header className="border-b border-zinc-100">
         <div className="mx-auto flex h-16 max-w-3xl items-center px-4">
           <Link href="/blog" className="text-sm font-medium text-zinc-500 hover:text-zinc-900">
-            ← {ws.name} blog
+            {t("blog.back", { name: ws.name })}
           </Link>
         </div>
       </header>
       <article className="mx-auto max-w-3xl px-4 py-12">
-        <p className="text-sm text-zinc-500">
-          {post.publishedAt?.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-        </p>
+        <p className="text-sm text-zinc-500">{post.publishedAt && longDate(post.publishedAt)}</p>
         <h1 className="mt-2 text-4xl font-bold tracking-tight sm:text-5xl">{post.title}</h1>
         {post.excerpt && <p className="mt-4 text-xl text-zinc-600">{post.excerpt}</p>}
         {post.coverUrl && (

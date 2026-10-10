@@ -47,11 +47,11 @@ export default async function BlogPage({ params }: { params: Promise<{ workspace
       ) : (
         <div className="overflow-hidden rounded-xl border bg-card">
           <table className="w-full text-sm">
-            <thead className="bg-muted/50 text-left text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            <thead className="bg-muted/50 text-start text-xs font-medium tracking-wide text-muted-foreground uppercase">
               <tr>
                 <th className="px-4 py-3">Post</th>
                 <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3 text-right max-sm:hidden">Updated</th>
+                <th className="px-4 py-3 text-end max-sm:hidden">Updated</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -74,7 +74,7 @@ export default async function BlogPage({ params }: { params: Promise<{ workspace
                       {p.status === "published" ? "Published" : "Draft"}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right text-muted-foreground max-sm:hidden">
+                  <td className="px-4 py-3 text-end text-muted-foreground max-sm:hidden">
                     {p.updatedAt.toLocaleDateString()}
                   </td>
                 </tr>

@@ -14,9 +14,9 @@ export async function POST(req: Request) {
   const g = await publicPost(req, "webinar-attend", 30);
   if ("error" in g) return g.error;
   const p = schema.safeParse(g.body);
-  if (!p.success) return jsonError("Invalid request");
+  if (!p.success) return jsonError("errors.invalidRequest");
   const row = await registrationByToken(g.ws.id, p.data.token);
-  if (!row) return jsonError("Not found", 404);
+  if (!row) return jsonError("errors.notFound", 404);
   const { r, w } = row;
   const { phase } = webinarPhase(r.sessionAt, w.durationMinutes, w.replayHours);
   if (p.data.action === "attend") {

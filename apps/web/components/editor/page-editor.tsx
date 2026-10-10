@@ -1,5 +1,7 @@
 "use client";
 
+import { dir, type Locale } from "@zfunnel/i18n";
+
 import { createUsePuck, Puck, type Data } from "@puckeditor/core";
 import "@puckeditor/core/puck.css";
 import { config, type BlockRuntime, type RuntimeOffer } from "@zfunnel/blocks";
@@ -48,6 +50,8 @@ type Props = {
   initialData: Data;
   savedAt: string;
   offers: RuntimeOffer[];
+  /** The site's language: blocks show their built-in text in it, and the canvas uses its direction. */
+  siteLocale: Locale;
   /** Editing a split-test variant instead of the step's own page. */
   variant?: { id: string; name: string };
   aiEnabled: boolean;
@@ -100,7 +104,7 @@ function EditorHeader({
       <Tooltip label="Back to funnel" side="bottom">
         <Button variant="ghost" size="icon" asChild>
           <Link href={back} aria-label="Back to funnel">
-            <ArrowLeftIcon />
+            <ArrowLeftIcon className="rtl:-scale-x-100" />
           </Link>
         </Button>
       </Tooltip>
@@ -113,7 +117,7 @@ function EditorHeader({
               <span className="max-w-full truncate text-sm font-semibold">
                 {props.step.name}
                 {props.variant && (
-                  <span className="ml-1.5 rounded bg-sky-500/15 px-1.5 py-0.5 text-[10px] font-bold text-sky-700 dark:text-sky-400">
+                  <span className="ms-1.5 rounded bg-sky-500/15 px-1.5 py-0.5 text-[10px] font-bold text-sky-700 dark:text-sky-400">
                     VARIANT {props.variant.name}
                   </span>
                 )}
@@ -143,7 +147,7 @@ function EditorHeader({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <div className="ml-1 flex items-center">
+      <div className="ms-1 flex items-center">
         <Tooltip label="Undo (⌘Z)" side="bottom">
           <Button variant="ghost" size="icon" disabled={!history.hasPast} onClick={history.back} aria-label="Undo">
             <Undo2Icon />
@@ -178,6 +182,17 @@ function EditorHeader({
       </Button>
     </header>
   );
+}
+
+/** Sets the canvas iframe's language and direction to the site's (read from context, stays stable). */
+function CanvasDirection({ children, document: doc }: { children: React.ReactNode; document?: Document }) {
+  const { props } = useContext(ChromeContext)!;
+  useEffect(() => {
+    if (!doc) return;
+    doc.documentElement.setAttribute("lang", props.siteLocale);
+    doc.documentElement.setAttribute("dir", dir(props.siteLocale));
+  }, [doc, props.siteLocale]);
+  return <>{children}</>;
 }
 
 export function PageEditor(props: Props) {
@@ -250,8 +265,8 @@ export function PageEditor(props: Props) {
   }, [flush]);
 
   const metadata = useMemo<BlockRuntime>(
-    () => ({ mode: "editor", offers: props.offers, payments: { provider: "test" } }),
-    [props.offers],
+    () => ({ mode: "editor", offers: props.offers, payments: { provider: "test" }, lang: props.siteLocale }),
+    [props.offers, props.siteLocale],
   );
   // Overrides must stay referentially stable: a new header component would remount it
   // (and lose open panels or a pending AI answer) on every autosave. Live values flow via context.
@@ -259,7 +274,7 @@ export function PageEditor(props: Props) {
     () => ({ props, saveState, onPublish, publishing }),
     [props, saveState, onPublish, publishing],
   );
-  const overrides = useMemo(() => ({ header: HeaderFromContext }), []);
+  const overrides = useMemo(() => ({ header: HeaderFromContext, iframe: CanvasDirection }), []);
 
   return (
     <ChromeContext.Provider value={chrome}>

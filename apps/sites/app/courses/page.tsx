@@ -6,22 +6,24 @@ import { myCourses } from "@/lib/courses";
 import { currentWorkspace } from "@/lib/site";
 import { LoginForm, SignOut } from "../account/account-client";
 import { Brand } from "@/app/brand";
+import { getT } from "@/lib/i18n";
 
-export const metadata: Metadata = { title: "My courses", robots: { index: false } };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())("courses.myCourses"), robots: { index: false } };
+}
 
 export default async function MyCoursesPage() {
   const ws = await currentWorkspace();
   if (!ws) notFound();
   const me = await currentCustomer(ws.id);
+  const t = await getT();
   if (!me)
     return (
       <main className="flex min-h-dvh items-center justify-center bg-zinc-50 p-4 text-zinc-900">
         <div className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm">
           <p className="text-sm font-semibold text-zinc-500">{ws.name}</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight">Member area</h1>
-          <p className="mt-2 mb-6 text-sm text-zinc-600">
-            Sign in with the email you used to buy. We'll send you a secure link.
-          </p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight">{t("courses.memberArea")}</h1>
+          <p className="mt-2 mb-6 text-sm text-zinc-600">{t("courses.signInIntro")}</p>
           <LoginForm next="/courses" />
         </div>
       </main>
@@ -35,16 +37,16 @@ export default async function MyCoursesPage() {
             <Brand ws={ws} />
           </span>
           <Link href="/account" className="text-sm font-medium text-zinc-500 hover:text-zinc-900">
-            Account
+            {t("courses.account")}
           </Link>
           <SignOut />
         </div>
       </header>
       <div className="mx-auto max-w-5xl px-4 py-10">
-        <h1 className="text-3xl font-bold tracking-tight">My courses</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t("courses.myCourses")}</h1>
         {list.length === 0 ? (
           <p className="mt-6 rounded-2xl border border-dashed border-zinc-300 p-10 text-center text-zinc-500">
-            You don't have any courses yet.
+            {t("courses.none")}
           </p>
         ) : (
           <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -64,7 +66,7 @@ export default async function MyCoursesPage() {
                     <div className="h-full rounded-full bg-indigo-600" style={{ width: `${c.percent}%` }} />
                   </div>
                   <p className="mt-2 text-xs text-zinc-500">
-                    {c.completed} of {c.lessons} lessons · {c.percent}%
+                    {t("courses.lessonsProgress", { completed: c.completed, count: c.lessons, percent: c.percent })}
                   </p>
                 </div>
               </Link>

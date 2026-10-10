@@ -126,7 +126,7 @@ export function NewFunnelDialog({
                       onClick={() => setSource(`template:${t.id}`)}
                       aria-pressed={selected}
                       className={cn(
-                        "group relative overflow-hidden rounded-xl border text-left transition-all",
+                        "group relative overflow-hidden rounded-xl border text-start transition-all",
                         selected ? "border-primary ring-4 ring-primary/20" : "hover:border-foreground/25",
                       )}
                     >
@@ -139,7 +139,7 @@ export function NewFunnelDialog({
                           className="pointer-events-none absolute top-0 left-0 h-[600px] w-[1280px] origin-top-left scale-[0.245] border-0"
                         />
                         {selected && (
-                          <span className="absolute top-2 right-2 flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground shadow">
+                          <span className="absolute end-2 top-2 flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground shadow">
                             <CheckIcon className="size-4" />
                           </span>
                         )}
@@ -165,7 +165,7 @@ export function NewFunnelDialog({
                   type="button"
                   onClick={() => setSource(`preset:${p.key}`)}
                   className={cn(
-                    "flex flex-col gap-3 rounded-xl border p-4 text-left transition-colors",
+                    "flex flex-col gap-3 rounded-xl border p-4 text-start transition-colors",
                     source === `preset:${p.key}`
                       ? "border-primary bg-primary/[0.03] ring-4 ring-primary/20"
                       : "hover:border-primary/50",

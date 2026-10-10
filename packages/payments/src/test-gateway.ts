@@ -20,14 +20,14 @@ export type TestCardResult =
 export function chargeTestCard(cardNumber: string, expiry: string, cvc: string): TestCardResult {
   const digits = cardNumber.replace(/\D/g, "");
   const [mm, yy] = expiry.split("/").map((s) => Number(s.trim()));
-  if (!/^\d{3,4}$/.test(cvc.trim())) return { ok: false, message: "Your card's security code is invalid." };
-  if (!mm || !yy || mm < 1 || mm > 12) return { ok: false, message: "Your card's expiration date is invalid." };
+  if (!/^\d{3,4}$/.test(cvc.trim())) return { ok: false, message: "errors.cardCvcInvalid" };
+  if (!mm || !yy || mm < 1 || mm > 12) return { ok: false, message: "errors.cardExpiryInvalid" };
   const year = yy < 100 ? 2000 + yy : yy;
   const now = new Date();
   if (year < now.getFullYear() || (year === now.getFullYear() && mm < now.getMonth() + 1))
-    return { ok: false, message: "Your card has expired." };
-  if (digits === TEST_CARDS.declined) return { ok: false, message: "Your card was declined." };
+    return { ok: false, message: "errors.cardExpired" };
+  if (digits === TEST_CARDS.declined) return { ok: false, message: "errors.cardDeclined" };
   if (digits !== TEST_CARDS.success && digits !== TEST_CARDS.authRequired)
-    return { ok: false, message: `Test mode: use ${TEST_CARDS.success.replace(/(\d{4})/g, "$1 ").trim()}.` };
+    return { ok: false, message: "errors.testModeCard" };
   return { ok: true, last4: digits.slice(-4), brand: "visa", paymentMethodId: `test_pm_${digits.slice(-4)}` };
 }

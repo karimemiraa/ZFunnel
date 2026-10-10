@@ -157,12 +157,12 @@ export default async function AnalyticsPage({
           {funnel ? (
             <div className="overflow-hidden rounded-xl border bg-card">
               <table className="w-full text-sm">
-                <thead className="bg-muted/50 text-left text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                <thead className="bg-muted/50 text-start text-xs font-medium tracking-wide text-muted-foreground uppercase">
                   <tr>
                     <th className="px-4 py-3">Step</th>
-                    <th className="px-4 py-3 text-right">Visitors</th>
+                    <th className="px-4 py-3 text-end">Visitors</th>
                     <th className="px-4 py-3">Conversion</th>
-                    <th className="px-4 py-3 text-right">Revenue</th>
+                    <th className="px-4 py-3 text-end">Revenue</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -174,7 +174,7 @@ export default async function AnalyticsPage({
                           {s.name}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right tabular-nums">{s.visitors.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-end tabular-nums">{s.visitors.toLocaleString()}</td>
                       <td className="px-4 py-3">
                         {s.tracked ? (
                           <div className="flex items-center gap-3">
@@ -193,7 +193,7 @@ export default async function AnalyticsPage({
                           <span className="text-muted-foreground">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-right font-medium tabular-nums">
+                      <td className="px-4 py-3 text-end font-medium tabular-nums">
                         {s.revenue ? formatMoney(s.revenue, cur) : "—"}
                       </td>
                     </tr>

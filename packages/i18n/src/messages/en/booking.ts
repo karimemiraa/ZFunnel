@@ -1,0 +1,18 @@
+export const booking = {
+  metaTitle: "Booking",
+  minutes: { one: "{count} minute", other: "{count} minutes" },
+  booked: "You're booked!",
+  bookedFor: "{name} on {when}",
+  confirmationSent: "A confirmation is on its way to your inbox.",
+  prevMonth: "Previous month",
+  nextMonth: "Next month",
+  timesShownIn: "Times shown in {tz}",
+  noTimes: "No times available right now.",
+  back: "Back",
+  enterDetails: "Enter your details",
+  name: "Name",
+  email: "Email",
+  notes: "Anything we should know? (optional)",
+  booking: "Booking…",
+  confirm: "Confirm booking",
+};

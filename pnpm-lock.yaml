@@ -35,6 +35,9 @@ importers:
       '@zfunnel/email':
         specifier: workspace:*
         version: link:../../packages/email
+      '@zfunnel/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@zfunnel/payments':
         specifier: workspace:*
         version: link:../../packages/payments
@@ -117,6 +120,9 @@ importers:
       '@zfunnel/email':
         specifier: workspace:*
         version: link:../../packages/email
+      '@zfunnel/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@zfunnel/payments':
         specifier: workspace:*
         version: link:../../packages/payments
@@ -193,6 +199,9 @@ importers:
       '@zfunnel/email':
         specifier: workspace:*
         version: link:../../packages/email
+      '@zfunnel/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@zfunnel/queue':
         specifier: workspace:*
         version: link:../../packages/queue
@@ -279,6 +288,9 @@ importers:
       '@fontsource-variable/manrope':
         specifier: 5.3.0
         version: 5.3.0
+      '@fontsource-variable/noto-sans-arabic':
+        specifier: 5.3.0
+        version: 5.3.0
       '@fontsource-variable/outfit':
         specifier: 5.3.0
         version: 5.3.0
@@ -300,6 +312,9 @@ importers:
       '@stripe/stripe-js':
         specifier: 9.17.0
         version: 9.17.0
+      '@zfunnel/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       '@zfunnel/shared':
         specifier: workspace:*
         version: link:../shared
@@ -392,6 +407,9 @@ importers:
       '@puckeditor/core':
         specifier: 0.23.0
         version: 0.23.0(@floating-ui/dom@1.8.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(use-sync-external-store@1.7.0(react@19.3.0))
+      '@zfunnel/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       nodemailer:
         specifier: 10.0.10
         version: 10.0.10
@@ -408,6 +426,30 @@ importers:
       '@types/sanitize-html':
         specifier: 2.16.1
         version: 2.16.1
+      '@zfunnel/config':
+        specifier: workspace:*
+        version: link:../config
+      eslint:
+        specifier: 9.39.5
+        version: 9.39.5(jiti@2.7.0)
+      react:
+        specifier: 19.3.0
+        version: 19.3.0
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 5.0.2
+        version: 5.0.2(@types/node@22.20.4)(happy-dom@20.14.5)(vite@8.3.1(@types/node@22.20.4)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
+
+  packages/i18n:
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.4
+        version: 22.20.4
+      '@types/react':
+        specifier: 19.3.0
+        version: 19.3.0
       '@zfunnel/config':
         specifier: workspace:*
         version: link:../config
@@ -1252,6 +1294,9 @@ packages:
 
   '@fontsource-variable/manrope@5.3.0':
     resolution: {integrity: sha512-6D5dgokHsWDDMtmXHznKa0hK229NN+1a4BLPmUCLqcO1Pw5EEhWY5RFt0AcXnVRAljFFPfRtLkJePQj6LSsV6g==}
+
+  '@fontsource-variable/noto-sans-arabic@5.3.0':
+    resolution: {integrity: sha512-Rz8+DBzza3//cmN+DBQajJhx3x+Dx12eUgnQsTOgPWbOT0+In6APmE8z4I/QQnUWfAx+s8l93+60qDT5vJH1sA==}
 
   '@fontsource-variable/outfit@5.3.0':
     resolution: {integrity: sha512-fPb5XnYK0k7SbR++HEmm4+ZqDszmLKQ+sPRUr8oQ/KNC0vy6r6hazJFe8iYozv4cqlHbvJ/JECkJWrfDodUMVQ==}
@@ -4932,6 +4977,8 @@ snapshots:
   '@fontsource-variable/inter@5.3.0': {}
 
   '@fontsource-variable/manrope@5.3.0': {}
+
+  '@fontsource-variable/noto-sans-arabic@5.3.0': {}
 
   '@fontsource-variable/outfit@5.3.0': {}
 

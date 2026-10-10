@@ -9,6 +9,7 @@ import {
   GlobeIcon,
   MapPinIcon,
 } from "lucide-react";
+import { useIntlLocale, useLocale, useT } from "@zfunnel/i18n/react";
 import { useMemo, useState } from "react";
 
 type Props = {
@@ -24,6 +25,10 @@ type Props = {
 const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 
 export function BookingWidget(p: Props) {
+  const t = useT();
+  const tag = useIntlLocale();
+  // Arabic calendars start the week on Sunday; ours otherwise on Monday.
+  const weekStart = useLocale() === "ar" ? 0 : 1;
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const byDay = useMemo(() => {
     const m = new Map<string, Date[]>();
@@ -44,23 +49,27 @@ export function BookingWidget(p: Props) {
 
   const cells = useMemo(() => {
     const start = new Date(month);
-    const lead = (start.getDay() + 6) % 7; // Monday first
+    const lead = (start.getDay() - weekStart + 7) % 7;
     const days = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
     return [
       ...Array(lead).fill(null),
       ...Array.from({ length: days }, (_, i) => new Date(month.getFullYear(), month.getMonth(), i + 1)),
     ];
-  }, [month]);
-  const fmtTime = (d: Date) => d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  }, [month, weekStart]);
+  const fmtTime = (d: Date) => d.toLocaleTimeString(tag, { hour: "numeric", minute: "2-digit" });
   const fmtLong = (d: Date) =>
-    d.toLocaleString([], { weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit" });
+    d.toLocaleString(tag, { weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit" });
+  // Short weekday names in order, from a known Sunday (2024-01-07).
+  const weekdays = Array.from({ length: 7 }, (_, i) =>
+    new Date(2024, 0, 7 + ((i + weekStart) % 7)).toLocaleDateString(tag, { weekday: "short" }),
+  );
 
   const info = (
-    <div className="grid content-start gap-3 border-zinc-200 p-6 md:border-r">
+    <div className="grid content-start gap-3 border-zinc-200 p-6 md:border-e">
       <p className="text-sm font-medium text-zinc-500">{p.owner}</p>
       <h1 className="text-2xl font-bold tracking-tight">{p.name}</h1>
       <p className="flex items-center gap-2 text-sm text-zinc-600">
-        <ClockIcon className="size-4" /> {p.duration} minutes
+        <ClockIcon className="size-4" /> {t("booking.minutes", { count: p.duration })}
       </p>
       {p.location && (
         <p className="flex items-center gap-2 text-sm text-zinc-600">
@@ -82,11 +91,9 @@ export function BookingWidget(p: Props) {
         <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
           <CalendarCheckIcon className="size-7" />
         </span>
-        <h1 className="mt-4 text-2xl font-bold">You're booked!</h1>
-        <p className="mt-2 text-zinc-600">
-          {p.name} on <strong>{fmtLong(booked)}</strong>
-        </p>
-        <p className="mt-1 text-sm text-zinc-500">A confirmation is on its way to your inbox.</p>
+        <h1 className="mt-4 text-2xl font-bold">{t("booking.booked")}</h1>
+        <p className="mt-2 text-zinc-600">{t("booking.bookedFor", { name: p.name, when: fmtLong(booked) })}</p>
+        <p className="mt-1 text-sm text-zinc-500">{t("booking.confirmationSent")}</p>
       </div>
     );
 
@@ -97,28 +104,28 @@ export function BookingWidget(p: Props) {
         <div className="grid gap-6 p-6 sm:grid-cols-[1fr_180px]">
           <div>
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="font-semibold">{month.toLocaleDateString([], { month: "long", year: "numeric" })}</h2>
+              <h2 className="font-semibold">{month.toLocaleDateString(tag, { month: "long", year: "numeric" })}</h2>
               <div className="flex gap-1">
                 <button
                   type="button"
-                  aria-label="Previous month"
+                  aria-label={t("booking.prevMonth")}
                   className="rounded-lg p-1.5 hover:bg-zinc-100"
                   onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}
                 >
-                  <ChevronLeftIcon className="size-5" />
+                  <ChevronLeftIcon className="size-5 rtl:-scale-x-100" />
                 </button>
                 <button
                   type="button"
-                  aria-label="Next month"
+                  aria-label={t("booking.nextMonth")}
                   className="rounded-lg p-1.5 hover:bg-zinc-100"
                   onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}
                 >
-                  <ChevronRightIcon className="size-5" />
+                  <ChevronRightIcon className="size-5 rtl:-scale-x-100" />
                 </button>
               </div>
             </div>
             <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-zinc-400">
-              {["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].map((d) => (
+              {weekdays.map((d) => (
                 <span key={d} className="py-1">
                   {d}
                 </span>
@@ -132,7 +139,7 @@ export function BookingWidget(p: Props) {
                     key={i}
                     type="button"
                     disabled={!has}
-                    aria-label={d.toDateString()}
+                    aria-label={d.toLocaleDateString(tag, { dateStyle: "full" })}
                     aria-pressed={day === k}
                     onClick={() => setDay(k)}
                     className={`aspect-square rounded-full text-sm transition ${day === k ? "bg-indigo-600 font-semibold text-white" : has ? "bg-indigo-50 font-semibold text-indigo-700 hover:bg-indigo-100" : "text-zinc-300"}`}
@@ -143,11 +150,11 @@ export function BookingWidget(p: Props) {
               })}
             </div>
             <p className="mt-4 flex items-center gap-1.5 text-xs text-zinc-500">
-              <GlobeIcon className="size-3.5" /> Times shown in {tz}
+              <GlobeIcon className="size-3.5" /> {t("booking.timesShownIn", { tz })}
             </p>
           </div>
           <div className="grid max-h-80 content-start gap-2 overflow-y-auto">
-            {!p.slots.length && <p className="text-sm text-zinc-500">No times available right now.</p>}
+            {!p.slots.length && <p className="text-sm text-zinc-500">{t("booking.noTimes")}</p>}
             {(day ? (byDay.get(day) ?? []) : []).map((s) => (
               <button
                 key={s.toISOString()}
@@ -184,7 +191,7 @@ export function BookingWidget(p: Props) {
             });
             const json = (await res.json().catch(() => ({}))) as { error?: string };
             if (!res.ok) {
-              setError(json.error ?? "Something went wrong.");
+              setError(json.error ?? t("common.somethingWrong"));
               return setState(res.status === 409 ? "pick" : "form");
             }
             setBooked(slot);
@@ -196,11 +203,11 @@ export function BookingWidget(p: Props) {
             onClick={() => setState("pick")}
             className="inline-flex w-fit items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900"
           >
-            <ArrowLeftIcon className="size-4" /> Back
+            <ArrowLeftIcon className="size-4 rtl:-scale-x-100" /> {t("booking.back")}
           </button>
-          <h2 className="text-lg font-semibold">Enter your details</h2>
+          <h2 className="text-lg font-semibold">{t("booking.enterDetails")}</h2>
           <label className="grid gap-1.5 text-sm font-medium">
-            Name
+            {t("booking.name")}
             <input
               name="name"
               required
@@ -209,7 +216,7 @@ export function BookingWidget(p: Props) {
             />
           </label>
           <label className="grid gap-1.5 text-sm font-medium">
-            Email
+            {t("booking.email")}
             <input
               name="email"
               type="email"
@@ -219,7 +226,7 @@ export function BookingWidget(p: Props) {
             />
           </label>
           <label className="grid gap-1.5 text-sm font-medium">
-            Anything we should know? (optional)
+            {t("booking.notes")}
             <textarea
               name="notes"
               rows={3}
@@ -236,7 +243,7 @@ export function BookingWidget(p: Props) {
             disabled={state === "sending"}
             className="h-12 rounded-xl bg-indigo-600 font-semibold text-white transition hover:bg-indigo-500 disabled:opacity-60"
           >
-            {state === "sending" ? "Booking…" : "Confirm booking"}
+            {state === "sending" ? t("booking.booking") : t("booking.confirm")}
           </button>
         </form>
       )}

@@ -7,18 +7,21 @@ import { jsonError, publicPost } from "@/lib/api";
 import { spaceById } from "@/lib/community";
 import { currentCustomer } from "@/lib/customer";
 
-const schema = z.object({ postId: z.string().uuid(), body: z.string().trim().min(1, "Write a comment").max(5_000) });
+const schema = z.object({
+  postId: z.string().uuid(),
+  body: z.string().trim().min(1, "errors.writeComment").max(5_000),
+});
 
 export async function POST(req: Request) {
   const g = await publicPost(req, "community-comment", 20);
   if ("error" in g) return g.error;
   const me = await currentCustomer(g.ws.id);
-  if (!me) return jsonError("Please sign in again.", 401);
+  if (!me) return jsonError("errors.signInAgain", 401);
   const p = schema.safeParse(g.body);
   if (!p.success) return jsonError(p.error.issues[0]!.message);
   const [post] = await system((tx) => tx.select().from(communityPosts).where(eq(communityPosts.id, p.data.postId)));
   if (!post || post.workspaceId !== g.ws.id || post.hidden || !(await spaceById(g.ws.id, post.spaceId, me.id)))
-    return jsonError("Post not found.", 404);
+    return jsonError("errors.postNotFound", 404);
   await system((tx) =>
     tx.insert(communityComments).values({
       workspaceId: g.ws.id,

@@ -114,7 +114,7 @@ export function ContactProfile({
         <div className="flex flex-wrap gap-1.5">
           {contact.tags.length === 0 && <span className="text-sm text-muted-foreground">No tags yet</span>}
           {contact.tags.map((t) => (
-            <Badge key={t} variant="secondary" className="gap-1 pr-1">
+            <Badge key={t} variant="secondary" className="gap-1 pe-1">
               {t}
               <button
                 type="button"

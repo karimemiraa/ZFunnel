@@ -16,7 +16,7 @@ import {
   ZapIcon,
 } from "lucide-react";
 import { safeUrl } from "./content";
-import { getRuntime } from "../runtime";
+import { blockT, getRuntime } from "../runtime";
 import { cx } from "../utils";
 
 export const ICONS = {
@@ -99,7 +99,7 @@ export const Features: ComponentConfig<FeaturesProps> = {
       className={cx(
         "grid w-full gap-5",
         { "2": "md:grid-cols-2", "3": "md:grid-cols-3", "4": "md:grid-cols-2 lg:grid-cols-4" }[columns],
-        align === "center" ? "text-center" : "text-left",
+        align === "center" ? "text-center" : "text-start",
       )}
     >
       {items.map((item, i) => {
@@ -219,14 +219,15 @@ export const Testimonials: ComponentConfig<TestimonialsProps> = {
     layout: "grid",
     stars: true,
   },
-  render: ({ items, layout, stars }) => {
+  render: ({ items, layout, stars, puck }) => {
+    const tr = blockT(getRuntime(puck.metadata));
     const list = layout === "single" ? items.slice(0, 1) : items;
     return (
-      <div className={cx("grid w-full gap-5 text-left", layout === "grid" ? "md:grid-cols-3" : "mx-auto max-w-3xl")}>
+      <div className={cx("grid w-full gap-5 text-start", layout === "grid" ? "md:grid-cols-3" : "mx-auto max-w-3xl")}>
         {list.map((t, i) => (
           <figure key={i} className={cx(card, "flex flex-col gap-5 p-6", layout === "single" && "p-8 md:p-10")}>
             {stars && (
-              <div className="flex gap-0.5 text-amber-400" aria-label="5 out of 5 stars">
+              <div className="flex gap-0.5 text-amber-400" aria-label={tr("blocks.fiveStars")}>
                 {Array.from({ length: 5 }, (_, s) => (
                   <StarIcon key={s} className="size-4 fill-current" />
                 ))}
@@ -282,7 +283,7 @@ export const Faq: ComponentConfig<FaqProps> = {
     ],
   },
   render: ({ items }) => (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 text-left">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 text-start">
       {items.map((item, i) => (
         <details key={i} className={cx(card, "group px-5 py-4 [&_summary::-webkit-details-marker]:hidden")}>
           <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-[17px] font-semibold">
@@ -379,7 +380,7 @@ export const Pricing: ComponentConfig<PricingProps> = {
     return (
       <div
         className={cx(
-          "mx-auto grid w-full gap-6 text-left",
+          "mx-auto grid w-full gap-6 text-start",
           plans.length >= 3 ? "max-w-6xl md:grid-cols-3" : "max-w-4xl md:grid-cols-2",
         )}
       >
@@ -398,7 +399,7 @@ export const Pricing: ComponentConfig<PricingProps> = {
           >
             {p.highlighted && (
               <span
-                className="absolute -top-3 left-7 rounded-full px-3 py-1 text-xs font-semibold"
+                className="absolute start-7 -top-3 rounded-full px-3 py-1 text-xs font-semibold"
                 style={{ background: "var(--zf-primary)", color: "var(--zf-on-primary)" }}
               >
                 Most popular
@@ -517,11 +518,11 @@ export const Guarantee: ComponentConfig<GuaranteeProps> = {
     title: "100% money-back guarantee",
     text: "Try it risk-free. If you're not happy within 30 days, email us and we'll refund every cent. No questions asked.",
   },
-  render: ({ days, title, text }) => (
+  render: ({ days, title, text, puck }) => (
     <div
       className={cx(
         card,
-        "mx-auto flex w-full max-w-3xl flex-col items-center gap-5 p-6 text-center sm:flex-row sm:text-left",
+        "mx-auto flex w-full max-w-3xl flex-col items-center gap-5 p-6 text-center sm:flex-row sm:text-start",
       )}
     >
       <div
@@ -529,7 +530,9 @@ export const Guarantee: ComponentConfig<GuaranteeProps> = {
         style={{ borderColor: "var(--zf-primary)", color: "var(--zf-primary)" }}
       >
         <span className="text-3xl leading-none font-extrabold">{days}</span>
-        <span className="text-[10px] font-bold tracking-widest uppercase">days</span>
+        <span className="text-[10px] font-bold tracking-widest uppercase">
+          {blockT(getRuntime(puck.metadata))("blocks.days")}
+        </span>
       </div>
       <div className="flex flex-col gap-1.5">
         <h3 className="text-xl font-bold" style={{ fontFamily: "var(--zf-heading-font)" }}>
@@ -618,7 +621,7 @@ export const CustomHtml: ComponentConfig<CustomHtmlProps> = {
   render: ({ html, puck }) =>
     puck.isEditing ? (
       <div
-        className="w-full rounded-lg border border-dashed p-4 text-left font-mono text-xs"
+        className="w-full rounded-lg border border-dashed p-4 text-start font-mono text-xs"
         style={{
           borderColor: "color-mix(in srgb, var(--zf-fg) 25%, transparent)",
           color: "color-mix(in srgb, var(--zf-fg) 60%, transparent)",

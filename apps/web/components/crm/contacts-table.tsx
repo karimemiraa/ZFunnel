@@ -59,13 +59,13 @@ export function ContactsTable({ workspaceSlug, rows }: { workspaceSlug: string; 
           <Button size="sm" variant="outline" disabled={busy || !tag} onClick={() => bulk("remove")}>
             Remove tag
           </Button>
-          <Button size="sm" variant="ghost" className="ml-auto" onClick={() => setSelected(new Set())}>
+          <Button size="sm" variant="ghost" className="ms-auto" onClick={() => setSelected(new Set())}>
             <XIcon /> Clear
           </Button>
         </div>
       )}
       <table className="w-full text-sm">
-        <thead className="bg-muted/50 text-left text-xs font-medium tracking-wide text-muted-foreground uppercase">
+        <thead className="bg-muted/50 text-start text-xs font-medium tracking-wide text-muted-foreground uppercase">
           <tr>
             <th className="w-10 px-4 py-3">
               <input
@@ -80,7 +80,7 @@ export function ContactsTable({ workspaceSlug, rows }: { workspaceSlug: string; 
             <th className="px-4 py-3 max-lg:hidden">Tags</th>
             <th className="px-4 py-3 max-md:hidden">Source</th>
             <th className="px-4 py-3 max-sm:hidden">Status</th>
-            <th className="px-4 py-3 text-right">Spent</th>
+            <th className="px-4 py-3 text-end">Spent</th>
           </tr>
         </thead>
         <tbody className="divide-y">
@@ -127,7 +127,7 @@ export function ContactsTable({ workspaceSlug, rows }: { workspaceSlug: string; 
                   <Badge variant="secondary">Lead</Badge>
                 )}
               </td>
-              <td className="px-4 py-3 text-right font-medium tabular-nums">
+              <td className="px-4 py-3 text-end font-medium tabular-nums">
                 {c.spent ? formatMoney(c.spent, "usd") : "—"}
               </td>
             </tr>

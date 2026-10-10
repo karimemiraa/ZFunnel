@@ -72,7 +72,7 @@ export default async function ContactPage({ params }: { params: Promise<{ worksp
         href={`/${ws}/contacts`}
         className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeftIcon className="size-3.5" /> Contacts
+        <ArrowLeftIcon className="size-3.5 rtl:-scale-x-100" /> Contacts
       </Link>
       <div className="mb-8 flex flex-wrap items-center gap-4">
         <span className="flex size-14 items-center justify-center rounded-full bg-primary/10 text-lg font-semibold text-primary">
@@ -86,7 +86,7 @@ export default async function ContactPage({ params }: { params: Promise<{ worksp
             {c.attribution?.utmSource ? ` (${c.attribution.utmSource})` : ""}
           </p>
         </div>
-        <div className="flex gap-6 text-right">
+        <div className="flex gap-6 text-end">
           <div>
             <div className="text-xs text-muted-foreground">Lifetime value</div>
             <div className="text-xl font-semibold tabular-nums">
@@ -124,7 +124,7 @@ export default async function ContactPage({ params }: { params: Promise<{ worksp
                       {o.items.map((i) => i.productName).join(", ")}
                     </span>
                     <OrderStatus status={o.status} test={o.test} />
-                    <span className="w-20 text-right font-medium tabular-nums">{formatMoney(o.total, o.currency)}</span>
+                    <span className="w-20 text-end font-medium tabular-nums">{formatMoney(o.total, o.currency)}</span>
                   </li>
                 ))}
               </ul>
@@ -141,7 +141,7 @@ export default async function ContactPage({ params }: { params: Promise<{ worksp
                     <span className="text-muted-foreground">
                       {pipeline} · {stage}
                     </span>
-                    <span className="w-20 text-right tabular-nums">{formatMoney(deal.value, deal.currency)}</span>
+                    <span className="w-20 text-end tabular-nums">{formatMoney(deal.value, deal.currency)}</span>
                   </li>
                 ))}
               </ul>
@@ -154,8 +154,8 @@ export default async function ContactPage({ params }: { params: Promise<{ worksp
               {data.activity.map(({ a, actor }) => {
                 const Icon = ICONS[a.type] ?? StickyNoteIcon;
                 return (
-                  <li key={a.id} className="relative flex gap-3 pb-5 pl-1">
-                    <span className="absolute top-8 bottom-0 left-[17px] w-px bg-border" aria-hidden />
+                  <li key={a.id} className="relative flex gap-3 ps-1 pb-5">
+                    <span className="absolute start-[17px] top-8 bottom-0 w-px bg-border" aria-hidden />
                     <span className="relative flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
                       <Icon className="size-4" />
                     </span>

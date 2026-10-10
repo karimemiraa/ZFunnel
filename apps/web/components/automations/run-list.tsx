@@ -42,7 +42,7 @@ export function RunList({
                 <Link href={`/${workspaceSlug}/contacts/${r.contactId}`} className="font-medium hover:underline">
                   {name || email}
                 </Link>
-                {name && <span className="ml-2 text-xs text-muted-foreground">{email}</span>}
+                {name && <span className="ms-2 text-xs text-muted-foreground">{email}</span>}
                 <p className="text-xs text-muted-foreground">
                   Started {fmt(r.startedAt)}
                   {r.status === "waiting" && r.resumeAt && ` · resumes ${fmt(r.resumeAt)}`}

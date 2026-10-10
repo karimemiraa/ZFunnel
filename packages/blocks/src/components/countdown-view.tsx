@@ -1,6 +1,8 @@
 "use client";
 
+import type { Locale } from "@zfunnel/i18n";
 import { useSyncExternalStore } from "react";
+import { blockT } from "../runtime";
 
 type Props = {
   mode: "date" | "evergreen";
@@ -9,6 +11,7 @@ type Props = {
   storageKey: string;
   style: "boxes" | "inline";
   expiredText: string;
+  lang?: Locale;
 };
 
 function remaining(target: number, nowMs: number) {
@@ -47,7 +50,8 @@ const getNow = () => Math.floor(Date.now() / 1000);
 const getServerNull = () => null;
 const subscribeNever = () => () => {};
 
-export function CountdownView({ mode, date, minutes, storageKey, style, expiredText }: Props) {
+export function CountdownView({ mode, date, minutes, storageKey, style, expiredText, lang }: Props) {
+  const t = blockT({ lang });
   const now = useSyncExternalStore(subscribeClock, getNow, getServerNull);
   // The deadline is a stable value read once on the client (evergreen) or parsed from the setting.
   const target = useSyncExternalStore(
@@ -58,24 +62,25 @@ export function CountdownView({ mode, date, minutes, storageKey, style, expiredT
 
   const r = target === null || now === null ? null : remaining(target, now * 1000);
   if (r && r.ms === 0 && expiredText) return <p className="text-center text-lg font-semibold">{expiredText}</p>;
-  const parts: [string, number | null][] = [
-    ["Days", r?.d ?? null],
-    ["Hours", r?.h ?? null],
-    ["Minutes", r?.m ?? null],
-    ["Seconds", r?.s ?? null],
+  // [label, short unit, value]
+  const parts: [string, string, number | null][] = [
+    [t("forms.days"), t("forms.dayShort"), r?.d ?? null],
+    [t("forms.hours"), t("forms.hourShort"), r?.h ?? null],
+    [t("forms.minutes"), t("forms.minuteShort"), r?.m ?? null],
+    [t("forms.seconds"), t("forms.secondShort"), r?.s ?? null],
   ];
   const shown = r && r.d === 0 ? parts.slice(1) : parts;
 
   if (style === "inline")
     return (
       <p className="text-center text-lg font-semibold tabular-nums" style={{ color: "var(--zf-primary)" }}>
-        {shown.map(([l, v]) => `${v === null ? "--" : String(v).padStart(2, "0")}${l[0]!.toLowerCase()}`).join(" : ")}
+        {shown.map(([, unit, v]) => `${v === null ? "--" : String(v).padStart(2, "0")}${unit}`).join(" : ")}
       </p>
     );
 
   return (
     <div className="flex justify-center gap-2.5 sm:gap-4" role="timer" aria-live="off">
-      {shown.map(([label, v]) => (
+      {shown.map(([label, , v]) => (
         <div
           key={label}
           className="flex w-[4.5rem] flex-col items-center rounded-[var(--zf-radius)] py-3 sm:w-24 sm:py-4"

@@ -22,6 +22,7 @@ import {
   type Tx,
 } from "@zfunnel/db";
 import { esc, renderEmail, signToken, trackingUrls, type EmailDoc } from "@zfunnel/email";
+import { dir, getTranslator, intlLocale, type Locale } from "@zfunnel/i18n";
 import { isHardBounce, sendEmail } from "@zfunnel/email/send";
 import { queue, type BroadcastJob, type EmailJob } from "@zfunnel/queue";
 
@@ -92,7 +93,11 @@ async function loadMessage(tx: Tx, messageId: string) {
   const [email] = m.emailId ? await tx.select().from(emails).where(eq(emails.id, m.emailId)) : [];
   const [settings] = await tx.select().from(emailSettings).where(eq(emailSettings.workspaceId, m.workspaceId));
   const [contact] = m.contactId ? await tx.select().from(contacts).where(eq(contacts.id, m.contactId)) : [];
-  return { m, email, settings, contact };
+  const [ws] = await tx
+    .select({ siteLocale: workspaces.siteLocale })
+    .from(workspaces)
+    .where(eq(workspaces.id, m.workspaceId));
+  return { m, email, settings, contact, locale: ws?.siteLocale ?? "en" };
 }
 
 /** Sends one message. Unsubscribed contacts are skipped; hard bounces stop future sends. */
@@ -126,6 +131,7 @@ export async function processEmail({ messageId }: EmailJob) {
     footer: { fromName: settings.fromName, postalAddress: settings.postalAddress, unsubscribeUrl: urls.unsubscribe },
     rewriteLink: urls.click,
     openPixelUrl: urls.open,
+    locale: loaded.locale,
   });
   const subject = email.subject.replace(/\{\{\s*([a-z0-9_]+)\s*(?:\|\s*([^}]*))?\}\}/gi, (_m, k: string, fb?: string) =>
     String((vars as Record<string, unknown>)[k.toLowerCase()] || fb || "").trim(),
@@ -158,8 +164,13 @@ export async function processEmail({ messageId }: EmailJob) {
   }
 }
 
-const brandSelect = { name: workspaces.name, logoUrl: workspaces.logoUrl, brandColor: workspaces.brandColor };
-type WsBrand = { name: string; logoUrl: string | null; brandColor: string } | undefined;
+const brandSelect = {
+  name: workspaces.name,
+  logoUrl: workspaces.logoUrl,
+  brandColor: workspaces.brandColor,
+  siteLocale: workspaces.siteLocale,
+};
+type WsBrand = { name: string; logoUrl: string | null; brandColor: string; siteLocale: Locale } | undefined;
 
 /** Safe brand color for inline styles (falls back to indigo). */
 const brandColor = (ws: WsBrand) => (ws && /^#[0-9a-f]{6}$/i.test(ws.brandColor) ? ws.brandColor : "#4f46e5");
@@ -169,6 +180,36 @@ const logoRow = (ws: WsBrand) =>
   ws?.logoUrl && /^https:\/\//.test(ws.logoUrl)
     ? `<tr><td style="padding:28px 36px 0"><img src="${esc(ws.logoUrl)}" alt="${esc(ws.name)}" height="32" style="height:32px;width:auto;border:0"></td></tr>`
     : "";
+
+/** Built-in emails speak the site's language (and read right-to-left in Arabic). */
+const emailT = (ws: WsBrand) => getTranslator(ws?.siteLocale ?? "en");
+const emailDate = (ws: WsBrand, d: Date, timeZone: string, year = false) =>
+  d.toLocaleString(intlLocale(ws?.siteLocale ?? "en"), {
+    timeZone,
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    ...(year ? { year: "numeric" } : {}),
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  });
+
+/** Card layout shared by the built-in emails. */
+function layout(ws: WsBrand, rows: string, maxWidth = 520) {
+  const locale = ws?.siteLocale ?? "en";
+  const rtl = dir(locale) === "rtl";
+  const font = rtl ? "Tahoma,'Segoe UI',Arial,sans-serif" : "-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif";
+  return `<!doctype html><html lang="${locale}" dir="${dir(locale)}"><body style="margin:0;background:#f4f4f7;font-family:${font}">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" dir="${dir(locale)}"><tr><td align="center" style="padding:40px 12px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:${maxWidth}px;background:#fff;border-radius:14px;text-align:${rtl ? "right" : "left"}">
+${logoRow(ws)}
+${rows}
+</table></td></tr></table></body></html>`;
+}
+
+const button = (ws: WsBrand, href: string, label: string) =>
+  `<a href="${esc(href)}" style="display:inline-block;background:${brandColor(ws)};color:#fff;text-decoration:none;font-weight:600;padding:13px 26px;border-radius:10px">${esc(label)}</a>`;
 
 /** Built-in transactional email: the customer-center sign-in link (no tracking, no unsubscribe). */
 async function sendLoginLink(
@@ -184,24 +225,24 @@ async function sendLoginLink(
   const [ws] = await withSystem(db(), (tx) =>
     tx.select(brandSelect).from(workspaces).where(eq(workspaces.id, m.workspaceId)),
   );
+  const t = emailT(ws);
   const fromName = settings?.fromName ?? ws?.name ?? "Customer center";
   const url = `${origin}/account/verify?t=${signToken("l", m.id)}`;
-  const html = `<!doctype html><html><body style="margin:0;background:#f4f4f7;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 12px">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#fff;border-radius:14px">
-${logoRow(ws)}
-<tr><td style="padding:36px 36px 8px;font-size:22px;font-weight:700;color:#111827">Sign in to your account</td></tr>
-<tr><td style="padding:0 36px 24px;font-size:15px;line-height:1.6;color:#4b5563">Click the button below to see your purchases and manage your subscriptions with ${esc(fromName)}. This link works once and expires in 30 minutes.</td></tr>
-<tr><td style="padding:0 36px 32px"><a href="${esc(url)}" style="display:inline-block;background:${brandColor(ws)};color:#fff;text-decoration:none;font-weight:600;padding:13px 26px;border-radius:10px">Sign in</a></td></tr>
-<tr><td style="padding:0 36px 32px;font-size:12px;color:#9ca3af">If you didn't ask for this, you can ignore this email.</td></tr>
-</table></td></tr></table></body></html>`;
+  const html = layout(
+    ws,
+    `<tr><td style="padding:36px 36px 8px;font-size:22px;font-weight:700;color:#111827">${esc(t("emails.loginTitle"))}</td></tr>
+<tr><td style="padding:0 36px 24px;font-size:15px;line-height:1.6;color:#4b5563">${esc(t("emails.loginText", { name: fromName }))}</td></tr>
+<tr><td style="padding:0 36px 32px">${button(ws, url, t("emails.loginButton"))}</td></tr>
+<tr><td style="padding:0 36px 32px;font-size:12px;color:#9ca3af">${esc(t("emails.loginIgnore"))}</td></tr>`,
+    480,
+  );
   const r = await sendEmail({
     fromName,
     replyTo: settings?.replyTo,
     to: m.toEmail,
     subject: m.subject,
     html,
-    text: `Sign in to your account: ${url}\n\nThis link works once and expires in 30 minutes.`,
+    text: t("emails.loginPlain", { url }),
     messageId: m.id,
   });
   await mark({ status: "sent", sentAt: new Date(), providerMessageId: r.providerMessageId });
@@ -225,42 +266,33 @@ async function sendBookingConfirmation(
     return { skipped: true };
   }
   const { b, c, ws, wsName } = row;
+  const t = emailT(ws);
   const fromName = settings?.fromName ?? wsName;
-  const when = b.startAt.toLocaleString("en-US", {
-    timeZone: c.timezone,
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    timeZoneName: "short",
-  });
+  const when = emailDate(ws, b.startAt, c.timezone, true);
+  const duration = t("emails.minutes", { count: c.durationMinutes });
   const stamp = (d: Date) =>
     d
       .toISOString()
       .replace(/[-:]/g, "")
       .replace(/\.\d{3}/, "");
   const gcal = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`${c.name} (${fromName})`)}&dates=${stamp(b.startAt)}/${stamp(b.endAt)}&location=${encodeURIComponent(c.location)}&details=${encodeURIComponent(c.description)}`;
-  const html = `<!doctype html><html><body style="margin:0;background:#f4f4f7;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 12px">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:14px">
-${logoRow(ws)}
-<tr><td style="padding:36px 36px 8px;font-size:13px;font-weight:600;color:#059669">BOOKING CONFIRMED</td></tr>
+  const html = layout(
+    ws,
+    `<tr><td style="padding:36px 36px 8px;font-size:13px;font-weight:600;color:#059669">${esc(t("emails.bookingConfirmed"))}</td></tr>
 <tr><td style="padding:0 36px 8px;font-size:22px;font-weight:700;color:#111827">${esc(c.name)}</td></tr>
 <tr><td style="padding:0 36px 4px;font-size:15px;color:#374151">📅 ${esc(when)}</td></tr>
-<tr><td style="padding:0 36px 4px;font-size:15px;color:#374151">⏱ ${c.durationMinutes} minutes</td></tr>
+<tr><td style="padding:0 36px 4px;font-size:15px;color:#374151">⏱ ${esc(duration)}</td></tr>
 ${c.location ? `<tr><td style="padding:0 36px 4px;font-size:15px;color:#374151">📍 ${esc(c.location)}</td></tr>` : ""}
-<tr><td style="padding:24px 36px 32px"><a href="${esc(gcal)}" style="display:inline-block;background:${brandColor(ws)};color:#fff;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:10px">Add to Google Calendar</a></td></tr>
-<tr><td style="padding:0 36px 32px;font-size:13px;color:#6b7280">Need to change the time? Just reply to this email.</td></tr>
-</table></td></tr></table></body></html>`;
+<tr><td style="padding:24px 36px 32px">${button(ws, gcal, t("emails.addToGoogle"))}</td></tr>
+<tr><td style="padding:0 36px 32px;font-size:13px;color:#6b7280">${esc(t("emails.changeTime"))}</td></tr>`,
+  );
   const r = await sendEmail({
     fromName,
     replyTo: settings?.replyTo,
     to: m.toEmail,
     subject: m.subject,
     html,
-    text: `Booking confirmed: ${c.name}\n${when}\n${c.durationMinutes} minutes${c.location ? `\n${c.location}` : ""}\n\nAdd to Google Calendar: ${gcal}`,
+    text: `${t("emails.bookingPlain", { name: c.name, when, duration })}${c.location ? `\n${c.location}` : ""}\n\n${t("emails.addToGoogle")}: ${gcal}`,
     messageId: m.id,
   });
   await mark({ status: "sent", sentAt: new Date(), providerMessageId: r.providerMessageId });
@@ -290,23 +322,29 @@ async function sendChatReply(
     await mark({ status: "skipped", error: "Conversation not found" });
     return { skipped: true };
   }
+  const t = emailT(row.ws);
   const fromName = settings?.fromName ?? row.wsName;
+  const you = t("emails.you");
   const origin = m.meta?.siteOrigin && /^https?:\/\/[^/]+$/.test(m.meta.siteOrigin) ? m.meta.siteOrigin : null;
   const lines = row.msgs
     .map(
       (x) =>
-        `<tr><td style="padding:0 36px 12px"><div style="font-size:12px;color:#9ca3af;margin-bottom:4px">${x.sender === "owner" ? esc(fromName) : "You"}</div><div style="font-size:15px;line-height:1.55;color:#111827;white-space:pre-wrap;${x.sender === "owner" ? "background:#eef2ff" : "background:#f4f4f5"};border-radius:12px;padding:10px 14px">${esc(x.body)}</div></td></tr>`,
+        `<tr><td style="padding:0 36px 12px"><div style="font-size:12px;color:#9ca3af;margin-bottom:4px">${esc(x.sender === "owner" ? fromName : you)}</div><div dir="auto" style="font-size:15px;line-height:1.55;color:#111827;white-space:pre-wrap;${x.sender === "owner" ? "background:#eef2ff" : "background:#f4f4f5"};border-radius:12px;padding:10px 14px">${esc(x.body)}</div></td></tr>`,
     )
     .join("");
-  const html = `<!doctype html><html><body style="margin:0;background:#f4f4f7;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 12px">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:14px">
-${logoRow(row.ws)}
-<tr><td style="padding:32px 36px 16px;font-size:20px;font-weight:700;color:#111827">New reply from ${esc(fromName)}</td></tr>
+  const site = origin
+    ? `<a href="${esc(origin)}" style="color:${brandColor(row.ws)}">${esc(origin.replace(/^https?:\/\//, ""))}</a>`
+    : "";
+  const footer = origin
+    ? esc(t("emails.continueChatOn", { site: "\u0000" })).replace("\u0000", site)
+    : esc(t("emails.replyToContinue"));
+  const html = layout(
+    row.ws,
+    `<tr><td style="padding:32px 36px 16px;font-size:20px;font-weight:700;color:#111827">${esc(t("emails.chatTitle", { name: fromName }))}</td></tr>
 ${lines}
-<tr><td style="padding:12px 36px 32px;font-size:13px;color:#6b7280">${origin ? `Continue the chat on <a href="${esc(origin)}" style="color:${brandColor(row.ws)}">${esc(origin.replace(/^https?:\/\//, ""))}</a> or just reply to this email.` : "Just reply to this email to continue."}</td></tr>
-</table></td></tr></table></body></html>`;
-  const text = row.msgs.map((x) => `${x.sender === "owner" ? fromName : "You"}: ${x.body}`).join("\n\n");
+<tr><td style="padding:12px 36px 32px;font-size:13px;color:#6b7280">${footer}</td></tr>`,
+  );
+  const text = row.msgs.map((x) => `${x.sender === "owner" ? fromName : you}: ${x.body}`).join("\n\n");
   const r = await sendEmail({
     fromName,
     replyTo: settings?.replyTo,
@@ -345,37 +383,28 @@ async function sendWebinarEmail(
     await mark({ status: "skipped", error: "Session already started" });
     return { skipped: true };
   }
+  const t = emailT(ws);
   const fromName = settings?.fromName ?? ws?.name ?? "";
   const url = `${origin}/webinar/watch/${r.token}`;
-  const when = r.sessionAt.toLocaleString("en-US", {
-    timeZone: w.timezone,
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    timeZoneName: "short",
-  });
+  const when = emailDate(ws, r.sessionAt, w.timezone);
   const confirm = m.meta?.kind === "webinar_confirm";
-  const heading = confirm ? "You're registered!" : "Starting soon";
-  const html = `<!doctype html><html><body style="margin:0;background:#f4f4f7;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 12px">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:14px">
-${logoRow(ws)}
-<tr><td style="padding:32px 36px 8px;font-size:13px;font-weight:600;color:${brandColor(ws)}">${heading.toUpperCase()}</td></tr>
+  const heading = t(confirm ? "emails.webinarRegistered" : "emails.webinarSoon");
+  const html = layout(
+    ws,
+    `<tr><td style="padding:32px 36px 8px;font-size:13px;font-weight:600;color:${brandColor(ws)}">${esc(heading.toUpperCase())}</td></tr>
 <tr><td style="padding:0 36px 8px;font-size:22px;font-weight:700;color:#111827">${esc(w.title)}</td></tr>
 <tr><td style="padding:0 36px 4px;font-size:15px;color:#374151">📅 ${esc(when)}</td></tr>
-<tr><td style="padding:0 36px 4px;font-size:15px;color:#374151">⏱ ${w.durationMinutes} minutes</td></tr>
-<tr><td style="padding:24px 36px 32px"><a href="${esc(url)}" style="display:inline-block;background:${brandColor(ws)};color:#fff;text-decoration:none;font-weight:600;padding:13px 26px;border-radius:10px">${confirm ? "Open my webinar room" : "Join the webinar"}</a></td></tr>
-<tr><td style="padding:0 36px 32px;font-size:13px;color:#6b7280">This link is personal. It opens your room with a countdown until the session starts.</td></tr>
-</table></td></tr></table></body></html>`;
+<tr><td style="padding:0 36px 4px;font-size:15px;color:#374151">⏱ ${esc(t("emails.minutes", { count: w.durationMinutes }))}</td></tr>
+<tr><td style="padding:24px 36px 32px">${button(ws, url, t(confirm ? "emails.openRoom" : "emails.joinWebinar"))}</td></tr>
+<tr><td style="padding:0 36px 32px;font-size:13px;color:#6b7280">${esc(t("emails.personalLink"))}</td></tr>`,
+  );
   const r2 = await sendEmail({
     fromName,
     replyTo: settings?.replyTo,
     to: m.toEmail,
     subject: m.subject,
     html,
-    text: `${heading} ${w.title}\n${when}\n\nJoin here: ${url}`,
+    text: `${heading} ${w.title}\n${when}\n\n${t("emails.joinHere", { url })}`,
     messageId: m.id,
   });
   await mark({ status: "sent", sentAt: new Date(), providerMessageId: r2.providerMessageId });

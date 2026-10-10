@@ -3,13 +3,18 @@ import { notFound } from "next/navigation";
 import { calendarBySlug, freeSlots } from "@/lib/booking";
 import { currentWorkspace } from "@/lib/site";
 import { BookingWidget } from "./booking-widget";
+import { getT } from "@/lib/i18n";
 
 type P = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: P): Promise<Metadata> {
   const ws = await currentWorkspace();
   const cal = ws ? await calendarBySlug(ws.id, (await params).slug) : null;
-  return { title: cal ? `${cal.name} · ${ws!.name}` : "Booking", description: cal?.description || undefined };
+  const t = await getT();
+  return {
+    title: cal ? `${cal.name} · ${ws!.name}` : t("booking.metaTitle"),
+    description: cal?.description || undefined,
+  };
 }
 
 export default async function BookPage({ params }: P) {

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { currentCustomer } from "@/lib/customer";
 import { courseForStudent } from "@/lib/courses";
 import { currentWorkspace } from "@/lib/site";
+import { getT } from "@/lib/i18n";
 import { LoginForm } from "../../account/account-client";
 import { CourseShell } from "./layout-shell";
 
@@ -16,9 +17,10 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
   const me = await currentCustomer(ws.id);
   const data = await courseForStudent(ws.id, slug, me?.id ?? null);
   if (!data) notFound();
+  const t = await getT();
   const next = data.flat.find((l) => l.open && !l.done) ?? data.flat.find((l) => l.open);
   return (
-    <CourseShell data={data} siteName={ws.name}>
+    <CourseShell data={data} siteName={ws.name} t={t} locale={ws.siteLocale}>
       <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white">
         <div className="aspect-[16/7] bg-gradient-to-br from-indigo-200 via-violet-100 to-white">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -34,16 +36,14 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
                   href={`/courses/${data.course.slug}/${next.id}`}
                   className="inline-flex h-12 items-center rounded-xl bg-indigo-600 px-6 font-semibold text-white hover:bg-indigo-500"
                 >
-                  {data.completed ? "Continue where you left off →" : "Start the course →"}
+                  {data.completed ? t("courses.continue") : t("courses.start")}
                 </Link>
               )
             ) : me ? (
-              <p className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">
-                You don't have access to this course yet. Free preview lessons are open on the right.
-              </p>
+              <p className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">{t("courses.noAccess")}</p>
             ) : (
               <div className="max-w-sm">
-                <p className="mb-3 text-sm text-zinc-600">Already bought it? Sign in to start learning.</p>
+                <p className="mb-3 text-sm text-zinc-600">{t("courses.alreadyBought")}</p>
                 <LoginForm next={`/courses/${data.course.slug}`} />
               </div>
             )}

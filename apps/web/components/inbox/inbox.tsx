@@ -180,13 +180,13 @@ export function Thread({
               <p
                 className={
                   m.sender === "owner"
-                    ? "rounded-2xl rounded-br-sm bg-primary px-3.5 py-2 whitespace-pre-wrap text-primary-foreground"
-                    : "rounded-2xl rounded-bl-sm border bg-background px-3.5 py-2 whitespace-pre-wrap"
+                    ? "rounded-2xl rounded-ee-sm bg-primary px-3.5 py-2 whitespace-pre-wrap text-primary-foreground"
+                    : "rounded-2xl rounded-es-sm border bg-background px-3.5 py-2 whitespace-pre-wrap"
                 }
               >
                 {m.body}
               </p>
-              <p className={`mt-1 text-[11px] text-muted-foreground ${m.sender === "owner" ? "text-right" : ""}`}>
+              <p className={`mt-1 text-[11px] text-muted-foreground ${m.sender === "owner" ? "text-end" : ""}`}>
                 {new Date(m.at).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}
               </p>
             </div>

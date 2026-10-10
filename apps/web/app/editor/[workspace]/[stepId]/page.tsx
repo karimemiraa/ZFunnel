@@ -44,6 +44,7 @@ export default async function EditorPage({
       variant={variant ? { id: variant.id, name: variant.name } : undefined}
       aiEnabled={aiConfigured()}
       offers={offers}
+      siteLocale={ctx.workspace.siteLocale}
     />
   );
 }

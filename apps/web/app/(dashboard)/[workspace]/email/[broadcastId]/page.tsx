@@ -38,7 +38,7 @@ export default async function BroadcastPage({
         href={`/${ws}/email`}
         className="mb-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeftIcon className="size-4" /> Email
+        <ArrowLeftIcon className="size-4 rtl:-scale-x-100" /> Email
       </Link>
       <PageHeader
         title={email.name}

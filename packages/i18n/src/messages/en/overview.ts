@@ -1,0 +1,14 @@
+export const overview = {
+  title: "Overview",
+  welcome: "Welcome, {name}",
+  happening: "Here's what's happening in {workspace}.",
+  gettingStarted: "Getting started",
+  gettingStartedHint: "Finish these steps to launch your first funnel.",
+  stepWorkspace: "Create your workspace",
+  stepPayments: "Connect Stripe to accept payments",
+  stepFunnel: "Build your first funnel from a template",
+  stepDomain: "Connect your own domain",
+  allDone: "You're all set. Time to drive traffic to your funnels.",
+  comingTitle: "{module} is coming soon",
+  comingText: "This section is on the ZFunnel roadmap.",
+};

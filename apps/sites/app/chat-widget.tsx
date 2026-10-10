@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@zfunnel/i18n/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type Msg = { id: string; sender: "visitor" | "owner"; body: string; createdAt: string };
@@ -7,6 +8,7 @@ type Cfg = { enabled: true; name: string; greeting: string; color: string; start
 
 /** Floating site chat. Loads lazily; renders nothing when the workspace has chat turned off. */
 export function ChatWidget() {
+  const t = useT();
   const [cfg, setCfg] = useState<Cfg | null>(null);
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
@@ -56,22 +58,22 @@ export function ChatWidget() {
     }).catch(() => null);
     const d = (await r?.json().catch(() => null)) as { error?: string } | null;
     setSending(false);
-    if (!r?.ok) return setError(d?.error ?? "Couldn't send. Please try again.");
+    if (!r?.ok) return setError(d?.error ?? t("site.couldNotSend"));
     setText("");
     await load();
   };
 
   return (
-    <div className="fixed right-4 bottom-4 z-[9999] flex flex-col items-end gap-3 font-sans text-zinc-900">
+    <div className="fixed end-4 bottom-4 z-[9999] flex flex-col items-end gap-3 font-sans text-zinc-900">
       {open && (
         <div
           role="dialog"
-          aria-label={`Chat with ${cfg.name}`}
+          aria-label={t("site.chatWith", { name: cfg.name })}
           className="flex h-[min(560px,calc(100dvh-6rem))] w-[min(370px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/5"
         >
           <div className="px-5 py-4 text-white" style={{ background: cfg.color }}>
             <p className="font-semibold">{cfg.name}</p>
-            <p className="text-sm opacity-90">We usually reply within a few hours, by email too.</p>
+            <p className="text-sm opacity-90">{t("site.replyTime")}</p>
           </div>
           <div ref={list} className="flex-1 space-y-2 overflow-y-auto bg-zinc-50 p-4 text-sm">
             <Bubble mine={false} color={cfg.color}>
@@ -87,17 +89,17 @@ export function ChatWidget() {
             {!cfg.started && (
               <div className="grid grid-cols-2 gap-2">
                 <input
-                  aria-label="Your name"
-                  placeholder="Your name"
+                  aria-label={t("site.yourName")}
+                  placeholder={t("site.yourName")}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400"
                 />
                 <input
-                  aria-label="Your email"
+                  aria-label={t("site.yourEmail")}
                   type="email"
                   required
-                  placeholder="Email (for replies)"
+                  placeholder={t("site.emailForReplies")}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400"
@@ -106,9 +108,9 @@ export function ChatWidget() {
             )}
             <div className="flex gap-2">
               <textarea
-                aria-label="Message"
+                aria-label={t("site.message")}
                 rows={1}
-                placeholder="Write a message…"
+                placeholder={t("site.writeMessage")}
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 onKeyDown={(e) => {
@@ -125,7 +127,7 @@ export function ChatWidget() {
                 className="rounded-lg px-4 text-sm font-semibold text-white disabled:opacity-60"
                 style={{ background: cfg.color }}
               >
-                Send
+                {t("site.send")}
               </button>
             </div>
             {error && <p className="text-xs text-red-600">{error}</p>}
@@ -134,7 +136,7 @@ export function ChatWidget() {
       )}
       <button
         type="button"
-        aria-label={open ? "Close chat" : "Open chat"}
+        aria-label={open ? t("site.closeChat") : t("site.openChat")}
         onClick={() => setOpen((o) => !o)}
         className="flex size-14 items-center justify-center rounded-full text-white shadow-xl transition hover:scale-105"
         style={{ background: cfg.color }}

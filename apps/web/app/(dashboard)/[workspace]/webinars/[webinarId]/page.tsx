@@ -30,7 +30,7 @@ export default async function WebinarPage({ params }: { params: Promise<{ worksp
         href={`/${ws}/webinars`}
         className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeftIcon className="size-4" /> Webinars
+        <ArrowLeftIcon className="size-4 rtl:-scale-x-100" /> Webinars
       </Link>
       <PageHeader
         title={w.title}
@@ -88,12 +88,12 @@ export default async function WebinarPage({ params }: { params: Promise<{ worksp
         ) : (
           <div className="overflow-hidden rounded-xl border bg-card">
             <table className="w-full text-sm">
-              <thead className="bg-muted/50 text-left text-xs font-medium tracking-wide text-muted-foreground uppercase">
+              <thead className="bg-muted/50 text-start text-xs font-medium tracking-wide text-muted-foreground uppercase">
                 <tr>
                   <th className="px-4 py-3">Name</th>
                   <th className="px-4 py-3">Session ({w.timezone})</th>
                   <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3 text-right max-sm:hidden">Registered</th>
+                  <th className="px-4 py-3 text-end max-sm:hidden">Registered</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -115,7 +115,7 @@ export default async function WebinarPage({ params }: { params: Promise<{ worksp
                             ? "Upcoming"
                             : "Missed"}
                     </td>
-                    <td className="px-4 py-3 text-right text-muted-foreground max-sm:hidden">{timeAgo(r.createdAt)}</td>
+                    <td className="px-4 py-3 text-end text-muted-foreground max-sm:hidden">{timeAgo(r.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>

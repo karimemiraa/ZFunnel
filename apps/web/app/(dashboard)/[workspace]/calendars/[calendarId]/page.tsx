@@ -35,7 +35,7 @@ export default async function CalendarPage({
         href={`/${ws}/calendars`}
         className="mb-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeftIcon className="size-4" /> Calendars
+        <ArrowLeftIcon className="size-4 rtl:-scale-x-100" /> Calendars
       </Link>
       <PageHeader
         title={cal.name}

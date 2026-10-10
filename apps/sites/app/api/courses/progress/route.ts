@@ -10,10 +10,10 @@ export async function POST(req: Request) {
   const g = await publicPost(req, "course-progress", 60);
   if ("error" in g) return g.error;
   const customer = await currentCustomer(g.ws.id);
-  if (!customer) return jsonError("Please sign in again.", 401);
+  if (!customer) return jsonError("errors.signInAgain", 401);
   const p = schema.safeParse(g.body);
-  if (!p.success) return jsonError("Invalid request.");
+  if (!p.success) return jsonError("errors.invalidRequest");
   if (!(await setProgress(g.ws.id, customer.id, p.data.lessonId, p.data.done)))
-    return jsonError("Lesson not available.", 403);
+    return jsonError("errors.lessonUnavailable", 403);
   return NextResponse.json({ ok: true });
 }

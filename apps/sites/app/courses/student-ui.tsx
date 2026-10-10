@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckCircle2Icon, CircleIcon } from "lucide-react";
+import { useT } from "@zfunnel/i18n/react";
 import { useState } from "react";
 
 export function CompleteButton({
@@ -12,6 +13,7 @@ export function CompleteButton({
   done: boolean;
   nextHref: string | null;
 }) {
+  const t = useT();
   const [busy, setBusy] = useState(false);
   const [isDone, setDone] = useState(done);
   return (
@@ -39,7 +41,7 @@ export function CompleteButton({
       }}
     >
       {isDone ? <CheckCircle2Icon className="size-5" /> : <CircleIcon className="size-5" />}
-      {isDone ? "Completed" : nextHref ? "Complete & continue" : "Mark complete"}
+      {isDone ? t("courses.completed") : nextHref ? t("courses.completeContinue") : t("courses.markComplete")}
     </button>
   );
 }

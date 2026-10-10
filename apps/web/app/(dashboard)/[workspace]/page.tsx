@@ -5,25 +5,52 @@ import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { requireWorkspace } from "@/lib/context";
 import { ROOT_DOMAIN } from "@/lib/env";
-import { NAV_MODULES } from "@/lib/nav";
+import { domains, funnels, paymentAccounts, sql } from "@zfunnel/db";
+import { inWorkspace } from "@/lib/funnels";
+import { getT } from "@/lib/i18n";
+import { NAV_MODULES, navText } from "@/lib/nav";
 
-export const metadata = { title: "Overview" };
+export async function generateMetadata() {
+  return { title: (await getT())("overview.title") };
+}
 
 export default async function OverviewPage({ params }: { params: Promise<{ workspace: string }> }) {
-  const { user, workspace } = await requireWorkspace(params);
+  const ctx = await requireWorkspace(params);
+  const { user, workspace } = ctx;
+  const t = await getT();
+  const progress = await inWorkspace(ctx, async (tx) => {
+    const one = async (q: Promise<{ n: number }[]>) => ((await q)[0]?.n ?? 0) > 0;
+    const count = sql<number>`count(*)::int`;
+    return {
+      payments: await one(
+        tx
+          .select({ n: count })
+          .from(paymentAccounts)
+          .where(sql`${paymentAccounts.chargesEnabled}`),
+      ),
+      funnel: await one(tx.select({ n: count }).from(funnels)),
+      domain: await one(
+        tx
+          .select({ n: count })
+          .from(domains)
+          .where(sql`${domains.status} = 'active'`),
+      ),
+    };
+  });
   const steps = [
-    { done: true, label: "Create your workspace" },
-    { done: false, label: "Connect Stripe to accept payments", phase: 1 },
-    { done: false, label: "Build your first funnel from a template", phase: 1 },
-    { done: false, label: "Connect your own domain", phase: 1 },
+    { done: true, label: t("overview.stepWorkspace") },
+    { done: progress.payments, label: t("overview.stepPayments") },
+    { done: progress.funnel, label: t("overview.stepFunnel") },
+    { done: progress.domain, label: t("overview.stepDomain") },
   ];
+  const allDone = steps.every((s) => s.done);
   const siteUrl = `${workspace.slug}.${ROOT_DOMAIN}`;
 
   return (
     <>
       <PageHeader
-        title={`Welcome, ${user.name.split(" ")[0]}`}
-        description={`Here's what's happening in ${workspace.name}.`}
+        title={t("overview.welcome", { name: user.name.split(" ")[0]! })}
+        description={t("overview.happening", { workspace: workspace.name })}
         actions={
           <a
             href={`${ROOT_DOMAIN.startsWith("localhost") ? "http" : "https"}://${siteUrl}`}
@@ -37,8 +64,8 @@ export default async function OverviewPage({ params }: { params: Promise<{ works
       />
       <Card className="mb-8">
         <CardHeader>
-          <CardTitle>Getting started</CardTitle>
-          <CardDescription>Finish these steps to launch your first funnel.</CardDescription>
+          <CardTitle>{t("overview.gettingStarted")}</CardTitle>
+          <CardDescription>{allDone ? t("overview.allDone") : t("overview.gettingStartedHint")}</CardDescription>
           <ol className="mt-4 space-y-3">
             {steps.map((s) => (
               <li key={s.label} className="flex items-center gap-3 text-sm">
@@ -48,11 +75,6 @@ export default async function OverviewPage({ params }: { params: Promise<{ works
                   <CircleIcon className="size-5 text-muted-foreground" />
                 )}
                 <span className={cn(s.done && "text-muted-foreground line-through")}>{s.label}</span>
-                {s.phase && (
-                  <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground uppercase">
-                    Soon
-                  </span>
-                )}
               </li>
             ))}
           </ol>
@@ -68,8 +90,8 @@ export default async function OverviewPage({ params }: { params: Promise<{ works
                   <div className="mb-2 flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
                     <Icon className="size-5" />
                   </div>
-                  <CardTitle className="text-base">{m.label}</CardTitle>
-                  <CardDescription>{m.description}</CardDescription>
+                  <CardTitle className="text-base">{navText(t, m.segment, "label")}</CardTitle>
+                  <CardDescription>{navText(t, m.segment, "description")}</CardDescription>
                 </CardHeader>
               </Card>
             </Link>

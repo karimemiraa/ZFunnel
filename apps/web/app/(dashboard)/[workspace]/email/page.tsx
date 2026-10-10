@@ -86,13 +86,13 @@ export default async function EmailPage({ params }: { params: Promise<{ workspac
       ) : (
         <div className="overflow-hidden rounded-xl border bg-card">
           <table className="w-full text-sm">
-            <thead className="bg-muted/50 text-left text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            <thead className="bg-muted/50 text-start text-xs font-medium tracking-wide text-muted-foreground uppercase">
               <tr>
                 <th className="px-4 py-3">Broadcast</th>
                 <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3 text-right max-md:hidden">Sent</th>
-                <th className="px-4 py-3 text-right max-md:hidden">Opens</th>
-                <th className="px-4 py-3 text-right max-md:hidden">Clicks</th>
+                <th className="px-4 py-3 text-end max-md:hidden">Sent</th>
+                <th className="px-4 py-3 text-end max-md:hidden">Opens</th>
+                <th className="px-4 py-3 text-end max-md:hidden">Clicks</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -112,9 +112,9 @@ export default async function EmailPage({ params }: { params: Promise<{ workspac
                       </p>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums max-md:hidden">{r.sent.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right tabular-nums max-md:hidden">{pct(r.opened, r.sent)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums max-md:hidden">{pct(r.clicked, r.sent)}</td>
+                  <td className="px-4 py-3 text-end tabular-nums max-md:hidden">{r.sent.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-end tabular-nums max-md:hidden">{pct(r.opened, r.sent)}</td>
+                  <td className="px-4 py-3 text-end tabular-nums max-md:hidden">{pct(r.clicked, r.sent)}</td>
                 </tr>
               ))}
             </tbody>

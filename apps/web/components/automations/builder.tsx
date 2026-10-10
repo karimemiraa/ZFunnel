@@ -109,7 +109,7 @@ export function AutomationBuilder({ workspaceSlug, workflow, lookups: initialLoo
       <header className="flex h-14 shrink-0 items-center gap-2 border-b px-3">
         <Button variant="ghost" size="icon" asChild>
           <Link href={`/${workspaceSlug}/automations`} aria-label="Back to automations">
-            <ArrowLeftIcon />
+            <ArrowLeftIcon className="rtl:-scale-x-100" />
           </Link>
         </Button>
         <input
@@ -182,7 +182,7 @@ export function AutomationBuilder({ workspaceSlug, workflow, lookups: initialLoo
             />
           </div>
           {selected && (
-            <aside className="absolute inset-y-0 right-0 z-10 w-full max-w-sm overflow-y-auto border-l bg-background p-5 shadow-xl sm:static sm:shadow-none">
+            <aside className="absolute inset-y-0 end-0 z-10 w-full max-w-sm overflow-y-auto border-s bg-background p-5 shadow-xl sm:static sm:shadow-none">
               {selected === "trigger" ? (
                 <div className="grid gap-5">
                   <div>

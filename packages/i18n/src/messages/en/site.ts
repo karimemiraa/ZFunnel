@@ -1,0 +1,17 @@
+export const site = {
+  notFound: "Page not found",
+  notFoundText: "This page doesn't exist or hasn't been published.",
+  nothingYet: "Nothing has been published here yet.",
+  chatWith: "Chat with {name}",
+  replyTime: "We usually reply within a few hours, by email too.",
+  yourName: "Your name",
+  yourEmail: "Your email",
+  emailForReplies: "Email (for replies)",
+  message: "Message",
+  writeMessage: "Write a message…",
+  send: "Send",
+  couldNotSend: "Couldn't send. Please try again.",
+  openChat: "Open chat",
+  closeChat: "Close chat",
+  defaultGreeting: "Hi there 👋 How can we help?",
+};

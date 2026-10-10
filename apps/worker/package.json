@@ -13,6 +13,7 @@
   "dependencies": {
     "@zfunnel/db": "workspace:*",
     "@zfunnel/email": "workspace:*",
+    "@zfunnel/i18n": "workspace:*",
     "@zfunnel/queue": "workspace:*",
     "@zfunnel/shared": "workspace:*",
     "bullmq": "6.3.9",

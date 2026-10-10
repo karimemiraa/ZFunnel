@@ -7,7 +7,7 @@ import { jsonError, publicPost } from "@/lib/api";
 import { queueLoginLink, requestOrigin } from "@/lib/customer";
 
 const schema = z.object({
-  email: z.string().trim().toLowerCase().email("Please enter a valid email address.").max(254),
+  email: z.string().trim().toLowerCase().email("errors.invalidEmail").max(254),
   // Same-site path only (never a full URL): prevents open redirects.
   next: z
     .string()
@@ -34,6 +34,7 @@ export async function POST(req: Request) {
     return queueLoginLink(tx, {
       workspaceId: g.ws.id,
       workspaceName: g.ws.name,
+      locale: g.ws.siteLocale,
       contactId: c.id,
       email: parsed.data.email,
       origin,

@@ -1,3 +1,4 @@
+import { getTranslator, intlLocale, type Locale, type T } from "@zfunnel/i18n";
 import { formatMoney } from "@zfunnel/shared";
 /**
  * Context passed to blocks via Puck `metadata`. The editor passes `{ mode: "editor" }`;
@@ -15,6 +16,8 @@ export type BlockRuntime = {
   store?: { priceId: string; shipping: boolean };
   /** Visitor's locale for number and price formatting (from Accept-Language). */
   locale?: string;
+  /** The site's language: built-in block text (labels, buttons, messages) uses it. */
+  lang?: Locale;
   /** Public API base for forms and checkout, e.g. "/api". */
   apiBase?: string;
   /** Offers attached to this step, resolved server-side (Phase 1.7+). */
@@ -39,16 +42,27 @@ export type RuntimeOffer = {
   headline?: string | null;
 };
 
-/** "$47", "$29/month", "3 × $99/month", "7-day free trial, then $29/month". */
+/** Translator for built-in block text, in the site's language. */
+export const blockT = (rt: Pick<BlockRuntime, "lang">) => getTranslator(rt.lang ?? "en");
+
+/** Number/price formatting: Arabic sites always format the Arabic way; others follow the visitor. */
+export const formatLocale = (rt: Pick<BlockRuntime, "lang" | "locale">) =>
+  rt.lang === "ar" ? intlLocale("ar") : rt.locale;
+
+/** "$47", "$29/month", "3 × $99/month", "7-day free trial, then $29/month" (localized). */
 export function describePrice(
   o: Pick<RuntimeOffer, "amount" | "currency" | "type" | "interval" | "trialDays" | "installments">,
+  t: T,
   locale?: string,
 ) {
   const money = formatMoney(o.amount, o.currency, locale);
   if (o.type === "one_time") return money;
-  const per = `${money}/${o.interval ?? "month"}`;
-  const base = o.type === "payment_plan" && o.installments ? `${o.installments} × ${per}` : per;
-  return o.trialDays ? `${o.trialDays}-day free trial, then ${base}` : base;
+  const per = t(o.interval === "year" ? "checkout.perYear" : "checkout.perMonth", { price: money });
+  const base =
+    o.type === "payment_plan" && o.installments
+      ? t("checkout.installments", { count: o.installments, price: per })
+      : per;
+  return o.trialDays ? t("checkout.trialThen", { count: o.trialDays, price: base }) : base;
 }
 
 /** Placeholder offers so checkout blocks look real in the editor before products are attached. */

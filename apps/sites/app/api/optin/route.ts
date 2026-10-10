@@ -1,6 +1,7 @@
 import { contacts, getDb, sql, withSystem } from "@zfunnel/db";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { jsonError } from "@/lib/api";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { resolveStepForWorkspace } from "@/lib/resolve";
 import { currentWorkspace } from "@/lib/site";
@@ -11,27 +12,26 @@ import { conversionContext } from "@/lib/conversion-context";
 
 const bodySchema = z.object({
   stepId: z.string().uuid(),
-  email: z.string().trim().toLowerCase().email("Please enter a valid email address.").max(254),
+  email: z.string().trim().toLowerCase().email("errors.invalidEmail").max(254),
   name: z.string().trim().max(120).optional(),
   phone: z.string().trim().max(40).optional(),
 });
 
 export async function POST(req: Request) {
   const ip = clientIp(req.headers);
-  if (!rateLimit(`optin:${ip}`, 10, 60_000))
-    return NextResponse.json({ error: "Too many attempts. Please wait a minute." }, { status: 429 });
+  if (!rateLimit(`optin:${ip}`, 10, 60_000)) return jsonError("errors.tooManyAttempts", 429);
 
   const ws = await currentWorkspace();
-  if (!ws) return NextResponse.json({ error: "Site not found." }, { status: 404 });
+  if (!ws) return jsonError("errors.siteNotFound", 404);
 
   const parsed = bodySchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success)
-    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid form." }, { status: 400 });
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "errors.invalidForm" }, { status: 400 });
   const { stepId, email, name, phone } = parsed.data;
 
   // The step must belong to the workspace serving this host: a form can't post leads into another tenant.
   const step = await resolveStepForWorkspace(ws.id, stepId);
-  if (!step) return NextResponse.json({ error: "This form is no longer available." }, { status: 404 });
+  if (!step) return jsonError("errors.formUnavailable", 404);
 
   const referrer = req.headers.get("referer") ?? undefined;
   const utm = referrer

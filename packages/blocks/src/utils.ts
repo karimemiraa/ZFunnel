@@ -3,7 +3,7 @@ import type { Align, HideOn } from "./fields";
 
 export const cx = (...v: ClassValue[]) => clsx(v);
 
-export const alignText: Record<Align, string> = { left: "text-left", center: "text-center", right: "text-right" };
+export const alignText: Record<Align, string> = { left: "text-start", center: "text-center", right: "text-end" };
 export const alignItems: Record<Align, string> = { left: "items-start", center: "items-center", right: "items-end" };
 export const justify: Record<Align, string> = { left: "justify-start", center: "justify-center", right: "justify-end" };
 

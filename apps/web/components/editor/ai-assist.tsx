@@ -98,7 +98,7 @@ export function AiAssist({
         <SparklesIcon className="text-violet-500" /> <span className="max-sm:hidden">AI</span>
       </Button>
       {open && (
-        <div className="fixed top-16 right-4 z-50 max-h-[calc(100dvh-5rem)] w-[min(22rem,calc(100vw-2rem))] overflow-y-auto rounded-xl border bg-popover p-4 text-popover-foreground shadow-2xl">
+        <div className="fixed end-4 top-16 z-50 max-h-[calc(100dvh-5rem)] w-[min(22rem,calc(100vw-2rem))] overflow-y-auto rounded-xl border bg-popover p-4 text-popover-foreground shadow-2xl">
           <div className="mb-3 flex items-center gap-2">
             <SparklesIcon className="size-4 text-violet-500" />
             <h2 className="flex-1 text-sm font-semibold">AI copywriter</h2>

@@ -87,12 +87,12 @@ export function SplitTest(p: Props) {
         </p>
       )}
       <table className="w-full text-sm">
-        <thead className="text-left text-xs text-muted-foreground">
+        <thead className="text-start text-xs text-muted-foreground">
           <tr>
             <th className="px-5 py-2 font-medium">Version</th>
-            <th className="px-3 py-2 text-right font-medium">Visitors</th>
-            <th className="px-3 py-2 text-right font-medium">Converted</th>
-            <th className="px-5 py-2 text-right font-medium">Rate</th>
+            <th className="px-3 py-2 text-end font-medium">Visitors</th>
+            <th className="px-3 py-2 text-end font-medium">Converted</th>
+            <th className="px-5 py-2 text-end font-medium">Rate</th>
           </tr>
         </thead>
         <tbody className="divide-y">
@@ -130,9 +130,9 @@ export function SplitTest(p: Props) {
                   </a>
                 </div>
               </td>
-              <td className="px-3 py-3 text-right tabular-nums">{r.visitors.toLocaleString()}</td>
-              <td className="px-3 py-3 text-right tabular-nums">{r.converted.toLocaleString()}</td>
-              <td className="px-5 py-3 text-right font-semibold tabular-nums">{r.visitors ? pct(r.rate) : "—"}</td>
+              <td className="px-3 py-3 text-end tabular-nums">{r.visitors.toLocaleString()}</td>
+              <td className="px-3 py-3 text-end tabular-nums">{r.converted.toLocaleString()}</td>
+              <td className="px-5 py-3 text-end font-semibold tabular-nums">{r.visitors ? pct(r.rate) : "—"}</td>
             </tr>
           ))}
         </tbody>

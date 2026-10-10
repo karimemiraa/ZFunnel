@@ -1,0 +1,27 @@
+{
+  "name": "@zfunnel/i18n",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./react": "./src/react.tsx"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "react": "^19"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.4",
+    "@types/react": "19.3.0",
+    "@zfunnel/config": "workspace:*",
+    "react": "19.3.0",
+    "eslint": "9.39.5",
+    "typescript": "5.9.3",
+    "vitest": "5.0.2"
+  }
+}

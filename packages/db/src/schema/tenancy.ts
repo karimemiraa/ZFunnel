@@ -22,6 +22,8 @@ export const workspaces = pgTable(
     brandColor: text().notNull().default("#4f46e5"),
     /** Hide "Powered by ZFunnel" (honored only on plans with the whiteLabel feature). */
     hideBadge: boolean().notNull().default(false),
+    /** Language of public pages, checkout and customer emails ("en" | "ar"). */
+    siteLocale: text().$type<"en" | "ar">().notNull().default("en"),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true })
       .notNull()

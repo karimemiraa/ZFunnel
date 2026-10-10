@@ -3,18 +3,18 @@
 import { loadStripe } from "@stripe/stripe-js";
 import { ArrowRightIcon, Loader2Icon } from "lucide-react";
 import { useState } from "react";
-import { describePrice, type BlockRuntime } from "../runtime";
+import { blockT, describePrice, formatLocale, type BlockRuntime } from "../runtime";
 
 export type UpsellSettings = { acceptLabel: string; acceptSublabel: string; declineLabel: string; showPrice: boolean };
 
-async function post<T>(url: string, body: unknown): Promise<T> {
+async function post<T>(url: string, body: unknown, fallbackError: string): Promise<T> {
   const res = await fetch(url, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
   const json = (await res.json().catch(() => ({}))) as T & { error?: string };
-  if (!res.ok) throw new Error(json.error ?? "Something went wrong.");
+  if (!res.ok) throw new Error(json.error ?? fallbackError);
   return json;
 }
 
@@ -28,6 +28,8 @@ type AcceptResponse = {
 };
 
 export function UpsellView({ runtime: rt, ...p }: UpsellSettings & { runtime: BlockRuntime }) {
+  const t = blockT(rt);
+  const failed = t("common.somethingWrong");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const offer = rt.offers?.find((o) => o.role === "upsell" || o.role === "downsell");
@@ -39,13 +41,13 @@ export function UpsellView({ runtime: rt, ...p }: UpsellSettings & { runtime: Bl
     setBusy(true);
     setError("");
     try {
-      let r = await post<AcceptResponse>(`${api}/upsell`, { stepId: rt.stepId, offerId: offer?.id });
+      let r = await post<AcceptResponse>(`${api}/upsell`, { stepId: rt.stepId, offerId: offer?.id }, failed);
       if (r.requiresAction && r.clientSecret && r.publishableKey) {
         // The bank asked for 3-D Secure: confirm in the browser, then finalize.
         const stripe = await loadStripe(r.publishableKey, { stripeAccount: r.accountId });
         const result = await stripe!.handleNextAction({ clientSecret: r.clientSecret });
         if (result.error) throw new Error(result.error.message);
-        r = await post<AcceptResponse>(`${api}/upsell/confirm`, { paymentId: r.paymentId, stepId: rt.stepId });
+        r = await post<AcceptResponse>(`${api}/upsell/confirm`, { paymentId: r.paymentId, stepId: rt.stepId }, failed);
       }
       if (r.redirect) window.location.assign(r.redirect);
       else setBusy(false);
@@ -72,8 +74,10 @@ export function UpsellView({ runtime: rt, ...p }: UpsellSettings & { runtime: Bl
         <span className="inline-flex items-center gap-2 text-xl">
           {busy && <Loader2Icon className="size-5 animate-spin" />}
           {p.acceptLabel}
-          {p.showPrice && offer ? ` (${describePrice(offer, rt.locale)})` : ""}
-          {!busy && <ArrowRightIcon className="size-5 transition-transform group-hover:translate-x-1" />}
+          {p.showPrice && offer ? ` (${describePrice(offer, t, formatLocale(rt))})` : ""}
+          {!busy && (
+            <ArrowRightIcon className="size-5 transition-transform group-hover:translate-x-1 rtl:-scale-x-100 rtl:group-hover:-translate-x-1" />
+          )}
         </span>
         {p.acceptSublabel && <span className="mt-0.5 text-sm font-normal opacity-85">{p.acceptSublabel}</span>}
       </button>
@@ -85,9 +89,7 @@ export function UpsellView({ runtime: rt, ...p }: UpsellSettings & { runtime: Bl
       <a href={rt.declineUrl ?? "#"} className="text-sm underline underline-offset-4 opacity-60 hover:opacity-90">
         {p.declineLabel}
       </a>
-      {!live && !offer && (
-        <p className="text-xs opacity-50">Attach an upsell product to this step to charge it with one click.</p>
-      )}
+      {!live && !offer && <p className="text-xs opacity-50">{t("forms.upsellEditorHint")}</p>}
     </div>
   );
 }

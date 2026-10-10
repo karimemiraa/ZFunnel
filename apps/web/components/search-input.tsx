@@ -23,13 +23,13 @@ export function SearchInput({ placeholder }: { placeholder: string }) {
 
   return (
     <div className="relative w-full sm:w-72">
-      <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+      <SearchIcon className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
       <input
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder={placeholder}
         aria-label={placeholder}
-        className="h-9 w-full rounded-md border border-input bg-background pr-3 pl-9 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        className="h-9 w-full rounded-md border border-input bg-background ps-9 pe-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
       />
     </div>
   );

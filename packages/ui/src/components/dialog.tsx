@@ -22,7 +22,7 @@ function DialogContent({ className, children, ...props }: React.ComponentProps<t
         {...props}
       >
         {children}
-        <DialogPrimitive.Close className="absolute top-4 right-4 rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground">
+        <DialogPrimitive.Close className="absolute end-4 top-4 rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground">
           <XIcon className="size-4" />
           <span className="sr-only">Close</span>
         </DialogPrimitive.Close>
@@ -32,7 +32,7 @@ function DialogContent({ className, children, ...props }: React.ComponentProps<t
 }
 
 function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
-  return <div className={cn("flex flex-col gap-1.5 pr-6", className)} {...props} />;
+  return <div className={cn("flex flex-col gap-1.5 pe-6", className)} {...props} />;
 }
 function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
   return <div className={cn("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end", className)} {...props} />;

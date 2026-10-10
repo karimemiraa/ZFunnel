@@ -27,7 +27,7 @@ export default async function WorkspaceLayout({
 
   return (
     <div className="flex min-h-dvh">
-      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col gap-4 border-r bg-sidebar p-4 lg:flex">
+      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col gap-4 border-e bg-sidebar p-4 lg:flex">
         <Link href={`/${workspace.slug}`} className="px-2 py-1">
           <Logo />
         </Link>

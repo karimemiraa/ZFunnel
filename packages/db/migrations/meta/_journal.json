@@ -351,6 +351,13 @@
       "when": 1791646662014,
       "tag": "0049_webinars_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1791648479553,
+      "tag": "0050_site_locale",
+      "breakpoints": true
     }
   ]
 }

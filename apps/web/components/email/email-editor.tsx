@@ -32,7 +32,7 @@ function EmailHeader() {
     <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-background px-3">
       <Button variant="ghost" size="icon" asChild>
         <Link href={c.backHref} aria-label="Back" onClick={() => void (c.dirty() && c.flush())}>
-          <ArrowLeftIcon />
+          <ArrowLeftIcon className="rtl:-scale-x-100" />
         </Link>
       </Button>
       <div className="flex min-w-0 flex-col leading-tight">

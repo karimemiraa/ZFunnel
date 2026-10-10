@@ -75,12 +75,12 @@ export default async function AffiliatesPage({ params }: { params: Promise<{ wor
             </p>
           ) : (
             <table className="w-full text-sm">
-              <thead className="bg-muted/50 text-left text-xs font-medium tracking-wide text-muted-foreground uppercase">
+              <thead className="bg-muted/50 text-start text-xs font-medium tracking-wide text-muted-foreground uppercase">
                 <tr>
                   <th className="px-4 py-3">Affiliate</th>
-                  <th className="px-4 py-3 text-right">Clicks</th>
-                  <th className="px-4 py-3 text-right">Sales</th>
-                  <th className="px-4 py-3 text-right">Owed</th>
+                  <th className="px-4 py-3 text-end">Clicks</th>
+                  <th className="px-4 py-3 text-end">Sales</th>
+                  <th className="px-4 py-3 text-end">Owed</th>
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
@@ -91,9 +91,9 @@ export default async function AffiliatesPage({ params }: { params: Promise<{ wor
                       <div className="font-medium">{r.name || r.email}</div>
                       <div className="text-xs text-muted-foreground">?aff={r.a.code}</div>
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums">{r.a.clicks.toLocaleString()}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">{r.sales.toLocaleString()}</td>
-                    <td className="px-4 py-3 text-right font-semibold tabular-nums">
+                    <td className="px-4 py-3 text-end tabular-nums">{r.a.clicks.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-end tabular-nums">{r.sales.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-end font-semibold tabular-nums">
                       {formatMoney(r.owed, r.currency ?? cur)}
                     </td>
                     <td className="px-4 py-3">

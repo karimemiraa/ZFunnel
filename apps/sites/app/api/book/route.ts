@@ -1,3 +1,4 @@
+import { getTranslator } from "@zfunnel/i18n";
 import { bookings, contacts, emailMessages, sql } from "@zfunnel/db";
 import { logActivity, system } from "@zfunnel/payments";
 import { enqueue } from "@zfunnel/queue";
@@ -9,8 +10,8 @@ import { calendarBySlug, freeSlots } from "@/lib/booking";
 const schema = z.object({
   slug: z.string().max(64),
   startAt: z.string().datetime(),
-  name: z.string().trim().min(1, "Please enter your name").max(120),
-  email: z.string().trim().toLowerCase().email("Please enter a valid email address.").max(254),
+  name: z.string().trim().min(1, "errors.enterName").max(120),
+  email: z.string().trim().toLowerCase().email("errors.invalidEmail").max(254),
   notes: z.string().trim().max(1000).optional(),
 });
 
@@ -21,10 +22,9 @@ export async function POST(req: Request) {
   const p = schema.safeParse(g.body);
   if (!p.success) return jsonError(p.error.issues[0]!.message);
   const cal = await calendarBySlug(g.ws.id, p.data.slug);
-  if (!cal) return jsonError("This calendar isn't taking bookings.", 404);
+  if (!cal) return jsonError("errors.calendarClosed", 404);
   const start = new Date(p.data.startAt);
-  if (!(await freeSlots(cal)).some((s) => s.getTime() === start.getTime()))
-    return jsonError("Sorry, that time was just taken. Please pick another.", 409);
+  if (!(await freeSlots(cal)).some((s) => s.getTime() === start.getTime())) return jsonError("errors.slotTaken", 409);
   const end = new Date(start.getTime() + cal.durationMinutes * 60_000);
 
   let result: { bookingId: string; contactId: string; messageId: string } | null = null;
@@ -70,7 +70,7 @@ export async function POST(req: Request) {
           workspaceId: g.ws.id,
           contactId: c!.id,
           toEmail: p.data.email,
-          subject: `Confirmed: ${cal.name}`,
+          subject: getTranslator(g.ws.siteLocale)("emails.bookingSubject", { name: cal.name }),
           meta: { kind: "booking", bookingId: b!.id },
         })
         .returning({ id: emailMessages.id });
@@ -78,7 +78,7 @@ export async function POST(req: Request) {
     });
   } catch (err) {
     if ((err as { code?: string }).code === "23505" || /bookings_slot_uq/.test(String(err)))
-      return jsonError("Sorry, that time was just taken. Please pick another.", 409);
+      return jsonError("errors.slotTaken", 409);
     throw err;
   }
   await enqueue("email", { messageId: result.messageId }, { jobId: `msg-${result.messageId}` });

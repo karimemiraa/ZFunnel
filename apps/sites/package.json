@@ -16,6 +16,7 @@
     "@zfunnel/blocks": "workspace:*",
     "@zfunnel/db": "workspace:*",
     "@zfunnel/email": "workspace:*",
+    "@zfunnel/i18n": "workspace:*",
     "@zfunnel/payments": "workspace:*",
     "@zfunnel/queue": "workspace:*",
     "@zfunnel/shared": "workspace:*",

@@ -35,7 +35,7 @@ export async function POST(req: Request) {
   const g = await publicPost(req, "checkout-complete");
   if ("error" in g) return g.error;
   const parsed = bodySchema.safeParse(g.body);
-  if (!parsed.success) return jsonError("Invalid request.");
+  if (!parsed.success) return jsonError("errors.invalidRequest");
   const { orderId, test } = parsed.data;
 
   const loaded = await system(async (tx) => {
@@ -51,12 +51,12 @@ export async function POST(req: Request) {
     const setup = await getPaymentSetup(tx, g.ws.id);
     return order && payment ? { order, payment, setup } : null;
   });
-  if (!loaded) return jsonError("Order not found.", 404);
+  if (!loaded) return jsonError("errors.orderNotFound", 404);
   const { order, payment, setup } = loaded;
 
   if (payment.status !== "succeeded") {
     if (order.provider === "test") {
-      if (setup?.provider !== "test") return jsonError("Test payments are disabled.", 403);
+      if (setup?.provider !== "test") return jsonError("errors.testPaymentsDisabled", 403);
       const r = chargeTestCard(test?.card ?? "", test?.expiry ?? "", test?.cvc ?? "");
       if (!r.ok) {
         await system((tx) => markPaymentFailed(tx, payment.id, r.message));
@@ -76,12 +76,11 @@ export async function POST(req: Request) {
         await recordTestSubscriptions(tx, { workspaceId: g.ws.id, contactId: order.contactId!, orderId: order.id });
       });
     } else {
-      if (setup?.provider !== "stripe") return jsonError("Payments are not configured.", 503);
+      if (setup?.provider !== "stripe") return jsonError("errors.paymentsNotConfigured", 503);
       const id = payment.externalId!;
       if (id.startsWith("sub_")) {
         const sub = await retrieveSubscription(setup.accountId, id);
-        if (sub.status !== "active" && sub.status !== "trialing")
-          return jsonError("Your payment hasn't gone through yet. Please try again.", 402);
+        if (sub.status !== "active" && sub.status !== "trialing") return jsonError("errors.paymentPending", 402);
         const pm = typeof sub.default_payment_method === "object" ? sub.default_payment_method : null;
         const raw = (payment.raw ?? {}) as { priceId?: string };
         await system(async (tx) => {
@@ -110,7 +109,7 @@ export async function POST(req: Request) {
         });
       } else {
         const pi = await retrievePaymentIntent(setup.accountId, id);
-        if (pi.status !== "succeeded") return jsonError("Your payment hasn't gone through yet. Please try again.", 402);
+        if (pi.status !== "succeeded") return jsonError("errors.paymentPending", 402);
         const pm = typeof pi.payment_method === "object" ? pi.payment_method : null;
         await system(async (tx) => {
           await markPaymentSucceeded(tx, payment.id);

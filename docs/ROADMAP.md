@@ -165,6 +165,62 @@ Live & evergreen webinars (LiveKit) · AI conversion coach (analyses funnel stat
 
 ---
 
+## Phase 6 — Native Arabic (L)
+
+### Phase 6 plan (2026-10-10)
+
+**Problem.** Arabic-speaking businesses can't use ZFunnel comfortably. They can't run the dashboard in Arabic, and their customers see English checkouts, forms, emails and member areas, laid out left-to-right.
+
+**What "native" means here.** Arabic is written as an Arab copywriter would write it, not as word-for-word translation:
+
+- Modern Standard Arabic in a warm, direct marketing voice.
+- Sentences restructured to read naturally.
+- Established Arab marketing terms (قمع المبيعات, عرض ترقية, صفحة الاشتراك).
+- Arabic grammar for numbers. Arabic has six plural forms (zero/one/two/few/many/other); every count uses them.
+- Right-to-left layout everywhere, with direction-aware icons.
+- A proper Arabic typeface.
+- A shared glossary (`docs/ARABIC.md`) keeps terms consistent.
+
+**Success criteria.**
+
+1. A user can switch the dashboard to Arabic. Every screen reads naturally right-to-left, and no English is left in the dashboard's own UI.
+2. A workspace can set its site language to Arabic. Public pages, checkout, forms, customer center, courses, community, store, blog, webinar, chat and every built-in email are then Arabic and RTL.
+3. Arabic funnel templates written from scratch (not translated) exist for the main funnel types.
+4. Missing Arabic strings fail the type check, so nothing silently falls back to English.
+5. An e2e test runs a full Arabic flow: dashboard, publish, opt-in, checkout.
+
+**Scope.**
+
+| #   | Item             | Scope                                                                                                                                                                                                                                                                                                                                                  |
+| --- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 6.1 | i18n foundation  | `@zfunnel/i18n`: typed English and Arabic dictionaries (Arabic must cover every key), interpolation and Arabic plural rules via `Intl.PluralRules`. Dashboard language per user (cookie plus profile). Site language per workspace. `<html lang dir>`, an Arabic webfont, and RTL-safe CSS: logical properties instead of left/right, mirrored arrows. |
+| 6.2 | Public side      | Checkout and order form, opt-in and survey forms, upsells, customer center, courses, community, store, blog, webinar, chat widget, affiliate portal, error messages, and all built-in emails.                                                                                                                                                          |
+| 6.3 | Dashboard        | Every screen, dialog, toast and validation message.                                                                                                                                                                                                                                                                                                    |
+| 6.4 | Arabic templates | Funnel and email templates written natively in Arabic.                                                                                                                                                                                                                                                                                                 |
+| 6.5 | Deploy           | Production config for `zf.zealmarketing.net`.                                                                                                                                                                                                                                                                                                          |
+
+**Decisions (recorded as ADR-023).**
+
+- **Digits.** Western digits (`ar-u-nu-latn`) by default. They're standard in Gulf marketing and match card and phone inputs.
+- **Editor chrome.** The drag-and-drop editor's own chrome (Puck library) stays English. The page being edited follows the site language and direction.
+- **User content.** Content the user writes is never auto-translated.
+
+**Deployment constraint.** This environment can't open SSH connections. The owner runs the deploy script on the server; config for the domain is prepared here.
+
+- **6.1 Foundation: done.**
+  - `@zfunnel/i18n` holds typed dictionaries. Arabic must cover every English key (a type error otherwise). Plurals use `Intl.PluralRules` (all six Arabic forms).
+  - The dashboard language is per user (switch in the account menu). The site language is per workspace (Settings → General).
+  - Pages set `lang`/`dir`. Noto Sans Arabic is in every font stack.
+  - Layout uses logical CSS (start/end) and direction arrows are mirrored.
+  - The editor canvas and draft previews use the site's direction.
+- **6.2 Public side and emails: done.**
+  - Checkout and order form (including Stripe's own fields), opt-in and survey forms (Arabic option letters أ ب ج), countdown and upsell.
+  - Store, customer center, courses, community, blog and RSS, booking (week starts on Sunday), affiliate portal, webinars, chat widget, 404 and the "Powered by" badge.
+  - Every visitor-facing API error, built-in emails (right-to-left layout) and the marketing email footer and unsubscribe page.
+  - Covered by `e2e/tests/arabic.spec.ts`: an RTL store purchase with an Arabic decline error and the Arabic customer center.
+
+---
+
 ## Working agreement
 
 1. Every phase starts with a short phase PRD addendum and needs sign-off.

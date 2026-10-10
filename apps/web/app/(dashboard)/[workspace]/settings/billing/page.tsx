@@ -118,7 +118,7 @@ export default async function BillingPage({
                 )}
               >
                 {popular && (
-                  <span className="absolute -top-3 left-6 rounded-full bg-primary px-3 py-0.5 text-xs font-semibold text-primary-foreground">
+                  <span className="absolute start-6 -top-3 rounded-full bg-primary px-3 py-0.5 text-xs font-semibold text-primary-foreground">
                     Most popular
                   </span>
                 )}

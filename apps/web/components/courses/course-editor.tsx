@@ -261,7 +261,7 @@ function Curriculum({ p }: { p: Props }) {
                   )}
                   <button
                     type="button"
-                    className="min-w-0 flex-1 truncate text-left hover:underline"
+                    className="min-w-0 flex-1 truncate text-start hover:underline"
                     onClick={() => setSelected(l.id)}
                   >
                     {l.title}
@@ -471,7 +471,7 @@ function Students({ p }: { p: Props }) {
       ) : (
         <div className="overflow-hidden rounded-xl border bg-card">
           <table className="w-full text-sm">
-            <thead className="bg-muted/50 text-left text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            <thead className="bg-muted/50 text-start text-xs font-medium tracking-wide text-muted-foreground uppercase">
               <tr>
                 <th className="px-4 py-3">Student</th>
                 <th className="px-4 py-3">Progress</th>
@@ -497,7 +497,7 @@ function Students({ p }: { p: Props }) {
                   <td className="px-4 py-3 text-muted-foreground max-sm:hidden">
                     {new Date(s.since).toLocaleDateString()} · {s.source}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-end">
                     <Button
                       variant="ghost"
                       size="sm"

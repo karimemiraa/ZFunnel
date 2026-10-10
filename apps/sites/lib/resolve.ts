@@ -33,6 +33,7 @@ export type SiteWorkspace = {
   brandColor: string;
   /** False only when the owner hid it AND the plan includes white-label. */
   showBadge: boolean;
+  siteLocale: "en" | "ar";
 };
 
 const WHITE_LABEL_PLANS = Object.values(PLANS)
@@ -43,6 +44,7 @@ const WHITE_LABEL_PLANS = Object.values(PLANS)
 const brandColumns = {
   logoUrl: workspaces.logoUrl,
   brandColor: workspaces.brandColor,
+  siteLocale: workspaces.siteLocale,
   showBadge: sql<boolean>`not (${workspaces.hideBadge} and exists (
     select 1 from ${orgBilling} b where b.organization_id = ${workspaces.organizationId}
       and b.status in ('active', 'trialing', 'past_due')

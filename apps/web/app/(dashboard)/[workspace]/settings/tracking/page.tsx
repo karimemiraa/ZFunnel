@@ -60,13 +60,13 @@ export default async function TrackingPage({ params }: { params: Promise<{ works
             <p className="text-sm text-muted-foreground">Nothing sent yet.</p>
           ) : (
             <table className="w-full text-sm">
-              <thead className="text-left text-xs text-muted-foreground uppercase">
+              <thead className="text-start text-xs text-muted-foreground uppercase">
                 <tr>
                   <th className="py-2">Platform</th>
                   <th className="py-2">Event</th>
                   <th className="py-2 max-sm:hidden">Event ID</th>
                   <th className="py-2">Status</th>
-                  <th className="py-2 text-right">When</th>
+                  <th className="py-2 text-end">When</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -88,7 +88,7 @@ export default async function TrackingPage({ params }: { params: Promise<{ works
                         {d.status === "sent" ? "Sent" : d.status === "pending" ? "Retrying" : "Failed"}
                       </span>
                     </td>
-                    <td className="py-2 text-right text-muted-foreground">{timeAgo(d.createdAt)}</td>
+                    <td className="py-2 text-end text-muted-foreground">{timeAgo(d.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>

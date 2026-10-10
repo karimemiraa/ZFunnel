@@ -152,7 +152,7 @@ export const Section: ComponentConfig<SectionProps> = {
             // Always stretch: Puck wraps blocks in a div that would otherwise shrink to zero width.
             // Blocks align themselves (text-align is inherited; wide blocks center with mx-auto).
             "items-stretch",
-            p.align === "center" ? "text-center" : "text-left",
+            p.align === "center" ? "text-center" : "text-start",
           )}
           minEmptyHeight={120}
         />
@@ -254,7 +254,7 @@ export const Columns: ComponentConfig<ColumnsProps> = {
     return (
       <div
         className={cx(
-          "zf-cols grid w-full grid-cols-1 text-left",
+          "zf-cols grid w-full grid-cols-1 text-start",
           GRID[key],
           { sm: "gap-4", md: "gap-8", lg: "gap-10 md:gap-14" }[p.gap],
           p.valign === "center" ? "items-center" : "items-start",

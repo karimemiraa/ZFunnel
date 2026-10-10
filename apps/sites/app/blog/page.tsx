@@ -3,23 +3,26 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { publishedPosts } from "@/lib/blog";
 import { currentWorkspace } from "@/lib/site";
+import { siteFormat } from "@/lib/format";
+import { getT } from "@/lib/i18n";
 import { Brand } from "@/app/brand";
 
 export async function generateMetadata(): Promise<Metadata> {
   const ws = await currentWorkspace();
+  const t = await getT();
   return {
-    title: ws ? `Blog · ${ws.name}` : "Blog",
+    title: ws ? t("blog.metaTitle", { name: ws.name }) : t("blog.blog"),
     alternates: { types: { "application/rss+xml": "/blog/rss.xml" } },
   };
 }
-
-const fmt = (d: Date | null) =>
-  d ? d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "";
 
 export default async function BlogIndex() {
   const ws = await currentWorkspace();
   if (!ws) notFound();
   const list = await publishedPosts(ws.id);
+  const t = await getT();
+  const { longDate } = siteFormat(ws.siteLocale);
+  const fmt = (d: Date | null) => (d ? longDate(d) : "");
   const [hero, ...rest] = list;
   return (
     <main className="min-h-dvh bg-white text-zinc-900">
@@ -29,13 +32,13 @@ export default async function BlogIndex() {
             <Brand ws={ws} />
           </Link>
           <a href="/blog/rss.xml" className="text-sm text-zinc-500 hover:text-zinc-900">
-            RSS
+            {t("blog.rss")}
           </a>
         </div>
       </header>
       <div className="mx-auto max-w-5xl px-4 py-12">
-        <h1 className="text-4xl font-bold tracking-tight">Blog</h1>
-        {!hero && <p className="mt-6 text-zinc-500">No posts yet.</p>}
+        <h1 className="text-4xl font-bold tracking-tight">{t("blog.blog")}</h1>
+        {!hero && <p className="mt-6 text-zinc-500">{t("blog.empty")}</p>}
         {hero && (
           <Link href={`/blog/${hero.slug}`} className="group mt-8 grid gap-6 md:grid-cols-2">
             <div className="aspect-[16/10] overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-100 to-violet-50">

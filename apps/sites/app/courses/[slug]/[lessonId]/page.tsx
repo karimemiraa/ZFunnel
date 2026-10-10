@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { currentCustomer } from "@/lib/customer";
 import { courseForStudent } from "@/lib/courses";
 import { currentWorkspace } from "@/lib/site";
+import { getT } from "@/lib/i18n";
 import { CompleteButton } from "../../student-ui";
 import { CourseShell } from "../layout-shell";
 
@@ -17,6 +18,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
   const me = await currentCustomer(ws.id);
   const data = await courseForStudent(ws.id, slug, me?.id ?? null);
   if (!data) notFound();
+  const t = await getT();
   const i = data.flat.findIndex((l) => l.id === lessonId);
   const lesson = data.flat[i];
   if (!lesson) notFound();
@@ -28,7 +30,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
   const next = data.flat.slice(i + 1).find((l) => l.open);
   const video = lesson.videoUrl ? toEmbed(lesson.videoUrl) : null;
   return (
-    <CourseShell data={data} active={lesson.id} siteName={ws.name}>
+    <CourseShell data={data} active={lesson.id} siteName={ws.name} t={t} locale={ws.siteLocale}>
       <article className="overflow-hidden rounded-2xl border border-zinc-200 bg-white">
         {video && (
           <div className="aspect-video bg-black">
@@ -58,7 +60,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
                 href={`/courses/${slug}/${prev.id}`}
                 className="text-sm font-medium text-zinc-500 hover:text-zinc-900"
               >
-                ← Previous
+                {t("courses.previous")}
               </Link>
             )}
             <div className="flex-1" />
@@ -71,7 +73,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
             ) : (
               next && (
                 <Link href={`/courses/${slug}/${next.id}`} className="text-sm font-semibold text-indigo-600">
-                  Next →
+                  {t("courses.next")}
                 </Link>
               )
             )}

@@ -31,7 +31,7 @@ export function MobileNav({ workspaceSlug, switcher }: { workspaceSlug: string; 
         createPortal(
           <div className="fixed inset-0 z-50 flex" role="dialog" aria-modal="true" aria-label="Navigation">
             <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} aria-hidden />
-            <aside className="relative flex w-72 max-w-[85vw] flex-col gap-4 border-r bg-sidebar p-4">
+            <aside className="relative flex w-72 max-w-[85vw] flex-col gap-4 border-e bg-sidebar p-4">
               <div className="flex items-center gap-2">
                 <div className="flex-1">{switcher}</div>
                 <Button variant="ghost" size="icon" aria-label="Close menu" onClick={() => setOpen(false)}>

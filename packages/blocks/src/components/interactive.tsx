@@ -41,7 +41,7 @@ export const Countdown: ComponentConfig<CountdownProps> = {
     minutes: { ...fields.minutes, visible: data.props.mode === "evergreen" },
   }),
   defaultProps: { mode: "evergreen", date: "", minutes: 15, style: "boxes", expiredText: "This offer has expired." },
-  render: ({ id, ...p }) => <CountdownView {...p} storageKey={id} />,
+  render: ({ id, puck, ...p }) => <CountdownView {...p} storageKey={id} lang={getRuntime(puck.metadata).lang} />,
 };
 
 export type OptInFormProps = {
@@ -100,6 +100,7 @@ export const OptInForm: ComponentConfig<OptInFormProps> = {
         stepId={rt.stepId}
         apiBase={rt.apiBase ?? "/api"}
         nextUrl={rt.nextUrl}
+        lang={rt.lang}
       />
     );
   },
@@ -236,6 +237,7 @@ export const Survey: ComponentConfig<SurveyProps> = {
         live={rt.mode === "live"}
         stepId={rt.stepId}
         apiBase={rt.apiBase ?? "/api"}
+        lang={rt.lang}
       />
     );
   },

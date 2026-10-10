@@ -18,6 +18,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ workspa
       postalAddress: settings?.postalAddress ?? "Your postal address",
       unsubscribeUrl: "#",
     },
+    locale: ctx.workspace.siteLocale,
   });
   return new Response(html, {
     headers: {

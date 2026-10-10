@@ -95,7 +95,7 @@ export function NewAutomation({ workspaceSlug, trigger }: { workspaceSlug: strin
                   setName(r.name);
                 }}
                 className={cn(
-                  "flex items-center gap-3 rounded-xl border p-3 text-left transition-colors",
+                  "flex items-center gap-3 rounded-xl border p-3 text-start transition-colors",
                   recipe === r.id ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-accent",
                 )}
               >

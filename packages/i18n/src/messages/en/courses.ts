@@ -1,0 +1,18 @@
+export const courses = {
+  myCourses: "My courses",
+  memberArea: "Member area",
+  signInIntro: "Sign in with the email you used to buy. We'll send you a secure link.",
+  account: "Account",
+  none: "You don't have any courses yet.",
+  lessonsProgress: { other: "{completed} of {count} lessons · {percent}%" },
+  percentComplete: "{percent}% complete",
+  continue: "Continue where you left off →",
+  start: "Start the course →",
+  noAccess: "You don't have access to this course yet. Free preview lessons are open on the right.",
+  alreadyBought: "Already bought it? Sign in to start learning.",
+  previous: "← Previous",
+  next: "Next →",
+  completed: "Completed",
+  completeContinue: "Complete & continue",
+  markComplete: "Mark complete",
+};

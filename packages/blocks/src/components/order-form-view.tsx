@@ -4,7 +4,7 @@ import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-
 import { loadStripe, type Stripe, type StripeElementsOptions } from "@stripe/stripe-js";
 import { CheckIcon, CreditCardIcon, Loader2Icon, LockIcon, ShieldCheckIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { describePrice, formatMoney, type BlockRuntime, type RuntimeOffer } from "../runtime";
+import { blockT, describePrice, formatLocale, formatMoney, type BlockRuntime, type RuntimeOffer } from "../runtime";
 import { cx } from "../utils";
 
 export type OrderFormSettings = {
@@ -30,25 +30,31 @@ function getStripe(pk: string, accountId?: string) {
 }
 
 /** Deferred-intent Elements: the intent is created on submit, so bumps can change the amount. */
-function elementsOptions(main: RuntimeOffer, dueNow: number, currency: string): StripeElementsOptions {
+function elementsOptions(
+  main: RuntimeOffer,
+  dueNow: number,
+  currency: string,
+  lang: "en" | "ar",
+): StripeElementsOptions {
+  const base = { currency, locale: lang } as const;
   const appearance = {
     theme: "stripe" as const,
     variables: { colorPrimary: "#4f46e5", borderRadius: "10px", fontFamily: "Inter, system-ui, sans-serif" },
   };
-  if (main.trialDays) return { mode: "setup", currency, appearance };
+  if (main.trialDays) return { mode: "setup", ...base, appearance };
   if (main.type === "one_time")
-    return { mode: "payment", amount: Math.max(dueNow, 50), currency, setupFutureUsage: "off_session", appearance };
-  return { mode: "subscription", amount: Math.max(dueNow, 50), currency, appearance };
+    return { mode: "payment", amount: Math.max(dueNow, 50), ...base, setupFutureUsage: "off_session", appearance };
+  return { mode: "subscription", amount: Math.max(dueNow, 50), ...base, appearance };
 }
 
-async function post<T>(url: string, body: unknown): Promise<T> {
+async function post<T>(url: string, body: unknown, fallbackError: string): Promise<T> {
   const res = await fetch(url, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
   const json = (await res.json().catch(() => ({}))) as T & { error?: string };
-  if (!res.ok) throw new Error(json.error ?? "Something went wrong. Please try again.");
+  if (!res.ok) throw new Error(json.error ?? fallbackError);
   return json;
 }
 
@@ -62,6 +68,9 @@ type CompleteResponse = { redirect: string | null };
 
 export function OrderFormView(p: Props) {
   const rt = p.runtime;
+  const t = blockT(rt);
+  const loc = formatLocale(rt);
+  const failed = t("common.somethingWrong");
   const live = rt.mode === "live";
   const offers = rt.offers?.length ? rt.offers : rt.mode === "editor" ? [] : [];
   const mains = offers.filter((o) => o.role === "main");
@@ -96,10 +105,10 @@ export function OrderFormView(p: Props) {
     const params = new URLSearchParams(window.location.search);
     const orderId = params.get("zf_order");
     if (!orderId || !params.get("redirect_status")) return;
-    void post<CompleteResponse>(`${rt.apiBase ?? "/api"}/checkout/complete`, { orderId })
+    void post<CompleteResponse>(`${rt.apiBase ?? "/api"}/checkout/complete`, { orderId }, failed)
       .then((r) => (r.redirect ? window.location.assign(r.redirect) : setDone(true)))
       .catch((e: Error) => setError(e.message));
-  }, [live, rt.apiBase]);
+  }, [live, rt.apiBase, failed]);
 
   if (!live && mains.length === 0)
     return (
@@ -108,10 +117,8 @@ export function OrderFormView(p: Props) {
         style={{ borderColor: "color-mix(in srgb, var(--zf-fg) 20%, transparent)" }}
       >
         <CreditCardIcon className="mx-auto mb-2 size-6 opacity-60" />
-        <strong>Order form</strong>
-        <p className="mt-1 opacity-70">
-          Attach a product to this step (Funnel → step → Products) to show the real checkout here.
-        </p>
+        <strong>{t("checkout.editorTitle")}</strong>
+        <p className="mt-1 opacity-70">{t("checkout.editorHint")}</p>
       </div>
     );
 
@@ -121,29 +128,37 @@ export function OrderFormView(p: Props) {
         className="flex w-full items-center justify-center gap-2 rounded-[var(--zf-radius)] p-6 text-lg font-semibold"
         role="status"
       >
-        <CheckIcon className="size-6" style={{ color: "var(--zf-primary)" }} /> Payment received. Thank you!
+        <CheckIcon className="size-6" style={{ color: "var(--zf-primary)" }} /> {t("checkout.paid")}
       </div>
     );
 
   async function start() {
     const who = { email, name };
     if (rt.store)
-      return post<StartResponse>(`${rt.apiBase ?? "/api"}/checkout/start`, {
+      return post<StartResponse>(
+        `${rt.apiBase ?? "/api"}/checkout/start`,
+        {
+          ...who,
+          storePriceId: rt.store.priceId,
+          shipping: rt.store.shipping
+            ? { name, ...ship, line2: ship.line2 || undefined, region: ship.region || undefined }
+            : undefined,
+        },
+        failed,
+      );
+    return post<StartResponse>(
+      `${rt.apiBase ?? "/api"}/checkout/start`,
+      {
         ...who,
-        storePriceId: rt.store.priceId,
-        shipping: rt.store.shipping
-          ? { name, ...ship, line2: ship.line2 || undefined, region: ship.region || undefined }
-          : undefined,
-      });
-    return post<StartResponse>(`${rt.apiBase ?? "/api"}/checkout/start`, {
-      ...who,
-      stepId: rt.stepId,
-      mainOfferId: main!.id,
-      bumpOfferIds: bumpIds,
-    });
+        stepId: rt.stepId,
+        mainOfferId: main!.id,
+        bumpOfferIds: bumpIds,
+      },
+      failed,
+    );
   }
   async function complete(orderId: string, extra?: object) {
-    const r = await post<CompleteResponse>(`${rt.apiBase ?? "/api"}/checkout/complete`, { orderId, ...extra });
+    const r = await post<CompleteResponse>(`${rt.apiBase ?? "/api"}/checkout/complete`, { orderId, ...extra }, failed);
     if (r.redirect) window.location.assign(r.redirect);
     else setDone(true);
   }
@@ -165,7 +180,7 @@ export function OrderFormView(p: Props) {
     <div className="grid gap-3 sm:grid-cols-2">
       <div className="sm:col-span-1">
         <label className={label} htmlFor="zf-name">
-          Full name
+          {t("checkout.fullName")}
         </label>
         <input
           id="zf-name"
@@ -178,7 +193,7 @@ export function OrderFormView(p: Props) {
       </div>
       <div className="sm:col-span-1">
         <label className={label} htmlFor="zf-email">
-          Email
+          {t("checkout.email")}
         </label>
         <input
           id="zf-email"
@@ -193,12 +208,12 @@ export function OrderFormView(p: Props) {
       {rt.store?.shipping &&
         (
           [
-            ["line1", "Address", "address-line1", true, "sm:col-span-2"],
-            ["line2", "Apartment, suite (optional)", "address-line2", false, "sm:col-span-2"],
-            ["city", "City", "address-level2", true, ""],
-            ["postalCode", "Postal code", "postal-code", true, ""],
-            ["region", "State / region (optional)", "address-level1", false, ""],
-            ["country", "Country", "country-name", true, ""],
+            ["line1", t("checkout.address"), "address-line1", true, "sm:col-span-2"],
+            ["line2", t("checkout.line2"), "address-line2", false, "sm:col-span-2"],
+            ["city", t("checkout.city"), "address-level2", true, ""],
+            ["postalCode", t("checkout.postalCode"), "postal-code", true, ""],
+            ["region", t("checkout.region"), "address-level1", false, ""],
+            ["country", t("checkout.country"), "country-name", true, ""],
           ] as const
         ).map(([k, l, ac, req, span]) => (
           <div key={k} className={span}>
@@ -220,7 +235,7 @@ export function OrderFormView(p: Props) {
 
   const productChoice =
     mains.length > 1 ? (
-      <div className="flex flex-col gap-2" role="radiogroup" aria-label="Choose your option">
+      <div className="flex flex-col gap-2" role="radiogroup" aria-label={t("checkout.chooseOption")}>
         {mains.map((m) => (
           <label
             key={m.id}
@@ -242,7 +257,7 @@ export function OrderFormView(p: Props) {
               <span className="block font-semibold">{m.label || m.name}</span>
               {m.description && <span className="block text-sm opacity-65">{m.description}</span>}
             </span>
-            <span className="font-semibold">{describePrice(m, rt.locale)}</span>
+            <span className="font-semibold">{describePrice(m, t, loc)}</span>
           </label>
         ))}
       </div>
@@ -270,9 +285,9 @@ export function OrderFormView(p: Props) {
           />
           <span className="text-[#1c1917]">
             <span className="block font-bold">
-              <span className="mr-1 text-[#dc2626]">➜</span>
-              {b.headline || `Yes! Add ${b.name}`}{" "}
-              <span className="whitespace-nowrap">for {describePrice(b, rt.locale)}</span>
+              <span className="me-1 text-[#dc2626]">➜</span>
+              {b.headline || t("checkout.bumpDefault", { name: b.name })}{" "}
+              <span className="whitespace-nowrap">{t("checkout.bumpFor", { price: describePrice(b, t, loc) })}</span>
             </span>
             {b.description && <span className="mt-1 block text-sm opacity-75">{b.description}</span>}
           </span>
@@ -290,7 +305,7 @@ export function OrderFormView(p: Props) {
         <div key={l.id} className="flex justify-between gap-4 py-1">
           <span className="opacity-80">{l.label || l.name}</span>
           <span className="font-medium">
-            {l.trialDays ? "Free trial" : formatMoney(l.amount, l.currency, rt.locale)}
+            {l.trialDays ? t("checkout.freeTrial") : formatMoney(l.amount, l.currency, loc)}
           </span>
         </div>
       ))}
@@ -298,28 +313,28 @@ export function OrderFormView(p: Props) {
         className="mt-2 flex justify-between border-t pt-3 text-lg font-bold"
         style={{ borderColor: "color-mix(in srgb, var(--zf-fg) 12%, transparent)" }}
       >
-        <span>Due today</span>
-        <span>{formatMoney(dueNow, currency, rt.locale)}</span>
+        <span>{t("checkout.dueToday")}</span>
+        <span>{formatMoney(dueNow, currency, loc)}</span>
       </div>
       {main.type !== "one_time" && (
         <p className="mt-1 text-xs opacity-60">
-          Then {describePrice({ ...main, trialDays: null }, rt.locale)} until cancelled.
+          {t("checkout.thenUntilCancelled", { price: describePrice({ ...main, trialDays: null }, t, loc) })}
         </p>
       )}
     </div>
   );
 
-  const payButtonLabel = `${p.buttonLabel || "Complete order"}${dueNow ? ` · ${formatMoney(dueNow, currency, rt.locale)}` : ""}`;
+  const payButtonLabel = `${p.buttonLabel || t("checkout.completeOrder")}${dueNow ? ` · ${formatMoney(dueNow, currency, loc)}` : ""}`;
   const contactValid = /\S+@\S+\.\S+/.test(email) && name.trim().length > 0;
 
   const testFields = (
     <div className="flex flex-col gap-3">
       <div className="rounded-md px-3 py-2 text-xs font-semibold" style={{ background: "#fef3c7", color: "#92400e" }}>
-        TEST MODE · No real charge. Use card 4242 4242 4242 4242, any future date, any CVC.
+        {t("checkout.testMode")}
       </div>
       <div>
         <label className={label} htmlFor="zf-card">
-          Card number
+          {t("checkout.cardNumber")}
         </label>
         <input
           id="zf-card"
@@ -334,20 +349,20 @@ export function OrderFormView(p: Props) {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className={label} htmlFor="zf-exp">
-            Expiry
+            {t("checkout.expiry")}
           </label>
           <input
             id="zf-exp"
             className={field}
             autoComplete="cc-exp"
-            placeholder="MM / YY"
+            placeholder={t("checkout.expiryPlaceholder")}
             value={test.expiry}
             onChange={(e) => setTest({ ...test, expiry: e.target.value })}
           />
         </div>
         <div>
           <label className={label} htmlFor="zf-cvc">
-            CVC
+            {t("checkout.cvc")}
           </label>
           <input
             id="zf-cvc"
@@ -383,13 +398,14 @@ export function OrderFormView(p: Props) {
 
   const paymentSection =
     provider === "stripe" && stripePromise && main ? (
-      <Elements stripe={stripePromise} options={elementsOptions(main, dueNow, currency)}>
+      <Elements stripe={stripePromise} options={elementsOptions(main, dueNow, currency, rt.lang ?? "en")}>
         <StripePay
           start={start}
           complete={complete}
           busy={busy}
           setBusy={setBusy}
           setError={setError}
+          t={t}
           contactValid={contactValid}
           submitButton={submitButton}
         />
@@ -401,13 +417,13 @@ export function OrderFormView(p: Props) {
       </>
     ) : (
       <p className="rounded-md p-3 text-sm" style={{ background: "#fee2e2", color: "#991b1b" }}>
-        Payments aren&apos;t set up for this store yet.
+        {t("checkout.notSetUp")}
       </p>
     );
 
   return (
     <div
-      className="w-full rounded-[var(--zf-radius)] border p-5 text-left shadow-[0_20px_60px_-30px_rgba(0,0,0,.35)] sm:p-7"
+      className="w-full rounded-[var(--zf-radius)] border p-5 text-start shadow-[0_20px_60px_-30px_rgba(0,0,0,.35)] sm:p-7"
       style={{
         background: "var(--zf-bg)",
         color: "var(--zf-text)",
@@ -416,9 +432,9 @@ export function OrderFormView(p: Props) {
     >
       {twoStep && (
         <div className="mb-5 grid grid-cols-2 gap-2 text-sm font-semibold">
-          {[p.contactTitle || "Your details", p.paymentTitle || "Payment"].map((t, i) => (
+          {[p.contactTitle || t("checkout.yourDetails"), p.paymentTitle || t("checkout.payment")].map((title, i) => (
             <div
-              key={t}
+              key={title}
               className="flex items-center gap-2 rounded-md px-3 py-2"
               style={{
                 background:
@@ -432,7 +448,7 @@ export function OrderFormView(p: Props) {
               >
                 {i + 1}
               </span>
-              {t}
+              {title}
             </div>
           ))}
         </div>
@@ -447,7 +463,7 @@ export function OrderFormView(p: Props) {
       >
         {(!twoStep || stage === 1) && (
           <>
-            {!twoStep && <h3 className="text-lg font-bold">{p.contactTitle || "Your details"}</h3>}
+            {!twoStep && <h3 className="text-lg font-bold">{p.contactTitle || t("checkout.yourDetails")}</h3>}
             {contact}
             {productChoice}
             {twoStep && (
@@ -461,7 +477,7 @@ export function OrderFormView(p: Props) {
                   color: "var(--zf-on-primary)",
                 }}
               >
-                Continue to payment →
+                {t("checkout.continueToPayment")}
               </button>
             )}
           </>
@@ -470,7 +486,7 @@ export function OrderFormView(p: Props) {
 
       {(!twoStep || stage === 2) && (
         <div className={cx("flex flex-col gap-5", !twoStep && "mt-6")}>
-          {!twoStep && <h3 className="text-lg font-bold">{p.paymentTitle || "Payment"}</h3>}
+          {!twoStep && <h3 className="text-lg font-bold">{p.paymentTitle || t("checkout.payment")}</h3>}
           {bumpBoxes}
           {summary}
           {paymentSection}
@@ -484,7 +500,7 @@ export function OrderFormView(p: Props) {
 
       <div className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs opacity-60">
         <span className="inline-flex items-center gap-1">
-          <LockIcon className="size-3" /> Secure 256-bit SSL checkout
+          <LockIcon className="size-3" /> {t("checkout.secure")}
         </span>
         {p.guarantee && (
           <span className="inline-flex items-center gap-1">
@@ -502,9 +518,11 @@ function StripePay({
   busy,
   setBusy,
   setError,
+  t,
   contactValid,
   submitButton,
 }: {
+  t: ReturnType<typeof blockT>;
   start: () => Promise<StartResponse>;
   complete: (orderId: string) => Promise<void>;
   busy: boolean;
@@ -518,14 +536,14 @@ function StripePay({
 
   async function pay() {
     if (!stripe || !elements) return;
-    if (!contactValid) return setError("Please enter your name and email.");
+    if (!contactValid) return setError(t("checkout.enterNameEmail"));
     setBusy(true);
     setError("");
     try {
       const submitted = await elements.submit();
       if (submitted.error) throw new Error(submitted.error.message);
       const s = await start();
-      if (!s.clientSecret) throw new Error("We couldn't start your payment.");
+      if (!s.clientSecret) throw new Error(t("checkout.couldNotStart"));
       const returnUrl = `${window.location.origin}${window.location.pathname}?zf_order=${s.orderId}`;
       const result =
         s.secretType === "setup"

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, eq, funnels, funnelSteps, getDb, isNull, withSystem } from "@zfunnel/db";
+import { and, asc, eq, funnels, funnelSteps, getDb, isNull, withSystem, workspaces } from "@zfunnel/db";
 
 /** A shared funnel by its public token (cross-tenant read, so trusted system context). */
 export async function getSharedFunnel(token: string) {
@@ -16,6 +16,10 @@ export async function getSharedFunnel(token: string) {
       .from(funnelSteps)
       .where(eq(funnelSteps.funnelId, f.id))
       .orderBy(asc(funnelSteps.position));
-    return { funnel: f, steps };
+    const [ws] = await tx
+      .select({ siteLocale: workspaces.siteLocale })
+      .from(workspaces)
+      .where(eq(workspaces.id, f.workspaceId));
+    return { funnel: f, steps, siteLocale: ws?.siteLocale ?? "en" };
   });
 }

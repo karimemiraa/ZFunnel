@@ -9,8 +9,8 @@ import { jsonError, publicPost } from "@/lib/api";
 import { currentCustomer, queueLoginLink, requestOrigin } from "@/lib/customer";
 
 const schema = z.object({
-  name: z.string().trim().min(1, "Please enter your name").max(120).optional(),
-  email: z.string().trim().toLowerCase().email("Please enter a valid email address.").max(254).optional(),
+  name: z.string().trim().min(1, "errors.enterName").max(120).optional(),
+  email: z.string().trim().toLowerCase().email("errors.invalidEmail").max(254).optional(),
 });
 
 /** Joins the affiliate program. Signed-in customers join directly; others get a sign-in link. */
@@ -18,12 +18,12 @@ export async function POST(req: Request) {
   const g = await publicPost(req, "affiliate-join", 5);
   if ("error" in g) return g.error;
   const program = await affiliateProgram(g.ws.id);
-  if (!program) return jsonError("The affiliate program isn't open.", 404);
+  if (!program) return jsonError("errors.affiliateClosed", 404);
   const p = schema.safeParse(g.body);
   if (!p.success) return jsonError(p.error.issues[0]!.message);
   const me = await currentCustomer(g.ws.id);
   const email = me?.email ?? p.data.email;
-  if (!email) return jsonError("Please enter your email.");
+  if (!email) return jsonError("errors.enterEmail");
   const origin = requestOrigin(req.headers);
   const messageId = await system(async (tx) => {
     const [c] = await tx
@@ -43,6 +43,7 @@ export async function POST(req: Request) {
       : queueLoginLink(tx, {
           workspaceId: g.ws.id,
           workspaceName: g.ws.name,
+          locale: g.ws.siteLocale,
           contactId: c!.id,
           email,
           origin,

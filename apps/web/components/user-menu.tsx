@@ -9,10 +9,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@zfunnel/ui/dropdown-menu";
-import { LogOutIcon } from "lucide-react";
+import { useLocale, useT } from "@zfunnel/i18n/react";
+import { LanguagesIcon, LogOutIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useTransition } from "react";
+import { setLanguage } from "@/lib/i18n-actions";
 import { signOut } from "@/lib/actions";
 
 export function UserMenu({ name, email }: { name: string; email: string }) {
+  const t = useT();
+  const other = useLocale() === "ar" ? "en" : "ar";
+  const router = useRouter();
+  const [, start] = useTransition();
   const initials = name
     .split(" ")
     .map((p) => p.charAt(0))
@@ -21,7 +29,10 @@ export function UserMenu({ name, email }: { name: string; email: string }) {
     .toUpperCase();
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="rounded-full outline-none focus-visible:ring-[3px]" aria-label="Account menu">
+      <DropdownMenuTrigger
+        className="rounded-full outline-none focus-visible:ring-[3px]"
+        aria-label={t("shell.accountMenu")}
+      >
         <Avatar className="size-8">
           <AvatarFallback className="bg-primary/15 text-xs font-semibold text-primary">{initials}</AvatarFallback>
         </Avatar>
@@ -32,10 +43,21 @@ export function UserMenu({ name, email }: { name: string; email: string }) {
           <div className="truncate text-xs font-normal text-muted-foreground">{email}</div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem
+          // Offers the other language, written in that language ("العربية" / "English").
+          onSelect={() =>
+            start(async () => {
+              await setLanguage(other);
+              router.refresh();
+            })
+          }
+        >
+          <LanguagesIcon /> <span lang={other}>{t("shell.switchLanguage")}</span>
+        </DropdownMenuItem>
         <form action={signOut}>
           <DropdownMenuItem asChild>
             <button type="submit" className="w-full">
-              <LogOutIcon /> Sign out
+              <LogOutIcon /> {t("shell.signOut")}
             </button>
           </DropdownMenuItem>
         </form>

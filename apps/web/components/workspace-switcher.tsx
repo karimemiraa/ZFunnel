@@ -34,7 +34,7 @@ export function WorkspaceSwitcher({
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="h-10 w-full justify-start gap-2 px-2" aria-label="Switch workspace">
           <Initial name={current.name} />
-          <span className="flex-1 truncate text-left">{current.name}</span>
+          <span className="flex-1 truncate text-start">{current.name}</span>
           <ChevronsUpDownIcon className="text-muted-foreground" />
         </Button>
       </DropdownMenuTrigger>

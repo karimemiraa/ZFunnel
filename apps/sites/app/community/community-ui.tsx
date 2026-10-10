@@ -1,11 +1,13 @@
 "use client";
 
+import { useT } from "@zfunnel/i18n/react";
 import { useState } from "react";
 
 const field =
   "w-full rounded-xl border border-zinc-300 px-4 py-2.5 outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10";
 
 export function NewPost({ spaceId }: { spaceId: string }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -14,9 +16,9 @@ export function NewPost({ spaceId }: { spaceId: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full rounded-2xl border border-zinc-200 bg-white px-5 py-4 text-left text-zinc-500 transition hover:border-indigo-300"
+        className="w-full rounded-2xl border border-zinc-200 bg-white px-5 py-4 text-start text-zinc-500 transition hover:border-indigo-300"
       >
-        Start a discussion…
+        {t("community.startDiscussion")}
       </button>
     );
   return (
@@ -34,7 +36,7 @@ export function NewPost({ spaceId }: { spaceId: string }) {
         });
         const json = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
         setBusy(false);
-        if (!res.ok) return setError(json.error ?? "Something went wrong.");
+        if (!res.ok) return setError(json.error ?? t("common.somethingWrong"));
         window.location.assign(json.url!);
       }}
     >
@@ -42,8 +44,8 @@ export function NewPost({ spaceId }: { spaceId: string }) {
         name="title"
         required
         maxLength={160}
-        placeholder="Title"
-        aria-label="Post title"
+        placeholder={t("community.titlePlaceholder")}
+        aria-label={t("community.postTitle")}
         className={`${field} font-semibold`}
       />
       <textarea
@@ -51,8 +53,8 @@ export function NewPost({ spaceId }: { spaceId: string }) {
         required
         rows={5}
         maxLength={10000}
-        placeholder="What's on your mind?"
-        aria-label="Post body"
+        placeholder={t("community.bodyPlaceholder")}
+        aria-label={t("community.postBody")}
         className={field}
       />
       {error && (
@@ -66,10 +68,10 @@ export function NewPost({ spaceId }: { spaceId: string }) {
           disabled={busy}
           className="h-10 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-60"
         >
-          {busy ? "Posting…" : "Post"}
+          {busy ? t("community.posting") : t("community.post")}
         </button>
         <button type="button" onClick={() => setOpen(false)} className="h-10 px-3 text-sm text-zinc-500">
-          Cancel
+          {t("common.cancel")}
         </button>
       </div>
     </form>
@@ -77,6 +79,7 @@ export function NewPost({ spaceId }: { spaceId: string }) {
 }
 
 export function CommentForm({ postId }: { postId: string }) {
+  const t = useT();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   return (
@@ -94,7 +97,7 @@ export function CommentForm({ postId }: { postId: string }) {
         });
         const json = (await res.json().catch(() => ({}))) as { error?: string };
         setBusy(false);
-        if (!res.ok) return setError(json.error ?? "Something went wrong.");
+        if (!res.ok) return setError(json.error ?? t("common.somethingWrong"));
         window.location.reload();
       }}
     >
@@ -103,8 +106,8 @@ export function CommentForm({ postId }: { postId: string }) {
         required
         rows={3}
         maxLength={5000}
-        placeholder="Write a reply…"
-        aria-label="Reply"
+        placeholder={t("community.writeReply")}
+        aria-label={t("community.reply")}
         className={field}
       />
       {error && (
@@ -118,7 +121,7 @@ export function CommentForm({ postId }: { postId: string }) {
           disabled={busy}
           className="h-10 rounded-xl bg-zinc-900 px-5 text-sm font-semibold text-white hover:bg-zinc-700 disabled:opacity-60"
         >
-          {busy ? "Sending…" : "Reply"}
+          {busy ? t("community.sending") : t("community.reply")}
         </button>
       </div>
     </form>

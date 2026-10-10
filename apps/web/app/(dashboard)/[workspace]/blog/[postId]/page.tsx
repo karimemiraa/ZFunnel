@@ -23,7 +23,7 @@ export default async function PostPage({ params }: { params: Promise<{ workspace
           href={`/${ws}/blog`}
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeftIcon className="size-4" /> Blog
+          <ArrowLeftIcon className="size-4 rtl:-scale-x-100" /> Blog
         </Link>
         <form action={deletePost.bind(null, ws, post.id)}>
           <Button type="submit" variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive">

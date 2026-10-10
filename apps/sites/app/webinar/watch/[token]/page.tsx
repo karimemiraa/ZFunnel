@@ -5,11 +5,14 @@ import { Brand } from "@/app/brand";
 import { currentWorkspace } from "@/lib/site";
 import { registrationByToken } from "@/lib/webinar";
 import { WatchRoom } from "./watch-room";
+import { getT } from "@/lib/i18n";
 
 type P = { params: Promise<{ token: string }> };
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Webinar", robots: { index: false } };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())("webinar.webinar"), robots: { index: false } };
+}
 
 export default async function WatchPage({ params }: P) {
   const ws = await currentWorkspace();

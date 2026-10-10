@@ -53,7 +53,7 @@ export function FunnelActionsBar({
             <div className="space-y-2">
               <Label htmlFor="f-slug">URL path</Label>
               <div className="flex items-center rounded-md border border-input">
-                <span className="border-r px-3 text-sm whitespace-nowrap text-muted-foreground">
+                <span className="border-e px-3 text-sm whitespace-nowrap text-muted-foreground">
                   {origin.replace(/^https?:\/\//, "")}/
                 </span>
                 <input

@@ -42,25 +42,24 @@ export async function POST(req: Request) {
   const g = await publicPost(req, "upsell");
   if ("error" in g) return g.error;
   const parsed = bodySchema.safeParse(g.body);
-  if (!parsed.success) return jsonError("Invalid request.");
+  if (!parsed.success) return jsonError("errors.invalidRequest");
   const { stepId, offerId } = parsed.data;
 
   const step = await resolveStepForWorkspace(g.ws.id, stepId);
-  if (!step) return jsonError("This offer is no longer available.", 404);
+  if (!step) return jsonError("errors.offerUnavailable", 404);
   const sessionId = (await cookies()).get(SESSION_COOKIE)?.value;
 
   const prep = await system(async (tx) => {
     const session = await getFunnelSession(tx, g.ws.id, sessionId);
     if (!session?.orderId || !session.contactId || session.funnelId !== step.funnelId)
-      return { error: "Your session has expired. Please start the checkout again.", status: 410 };
+      return { error: "errors.sessionExpired", status: 410 };
     const offers = (await getStepOffers(tx, stepId)).filter((o) => o.role === "upsell" || o.role === "downsell");
     const offer = offerId ? offers.find((o) => o.offerId === offerId) : offers[0];
-    if (!offer) return { error: "This offer isn't set up yet.", status: 404 };
+    if (!offer) return { error: "errors.offerNotSetUp", status: 404 };
     const setup = await getPaymentSetup(tx, g.ws.id);
-    if (!setup) return { error: "Payments are not available.", status: 503 };
+    if (!setup) return { error: "errors.paymentsNotAvailable", status: 503 };
     const profile = await getProfile(tx, session.contactId, setup.provider);
-    if (!profile?.paymentMethodId)
-      return { error: "We couldn't find your saved card. Please contact support.", status: 409 };
+    if (!profile?.paymentMethodId) return { error: "errors.savedCardMissing", status: 409 };
     // Claim first: a double click or replay can never charge twice.
     if (!(await claimStep(tx, session.id, stepId))) return { alreadyHandled: true as const };
     const [p] = await tx
@@ -172,7 +171,7 @@ export async function POST(req: Request) {
         idempotencyKey: `upsell-${session.id}-${stepId}`,
       });
       if (sub.subscription.status !== "active" && sub.subscription.status !== "trialing")
-        return fail("Your card was declined.");
+        return fail("errors.cardDeclined");
       await system(async (tx) => {
         await tx.update(payments).set({ externalId: sub.subscription.id }).where(eq(payments.id, paymentId));
         await markPaymentSucceeded(tx, paymentId);
@@ -189,7 +188,7 @@ export async function POST(req: Request) {
     }
   } catch (err) {
     console.error("[upsell]", err);
-    return fail("Your card was declined. Please try another option.");
+    return fail("errors.cardDeclinedTryAnother");
   }
   await system((tx) =>
     logActivity(tx, { workspaceId: g.ws.id, contactId: session.contactId!, type: "upsell", body: offer.productName }),

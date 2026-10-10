@@ -29,6 +29,7 @@ test("white-label: brand color, and removing the badge needs a Pro plan", async 
   await expect(async () => {
     await visitor.reload();
     await expect(visitor.getByRole("heading", { name: "Shop" })).toBeVisible();
-    await expect(visitor.getByRole("link", { name: "Powered by ZFunnel" })).toHaveCount(0);
-  }).toPass({ timeout: 15_000 });
+    // Short inner timeout so toPass reloads again instead of waiting on one stale page.
+    await expect(visitor.getByRole("link", { name: "Powered by ZFunnel" })).toHaveCount(0, { timeout: 1_000 });
+  }).toPass({ timeout: 20_000 });
 });

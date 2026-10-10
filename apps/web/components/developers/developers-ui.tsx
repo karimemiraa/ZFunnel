@@ -267,7 +267,7 @@ export function Developers({
                   <span className="font-medium">{d.event}</span>
                   <span className="text-muted-foreground">{d.code ? `HTTP ${d.code}` : d.status}</span>
                   {d.error && <span className="truncate text-muted-foreground">{d.error}</span>}
-                  <span className="ml-auto text-muted-foreground">{new Date(d.at).toLocaleString()}</span>
+                  <span className="ms-auto text-muted-foreground">{new Date(d.at).toLocaleString()}</span>
                 </li>
               ))}
             </ul>

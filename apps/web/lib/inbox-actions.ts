@@ -1,6 +1,7 @@
 "use server";
 
 import { chatSettings, conversationMessages, conversations, emailMessages, eq } from "@zfunnel/db";
+import { getTranslator } from "@zfunnel/i18n";
 import { enqueue } from "@zfunnel/queue";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -63,7 +64,7 @@ export async function replyToConversation(workspaceSlug: string, id: string, bod
         workspaceId: ctx.workspace.id,
         contactId: c.contactId,
         toEmail: c.email,
-        subject: `New reply from ${ctx.workspace.name}`,
+        subject: getTranslator(ctx.workspace.siteLocale)("emails.chatSubject", { name: ctx.workspace.name }),
         meta: { kind: "chat_reply", conversationId: c.id, siteOrigin: origin },
       })
       .returning({ id: emailMessages.id });

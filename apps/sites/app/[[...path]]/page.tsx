@@ -9,6 +9,7 @@ import { Tracker } from "../tracker";
 import { currentWorkspace } from "@/lib/site";
 import { pickVariant, variantCookie } from "@/lib/variants";
 import { visitorLocale } from "@/lib/locale";
+import { getT } from "@/lib/i18n";
 
 type Params = { params: Promise<{ path?: string[] }> };
 
@@ -45,7 +46,7 @@ export default async function SitePage(props: Params) {
         <main className="flex min-h-dvh items-center justify-center p-6 text-center text-zinc-900">
           <div>
             <h1 className="text-3xl font-bold">{r.ws.name}</h1>
-            <p className="mt-2 text-zinc-500">Nothing has been published here yet.</p>
+            <p className="mt-2 text-zinc-500">{(await getT())("site.nothingYet")}</p>
           </div>
         </main>
       );
@@ -63,6 +64,7 @@ export default async function SitePage(props: Params) {
   const runtime: BlockRuntime = {
     mode: "live",
     locale: await visitorLocale(),
+    lang: r.ws.siteLocale,
     offers: commerce?.offers,
     payments: commerce?.setup
       ? commerce.setup.provider === "stripe"

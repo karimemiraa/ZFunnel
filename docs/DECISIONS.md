@@ -184,3 +184,26 @@ Format: **ID — Title** · Status (Proposed / Accepted / Superseded) · Date. S
 **Why.** There is no SFU, TURN server or recording pipeline to run on a VPS shared with other apps (Phase 5 addendum). Video hosts already handle bandwidth and adaptive streaming. Computing sessions on the fly means schedule edits apply at once and no sessions table needs cleanup.
 
 **Consequences.** If Redis is flushed, pending reminders are lost; the confirmation email always carries the watch link. Viewers can see YouTube/Vimeo branding unless the owner uses an .mp4. There is no interactive chat in the room yet; the site chat widget still works on the page. Attendance counts the first join during the live window or the replay window, and only the first one triggers `webinar_attended`.
+
+### ADR-023 — Native Arabic: typed dictionaries, two language settings, Western digits · **Accepted** · 2026-10-10
+
+**Decision.** Built in-house in `@zfunnel/i18n`, with no third-party i18n library.
+
+- English dictionaries are the source of truth. The Arabic ones are typed against their shape, so a missing translation fails the build. Plurals use `Intl.PluralRules`.
+- **Two separate languages.**
+  - The dashboard follows the _user_ (cookie, else Accept-Language).
+  - Public pages, checkout, customer emails and API errors follow the _workspace's site language_.
+  - Blocks get the site language through their runtime, so the editor shows the page in the site's language and direction even when the dashboard is in English.
+- **Western digits** (`ar-u-nu-latn`) for all Arabic formatting.
+- **Arabic calendars** start the week on Sunday.
+- **Copy is written natively** using a shared glossary (`docs/ARABIC.md`).
+- **Not translated:** content the user writes, and the Puck editor's own chrome.
+
+**Why.** A merchant's language and their customers' language differ often, for example an English-speaking agency running an Arabic store. One setting can't serve both. Typed dictionaries make "no English left behind" a compile-time guarantee instead of a hope. Western digits match card numbers and phone inputs and are standard in Gulf marketing.
+
+**Consequences.**
+
+- Both dictionaries ship to the browser (tens of KB).
+- Visitor-facing server errors are `errors.*` keys, translated at response time. Payment-provider messages are passed through as is.
+- Email clients don't support logical CSS, so right-to-left emails mirror left/right alignment in the rendered HTML.
+- Adding a third language means one more dictionary file per namespace.

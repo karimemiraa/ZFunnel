@@ -7,6 +7,8 @@ import { notFound } from "next/navigation";
 import { currentWorkspace } from "@/lib/site";
 import { storeProduct } from "@/lib/store";
 import { visitorLocale } from "@/lib/locale";
+import { intlLocale } from "@zfunnel/i18n";
+import { getT } from "@/lib/i18n";
 
 type P = { params: Promise<{ productId: string }> };
 
@@ -19,7 +21,7 @@ export async function generateMetadata({ params }: P): Promise<Metadata> {
         description: r.p.description ?? undefined,
         openGraph: { images: r.p.imageUrl ? [r.p.imageUrl] : undefined },
       }
-    : { title: "Not found" };
+    : { title: (await getT())("shell.notFound") };
 }
 
 export default async function ProductPage({ params }: P) {
@@ -28,9 +30,12 @@ export default async function ProductPage({ params }: P) {
   const r = await storeProduct(ws.id, (await params).productId);
   if (!r) notFound();
   const setup = await system((tx) => getPaymentSetup(tx, ws.id));
+  const t = await getT();
+  const loc = ws.siteLocale === "ar" ? intlLocale("ar") : undefined;
   const runtime: BlockRuntime = {
     mode: "live",
     locale: await visitorLocale(),
+    lang: ws.siteLocale,
     apiBase: "/api",
     offers: r.offer ? toRuntimeOffers([r.offer]) : [],
     payments: setup
@@ -40,13 +45,24 @@ export default async function ProductPage({ params }: P) {
       : null,
     store: { priceId: r.price.id, shipping: r.p.requiresShipping },
   };
-  const checkout = page("Checkout", [block("OrderForm", { buttonLabel: "Buy now" } as never)], {});
+  const checkout = page(
+    t("store.checkout"),
+    [
+      block("OrderForm", {
+        buttonLabel: t("store.buyNow"),
+        contactTitle: t("checkout.yourDetails"),
+        paymentTitle: t("checkout.payment"),
+        guarantee: "",
+      } as never),
+    ],
+    {},
+  );
   return (
     <main className="min-h-dvh bg-white text-zinc-900">
       <header className="border-b border-zinc-100">
         <div className="mx-auto flex h-16 max-w-6xl items-center px-4">
           <Link href="/store" className="text-sm font-medium text-zinc-500 hover:text-zinc-900">
-            ← {ws.name} shop
+            {t("store.backToShop", { name: ws.name })}
           </Link>
         </div>
       </header>
@@ -59,14 +75,16 @@ export default async function ProductPage({ params }: P) {
         </div>
         <div>
           <h1 className="text-4xl font-bold tracking-tight">{r.p.name}</h1>
-          <p className="mt-3 text-2xl font-semibold">{describePrice(r.price)}</p>
+          <p className="mt-3 text-2xl font-semibold">{describePrice(r.price, t, loc)}</p>
           {r.p.description && <p className="mt-4 leading-7 whitespace-pre-line text-zinc-600">{r.p.description}</p>}
           {r.p.stock !== null && r.p.stock > 0 && r.p.stock <= 10 && (
-            <p className="mt-3 text-sm font-medium text-amber-600">Only {r.p.stock} left</p>
+            <p className="mt-3 text-sm font-medium text-amber-600">{t("store.left", { count: r.p.stock })}</p>
           )}
           <div className="mt-8">
             {r.soldOut ? (
-              <p className="rounded-2xl bg-zinc-100 p-6 text-center font-semibold text-zinc-600">Sold out</p>
+              <p className="rounded-2xl bg-zinc-100 p-6 text-center font-semibold text-zinc-600">
+                {t("store.soldOut")}
+              </p>
             ) : (
               <Render config={config} data={checkout as never} metadata={runtime} />
             )}

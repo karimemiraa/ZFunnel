@@ -2,6 +2,8 @@
 
 import { ArrowRightIcon, CheckCircle2Icon, Loader2Icon } from "lucide-react";
 import { useState } from "react";
+import type { Locale } from "@zfunnel/i18n";
+import { blockT } from "../runtime";
 import { cx } from "../utils";
 
 type Props = {
@@ -15,12 +17,14 @@ type Props = {
   stepId?: string;
   apiBase: string;
   nextUrl?: string;
+  lang?: Locale;
 };
 
 const input =
   "h-13 w-full min-w-0 rounded-[var(--zf-radius)] border px-4 text-base outline-none transition focus:ring-4 bg-[var(--zf-bg)] text-[var(--zf-text)] border-[color-mix(in_srgb,var(--zf-text)_18%,transparent)] focus:border-[var(--zf-primary)] focus:ring-[color-mix(in_srgb,var(--zf-primary)_20%,transparent)]";
 
 export function OptInFormView(p: Props) {
+  const t = blockT(p);
   const [state, setState] = useState<"idle" | "sending" | "done" | "error">("idle");
   const [error, setError] = useState("");
 
@@ -37,7 +41,7 @@ export function OptInFormView(p: Props) {
         body: JSON.stringify({ ...data, stepId: p.stepId }),
       });
       const json = (await res.json().catch(() => ({}))) as { redirect?: string; error?: string };
-      if (!res.ok) throw new Error(json.error ?? "Something went wrong. Please try again.");
+      if (!res.ok) throw new Error(json.error ?? t("common.somethingWrong"));
       if (json.redirect) {
         window.location.assign(json.redirect);
         return;
@@ -45,7 +49,7 @@ export function OptInFormView(p: Props) {
       setState("done");
     } catch (err) {
       setState("error");
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setError(err instanceof Error ? err.message : t("common.somethingWrong"));
     }
   }
 
@@ -69,9 +73,9 @@ export function OptInFormView(p: Props) {
             className={input}
             name="name"
             autoComplete="name"
-            placeholder="Your first name"
+            placeholder={t("forms.firstName")}
             required
-            aria-label="Name"
+            aria-label={t("forms.name")}
           />
         )}
         <input
@@ -79,9 +83,9 @@ export function OptInFormView(p: Props) {
           name="email"
           type="email"
           autoComplete="email"
-          placeholder="Your best email"
+          placeholder={t("forms.bestEmail")}
           required
-          aria-label="Email"
+          aria-label={t("forms.email")}
         />
         {p.askPhone && (
           <input
@@ -89,8 +93,8 @@ export function OptInFormView(p: Props) {
             name="phone"
             type="tel"
             autoComplete="tel"
-            placeholder="Phone number"
-            aria-label="Phone"
+            placeholder={t("forms.phone")}
+            aria-label={t("forms.phoneLabel")}
           />
         )}
         <button
@@ -109,7 +113,7 @@ export function OptInFormView(p: Props) {
         >
           {state === "sending" ? <Loader2Icon className="size-5 animate-spin" /> : null}
           {p.buttonLabel}
-          {state !== "sending" && <ArrowRightIcon className="size-5" />}
+          {state !== "sending" && <ArrowRightIcon className="size-5 rtl:-scale-x-100" />}
         </button>
       </div>
       {state === "error" && (

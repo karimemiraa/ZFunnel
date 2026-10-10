@@ -102,7 +102,7 @@ export function DomainsManager({
             ) : (
               <Badge variant="warning">Waiting for DNS</Badge>
             )}
-            <div className="ml-auto flex items-center gap-2">
+            <div className="ms-auto flex items-center gap-2">
               <NativeSelect
                 aria-label="Homepage for this domain"
                 value={d.funnelId ?? ""}
@@ -148,18 +148,18 @@ export function DomainsManager({
                 can take a few minutes.
               </p>
               <div className="overflow-x-auto">
-                <table className="w-full text-left">
+                <table className="w-full text-start">
                   <thead className="text-xs text-muted-foreground uppercase">
                     <tr>
-                      <th className="py-1 pr-4">Type</th>
-                      <th className="py-1 pr-4">Name</th>
+                      <th className="py-1 pe-4">Type</th>
+                      <th className="py-1 pe-4">Name</th>
                       <th className="py-1">Value</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
-                      <td className="py-1.5 pr-4 font-medium">CNAME</td>
-                      <td className="py-1.5 pr-4">
+                      <td className="py-1.5 pe-4 font-medium">CNAME</td>
+                      <td className="py-1.5 pe-4">
                         <Copyable value={d.hostname} />
                       </td>
                       <td className="py-1.5">
@@ -168,15 +168,15 @@ export function DomainsManager({
                     </tr>
                     {ipv4 && (
                       <tr>
-                        <td className="py-1.5 pr-4 text-xs text-muted-foreground" colSpan={3}>
+                        <td className="py-1.5 pe-4 text-xs text-muted-foreground" colSpan={3}>
                           Root domain (no www)? Use an <strong>A</strong> record to <Copyable value={ipv4} /> instead of
                           the CNAME.
                         </td>
                       </tr>
                     )}
                     <tr>
-                      <td className="py-1.5 pr-4 font-medium">TXT</td>
-                      <td className="py-1.5 pr-4">
+                      <td className="py-1.5 pe-4 font-medium">TXT</td>
+                      <td className="py-1.5 pe-4">
                         <Copyable value={`_zfunnel.${d.hostname}`} />
                       </td>
                       <td className="py-1.5">

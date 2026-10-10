@@ -25,11 +25,11 @@ export async function POST(req: Request) {
   const g = await publicPost(req, "form", 15);
   if ("error" in g) return g.error;
   const parsed = bodySchema.safeParse(g.body);
-  if (!parsed.success) return jsonError("Invalid form.");
+  if (!parsed.success) return jsonError("errors.invalidForm");
   const { stepId, blockId, answers, name } = parsed.data;
 
   const step = await resolveStepForWorkspace(g.ws.id, stepId);
-  if (!step) return jsonError("This form is no longer available.", 404);
+  if (!step) return jsonError("errors.formUnavailable", 404);
   // The form can live on the original page or on a split-test variant.
   const versions = await system((tx) =>
     tx
@@ -49,14 +49,13 @@ export async function POST(req: Request) {
       ),
   );
   const block = versions.map((v) => findBlock(v.data, blockId)).find(Boolean) ?? null;
-  if (!block || block.type !== "Survey") return jsonError("This form is no longer available.", 404);
+  if (!block || block.type !== "Survey") return jsonError("errors.formUnavailable", 404);
   const def = block.props as unknown as SurveyDef;
 
   const checked = validateAnswers(def, answers);
   if (!checked.ok) return jsonError(checked.error);
   const email = parsed.data.email ?? "";
-  if (def.askEmail && !z.string().email().safeParse(email).success)
-    return jsonError("Please enter a valid email address.");
+  if (def.askEmail && !z.string().email().safeParse(email).success) return jsonError("errors.invalidEmail");
 
   const score = def.quiz ? scoreAnswers(def, checked.answers) : null;
   const outcome = def.quiz && score !== null ? pickOutcome(def, score) : null;

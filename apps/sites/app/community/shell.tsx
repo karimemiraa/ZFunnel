@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { T } from "@zfunnel/i18n";
 import { SignOut } from "../account/account-client";
 
 export function CommunityShell({
@@ -6,7 +7,9 @@ export function CommunityShell({
   children,
   spaces,
   active,
+  t,
 }: {
+  t: T;
   siteName: string;
   children: React.ReactNode;
   spaces: { slug: string; name: string }[];
@@ -17,16 +20,16 @@ export function CommunityShell({
       <header className="border-b border-zinc-200 bg-white">
         <div className="mx-auto flex h-16 max-w-5xl items-center gap-6 px-4">
           <Link href="/community" className="flex-1 font-semibold">
-            {siteName} Community
+            {t("community.siteCommunity", { site: siteName })}
           </Link>
           <Link href="/courses" className="text-sm text-zinc-500 hover:text-zinc-900">
-            Courses
+            {t("community.courses")}
           </Link>
           <SignOut />
         </div>
       </header>
       <div className="mx-auto grid max-w-5xl gap-6 px-4 py-8 md:grid-cols-[220px_1fr]">
-        <nav className="grid content-start gap-1" aria-label="Spaces">
+        <nav className="grid content-start gap-1" aria-label={t("community.spaces")}>
           {spaces.map((s) => (
             <Link
               key={s.slug}

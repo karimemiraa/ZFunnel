@@ -76,7 +76,7 @@ export default async function ContactsPage({
       </div>
       {tags.length > 0 && (
         <div className="mb-4 flex flex-wrap items-center gap-1.5">
-          <span className="mr-1 text-xs text-muted-foreground">Tags:</span>
+          <span className="me-1 text-xs text-muted-foreground">Tags:</span>
           {tags.slice(0, 20).map((t) => (
             <Link
               key={t.tag}

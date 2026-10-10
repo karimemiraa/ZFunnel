@@ -8,7 +8,7 @@ describe("test gateway", () => {
   it("declines, rejects expired and malformed cards", () => {
     expect(chargeTestCard("4000 0000 0000 0002", "12/40", "123")).toMatchObject({
       ok: false,
-      message: "Your card was declined.",
+      message: "errors.cardDeclined",
     });
     expect(chargeTestCard("4242424242424242", "01/20", "123")).toMatchObject({ ok: false });
     expect(chargeTestCard("4242424242424242", "13/40", "123")).toMatchObject({ ok: false });

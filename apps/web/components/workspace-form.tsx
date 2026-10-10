@@ -82,7 +82,7 @@ export function WorkspaceForm({ action, rootDomain, submitLabel, askOrganization
               setSlug(e.target.value.toLowerCase());
             }}
           />
-          <span className="border-l px-3 text-sm text-muted-foreground">.{rootDomain}</span>
+          <span className="border-s px-3 text-sm text-muted-foreground">.{rootDomain}</span>
         </div>
         <FormMessage message={errors.slug?.[0]} />
       </div>

@@ -73,7 +73,7 @@ export default async function FunnelPage({
             href={`/${ws}/funnels`}
             className="mb-1 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
           >
-            <ArrowLeftIcon className="size-3.5" /> Funnels
+            <ArrowLeftIcon className="size-3.5 rtl:-scale-x-100" /> Funnels
           </Link>
           <h1 className="truncate text-2xl font-semibold tracking-tight">{funnel.name}</h1>
         </div>

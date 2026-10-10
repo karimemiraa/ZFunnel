@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useIntlLocale, useT } from "@zfunnel/i18n/react";
 import { useState } from "react";
 
 export function RegisterForm({
@@ -17,15 +18,18 @@ export function RegisterForm({
   live: boolean;
 }) {
   const router = useRouter();
+  const t = useT();
+  const tag = useIntlLocale();
   const [pick, setPick] = useState(sessions[0]!);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const label = (iso: string) => {
     const d = new Date(iso);
     const mins = Math.round((d.getTime() - new Date(serverNow).getTime()) / 60_000);
-    if (mins < 0) return `Live now (started ${-mins} min ago)`;
-    if (mins <= 15) return `Starting in ${mins} minutes`;
-    return d.toLocaleString(undefined, {
+    if (mins < 0) return t("webinar.liveNow", { count: -mins });
+    // "Just in time" sessions are at most 20 minutes away (5 minutes + rounding to the quarter hour).
+    if (mins <= 20) return t("webinar.startingIn", { count: mins });
+    return d.toLocaleString(tag, {
       weekday: "long",
       month: "long",
       day: "numeric",
@@ -48,16 +52,16 @@ export function RegisterForm({
         const d = (await r?.json().catch(() => null)) as { token?: string; error?: string } | null;
         if (!r?.ok || !d?.token) {
           setBusy(false);
-          return setError(d?.error ?? "Couldn't register. Please try again.");
+          return setError(d?.error ?? t("webinar.couldNotRegister"));
         }
         router.push(`/webinar/watch/${d.token}`);
       }}
       className="space-y-4"
     >
-      <h2 className="text-xl font-bold">Save your free seat</h2>
+      <h2 className="text-xl font-bold">{t("webinar.saveSeat")}</h2>
       {!live && (
         <fieldset className="space-y-2">
-          <legend className="mb-2 text-sm font-medium text-zinc-600">Pick a time</legend>
+          <legend className="mb-2 text-sm font-medium text-zinc-600">{t("webinar.pickTime")}</legend>
           {sessions.map((s) => (
             <label
               key={s}
@@ -85,16 +89,16 @@ export function RegisterForm({
       )}
       <input
         name="name"
-        aria-label="Your name"
-        placeholder="Your name"
+        aria-label={t("webinar.yourName")}
+        placeholder={t("webinar.yourName")}
         className="w-full rounded-lg border border-zinc-300 px-3 py-2.5 outline-none focus:border-zinc-500"
       />
       <input
         name="email"
         type="email"
         required
-        aria-label="Your email"
-        placeholder="Your best email"
+        aria-label={t("webinar.yourEmail")}
+        placeholder={t("webinar.bestEmail")}
         className="w-full rounded-lg border border-zinc-300 px-3 py-2.5 outline-none focus:border-zinc-500"
       />
       {error && <p className="text-sm text-red-600">{error}</p>}
@@ -104,9 +108,9 @@ export function RegisterForm({
         className="w-full rounded-lg py-3 font-semibold text-white shadow-lg transition hover:brightness-110 disabled:opacity-60"
         style={{ background: color }}
       >
-        {busy ? "Saving your seat…" : "Register now"}
+        {busy ? t("webinar.saving") : t("webinar.register")}
       </button>
-      <p className="text-center text-xs text-zinc-500">We'll email you the link and a reminder before it starts.</p>
+      <p className="text-center text-xs text-zinc-500">{t("webinar.reminderNote")}</p>
     </form>
   );
 }

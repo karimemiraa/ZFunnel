@@ -52,12 +52,12 @@ export default async function ProductsPage({ params }: { params: Promise<{ works
       ) : (
         <div className="overflow-hidden rounded-xl border bg-card">
           <table className="w-full text-sm">
-            <thead className="bg-muted/50 text-left text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            <thead className="bg-muted/50 text-start text-xs font-medium tracking-wide text-muted-foreground uppercase">
               <tr>
                 <th className="px-4 py-3">Product</th>
                 <th className="px-4 py-3 max-sm:hidden">Price</th>
-                <th className="px-4 py-3 text-right max-md:hidden">Sales</th>
-                <th className="px-4 py-3 text-right max-md:hidden">Revenue</th>
+                <th className="px-4 py-3 text-end max-md:hidden">Sales</th>
+                <th className="px-4 py-3 text-end max-md:hidden">Revenue</th>
                 <th className="w-24 px-4 py-3" />
               </tr>
             </thead>
@@ -103,8 +103,8 @@ export default async function ProductsPage({ params }: { params: Promise<{ works
                         "—"
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums max-md:hidden">{p.sales.count}</td>
-                    <td className="px-4 py-3 text-right font-medium tabular-nums max-md:hidden">
+                    <td className="px-4 py-3 text-end tabular-nums max-md:hidden">{p.sales.count}</td>
+                    <td className="px-4 py-3 text-end font-medium tabular-nums max-md:hidden">
                       {formatMoney(p.sales.revenue, price?.currency ?? "usd")}
                     </td>
                     <td className="px-4 py-3">

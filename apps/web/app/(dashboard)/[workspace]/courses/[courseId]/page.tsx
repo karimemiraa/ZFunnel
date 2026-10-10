@@ -39,7 +39,7 @@ export default async function CoursePage({
         href={`/${ws}/courses`}
         className="mb-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeftIcon className="size-4" /> Courses
+        <ArrowLeftIcon className="size-4 rtl:-scale-x-100" /> Courses
       </Link>
       <PageHeader
         title={data.course.title}

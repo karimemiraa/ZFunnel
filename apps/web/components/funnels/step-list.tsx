@@ -58,7 +58,7 @@ export function StepList({
             href={`${base}?step=${s.id}`}
             scroll={false}
             className={cn(
-              "flex items-center gap-3 rounded-lg border bg-card p-3 pr-16 transition-all",
+              "flex items-center gap-3 rounded-lg border bg-card p-3 pe-16 transition-all",
               s.id === selectedId ? "border-primary shadow-sm ring-4 ring-primary/15" : "hover:border-foreground/20",
             )}
           >
@@ -80,7 +80,7 @@ export function StepList({
               </span>
             </span>
           </Link>
-          <div className="absolute top-1/2 right-2 flex -translate-y-1/2 flex-col opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+          <div className="absolute end-2 top-1/2 flex -translate-y-1/2 flex-col opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
             <Tooltip label="Move up" side="left">
               <Button
                 variant="ghost"

@@ -23,12 +23,12 @@ import { resolveStepForWorkspace } from "@/lib/resolve";
 
 const shippingSchema = z.object({
   name: z.string().trim().min(1).max(120),
-  line1: z.string().trim().min(1, "Please enter your address.").max(200),
+  line1: z.string().trim().min(1, "errors.enterAddress").max(200),
   line2: z.string().trim().max(200).optional(),
-  city: z.string().trim().min(1, "Please enter your city.").max(100),
-  postalCode: z.string().trim().min(1, "Please enter your postal code.").max(20),
+  city: z.string().trim().min(1, "errors.enterCity").max(100),
+  postalCode: z.string().trim().min(1, "errors.enterPostalCode").max(20),
   region: z.string().trim().max(100).optional(),
-  country: z.string().trim().min(2, "Please choose your country.").max(60),
+  country: z.string().trim().min(2, "errors.chooseCountry").max(60),
 });
 
 const bodySchema = z.object({
@@ -38,8 +38,8 @@ const bodySchema = z.object({
   storePriceId: z.string().uuid().optional(),
   shipping: shippingSchema.optional(),
   bumpOfferIds: z.array(z.string().uuid()).max(5).default([]),
-  email: z.string().trim().toLowerCase().email("Please enter a valid email address.").max(254),
-  name: z.string().trim().min(1, "Please enter your name.").max(120),
+  email: z.string().trim().toLowerCase().email("errors.invalidEmail").max(254),
+  name: z.string().trim().min(1, "errors.enterName").max(120),
 });
 
 /**
@@ -50,36 +50,35 @@ export async function POST(req: Request) {
   const g = await publicPost(req, "checkout");
   if ("error" in g) return g.error;
   const parsed = bodySchema.safeParse(g.body);
-  if (!parsed.success) return jsonError(parsed.error.issues[0]?.message ?? "Invalid checkout.");
+  if (!parsed.success) return jsonError(parsed.error.issues[0]?.message ?? "errors.invalidCheckout");
   const { stepId, mainOfferId, storePriceId, shipping, bumpOfferIds, email, name } = parsed.data;
   const store = Boolean(storePriceId);
-  if (!store && (!stepId || !mainOfferId)) return jsonError("Invalid checkout.");
+  if (!store && (!stepId || !mainOfferId)) return jsonError("errors.invalidCheckout");
   const affCookie = (await cookies()).get("zf_aff")?.value;
 
   const step = store ? null : await resolveStepForWorkspace(g.ws.id, stepId!);
-  if (!store && !step) return jsonError("This checkout is no longer available.", 404);
+  if (!store && !step) return jsonError("errors.checkoutUnavailable", 404);
 
   try {
     // 1) Short transaction: validate the cart and create the pending order.
     const prep = await system(async (tx) => {
       const setup = await getPaymentSetup(tx, g.ws.id);
-      if (!setup) return { error: "This store isn't accepting payments yet." } as const;
+      if (!setup) return { error: "errors.storeNotAccepting" } as const;
       let main: OfferView | undefined;
       let bumps: OfferView[] = [];
       if (store) {
         const offer = await getStoreOffer(tx, g.ws.id, storePriceId!);
-        if (!offer) return { error: "Sorry, this product is sold out or no longer available." } as const;
-        if (offer.requiresShipping && !shipping) return { error: "Please enter your shipping address." } as const;
+        if (!offer) return { error: "errors.soldOut" } as const;
+        if (offer.requiresShipping && !shipping) return { error: "errors.enterShipping" } as const;
         main = offer;
       } else {
         const offers = await getStepOffers(tx, stepId!);
         main = offers.find((o) => o.offerId === mainOfferId && o.role === "main");
         bumps = offers.filter((o) => o.role === "bump" && bumpOfferIds.includes(o.offerId));
       }
-      if (!main) return { error: "Please choose a product." } as const;
+      if (!main) return { error: "errors.chooseProduct" } as const;
       const cart: OfferView[] = [main, ...bumps];
-      if (cart.some((o) => o.currency !== main.currency))
-        return { error: "All products in one order must use the same currency." } as const;
+      if (cart.some((o) => o.currency !== main.currency)) return { error: "errors.mixedCurrency" } as const;
       const contact = await upsertContact(tx, g.ws.id, {
         email,
         name,
@@ -102,7 +101,7 @@ export async function POST(req: Request) {
       const profile = setup.provider === "stripe" ? await getProfile(tx, contact.id, "stripe") : null;
       return { setup, main, bumps, cart, contact, order, profile } as const;
     });
-    if ("error" in prep) return jsonError(prep.error ?? "Checkout failed.");
+    if ("error" in prep) return jsonError(prep.error ?? "errors.paymentStartFailed");
     const { setup, main, bumps, cart, contact, order, profile } = prep;
     const amountDueNow = cart.reduce((s, o) => s + (o.trialDays ? 0 : o.amount), 0);
 
@@ -205,6 +204,6 @@ export async function POST(req: Request) {
     });
   } catch (err) {
     console.error("[checkout/start]", err);
-    return jsonError("We couldn't start your payment. Please try again.", 502);
+    return jsonError("errors.paymentStartFailed", 502);
   }
 }

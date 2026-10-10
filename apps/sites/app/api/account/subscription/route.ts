@@ -12,9 +12,9 @@ export async function POST(req: Request) {
   const g = await publicPost(req, "account-sub", 10);
   if ("error" in g) return g.error;
   const customer = await currentCustomer(g.ws.id);
-  if (!customer) return jsonError("Please sign in again.", 401);
+  if (!customer) return jsonError("errors.signInAgain", 401);
   const parsed = schema.safeParse(g.body);
-  if (!parsed.success) return jsonError("Invalid request.");
+  if (!parsed.success) return jsonError("errors.invalidRequest");
   const { id, cancel } = parsed.data;
   const sub = await system(async (tx) => {
     const [s] = await tx
@@ -25,17 +25,16 @@ export async function POST(req: Request) {
       );
     return s ?? null;
   });
-  if (!sub) return jsonError("Subscription not found.", 404);
-  if (!["active", "trialing", "past_due"].includes(sub.status))
-    return jsonError("This subscription has already ended.");
+  if (!sub) return jsonError("errors.subscriptionNotFound", 404);
+  if (!["active", "trialing", "past_due"].includes(sub.status)) return jsonError("errors.subscriptionEnded");
   if (sub.provider === "stripe") {
     const setup = await system((tx) => getPaymentSetup(tx, g.ws.id));
-    if (setup?.provider !== "stripe" || !sub.externalId) return jsonError("Payments are unavailable right now.", 503);
+    if (setup?.provider !== "stripe" || !sub.externalId) return jsonError("errors.paymentsUnavailable", 503);
     try {
       await setCancelAtPeriodEnd(setup.accountId, sub.externalId, cancel);
     } catch (err) {
       console.error("[account] cancel", (err as Error).message);
-      return jsonError("We couldn't update your subscription. Please try again.", 502);
+      return jsonError("errors.subscriptionUpdateFailed", 502);
     }
   }
   await system((tx) => tx.update(subscriptions).set({ cancelAtPeriodEnd: cancel }).where(eq(subscriptions.id, sub.id)));

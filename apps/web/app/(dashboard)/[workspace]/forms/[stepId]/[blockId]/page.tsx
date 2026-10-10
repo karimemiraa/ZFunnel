@@ -38,7 +38,7 @@ export default async function FormPage({
         href={`/${ws}/forms`}
         className="mb-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeftIcon className="size-4" /> Forms
+        <ArrowLeftIcon className="size-4 rtl:-scale-x-100" /> Forms
       </Link>
       <PageHeader
         title={name}
@@ -105,7 +105,7 @@ export default async function FormPage({
       ) : (
         <div className="overflow-x-auto rounded-xl border bg-card">
           <table className="w-full text-sm">
-            <thead className="bg-muted/50 text-left text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            <thead className="bg-muted/50 text-start text-xs font-medium tracking-wide text-muted-foreground uppercase">
               <tr>
                 <th className="px-4 py-3">Contact</th>
                 {summary.map((q) => (
@@ -114,7 +114,7 @@ export default async function FormPage({
                   </th>
                 ))}
                 {scored.length > 0 && <th className="px-4 py-3">Result</th>}
-                <th className="px-4 py-3 text-right">When</th>
+                <th className="px-4 py-3 text-end">When</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -150,9 +150,7 @@ export default async function FormPage({
                       {s.outcome ?? "—"} <span className="text-xs text-muted-foreground">({s.score})</span>
                     </td>
                   )}
-                  <td className="px-4 py-3 text-right whitespace-nowrap text-muted-foreground">
-                    {timeAgo(s.createdAt)}
-                  </td>
+                  <td className="px-4 py-3 text-end whitespace-nowrap text-muted-foreground">{timeAgo(s.createdAt)}</td>
                 </tr>
               ))}
             </tbody>

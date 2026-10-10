@@ -11,7 +11,7 @@ import {
   XIcon,
 } from "lucide-react";
 import { alignField, hideOnField, type Align, type HideOn } from "../fields";
-import { getRuntime } from "../runtime";
+import { blockT, getRuntime } from "../runtime";
 import { alignText, cx, hideClass, justify, toEmbed } from "../utils";
 
 const HEADING_SIZES = {
@@ -352,7 +352,9 @@ export const Button: ComponentConfig<ButtonProps> = {
         >
           <span className="inline-flex items-center gap-2">
             {p.label}
-            {p.arrow && <ArrowRightIcon className="size-[1.1em] transition-transform group-hover:translate-x-1" />}
+            {p.arrow && (
+              <ArrowRightIcon className="size-[1.1em] transition-transform group-hover:translate-x-1 rtl:-scale-x-100" />
+            )}
           </span>
           {p.sublabel && <span className="mt-0.5 text-[0.72em] font-normal opacity-80">{p.sublabel}</span>}
         </a>
@@ -437,6 +439,7 @@ export const Image: ComponentConfig<ImageProps> = {
     hideOn: "none",
   },
   render: (p) => {
+    const t = blockT(getRuntime(p.puck.metadata));
     const frame = cx(
       "block overflow-hidden",
       p.width === "full" && "w-full",
@@ -469,7 +472,7 @@ export const Image: ComponentConfig<ImageProps> = {
             }}
           >
             <span className="flex flex-col items-center gap-2 text-sm font-medium opacity-80">
-              <ImageIcon className="size-8" /> Add an image URL
+              <ImageIcon className="size-8" /> {t("blocks.addImageUrl")}
             </span>
           </div>
         )}
@@ -525,6 +528,7 @@ export const Video: ComponentConfig<VideoProps> = {
   },
   defaultProps: { url: "", rounded: true, shadow: true, maxWidth: "lg", autoplay: false },
   render: (p) => {
+    const t = blockT(getRuntime(p.puck.metadata));
     const embed = toEmbed(p.url);
     const src =
       embed && p.autoplay && embed.kind === "iframe"
@@ -542,9 +546,9 @@ export const Video: ComponentConfig<VideoProps> = {
         {!embed ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-zinc-800 to-zinc-950 text-white/80">
             <span className="flex size-16 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/20">
-              <PlayIcon className="ml-1 size-7 fill-current" />
+              <PlayIcon className="ms-1 size-7 fill-current" />
             </span>
-            <span className="text-sm">Paste a YouTube, Vimeo or MP4 link</span>
+            <span className="text-sm">{t("blocks.pasteVideo")}</span>
           </div>
         ) : embed.kind === "video" ? (
           <video
@@ -560,7 +564,7 @@ export const Video: ComponentConfig<VideoProps> = {
           <iframe
             src={src}
             className="absolute inset-0 size-full"
-            title="Video"
+            title={t("blocks.video")}
             loading="lazy"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
             allowFullScreen
@@ -631,7 +635,7 @@ export const Checklist: ComponentConfig<ChecklistProps> = {
     return (
       <ul
         className={cx(
-          "zf-checklist grid w-fit max-w-full gap-x-8 gap-y-3 text-left",
+          "zf-checklist grid w-fit max-w-full gap-x-8 gap-y-3 text-start",
           columns === "2" && "md:grid-cols-2",
           size === "lg" ? "text-lg" : "text-base",
         )}

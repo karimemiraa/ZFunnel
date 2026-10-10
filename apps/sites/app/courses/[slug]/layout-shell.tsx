@@ -1,6 +1,8 @@
 import { CheckCircle2Icon, LockIcon, PlayCircleIcon } from "lucide-react";
 import Link from "next/link";
+import type { T } from "@zfunnel/i18n";
 import type { courseForStudent } from "@/lib/courses";
+import { intlLocale, type Locale } from "@zfunnel/i18n";
 
 type Data = NonNullable<Awaited<ReturnType<typeof courseForStudent>>>;
 
@@ -9,7 +11,11 @@ export function CourseShell({
   active,
   children,
   siteName,
+  t,
+  locale,
 }: {
+  t: T;
+  locale: Locale;
   data: Data;
   active?: string;
   children: React.ReactNode;
@@ -22,7 +28,8 @@ export function CourseShell({
       <header className="border-b border-zinc-200 bg-white">
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4">
           <Link href="/courses" className="text-sm font-medium text-zinc-500 hover:text-zinc-900">
-            ← {siteName}
+            <span className="rtl:hidden">←</span>
+            <span className="ltr:hidden">→</span> {siteName}
           </Link>
           <span className="flex-1 truncate font-semibold">{data.course.title}</span>
           {data.enrolled && (
@@ -30,7 +37,7 @@ export function CourseShell({
               <span className="h-1.5 w-28 overflow-hidden rounded-full bg-zinc-100">
                 <span className="block h-full rounded-full bg-indigo-600" style={{ width: `${pct}%` }} />
               </span>
-              {pct}% complete
+              {t("courses.percentComplete", { percent: pct })}
             </span>
           )}
         </div>
@@ -56,7 +63,7 @@ export function CourseShell({
                       <span className="min-w-0 flex-1 truncate">{l.title}</span>
                       {l.unlockAt && (
                         <span className="shrink-0 text-[11px] text-zinc-400">
-                          {l.unlockAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                          {l.unlockAt.toLocaleDateString(intlLocale(locale), { month: "short", day: "numeric" })}
                         </span>
                       )}
                     </>

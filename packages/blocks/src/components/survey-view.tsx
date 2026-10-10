@@ -1,7 +1,9 @@
 "use client";
 
 import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, Loader2Icon, SparklesIcon } from "lucide-react";
+import type { Locale } from "@zfunnel/i18n";
 import { useState } from "react";
+import { blockT } from "../runtime";
 import { parseOptions, questionKey, type Answers, type Question } from "../survey";
 import { cx } from "../utils";
 
@@ -16,6 +18,7 @@ type Props = {
   live: boolean;
   stepId?: string;
   apiBase: string;
+  lang?: Locale;
 };
 
 const input =
@@ -47,7 +50,7 @@ function Choice({
       aria-checked={selected}
       onClick={onClick}
       className={cx(
-        "flex w-full items-center gap-3 rounded-[var(--zf-radius)] border px-4 py-3.5 text-left text-base transition-all hover:-translate-y-px",
+        "flex w-full items-center gap-3 rounded-[var(--zf-radius)] border px-4 py-3.5 text-start text-base transition-all hover:-translate-y-px",
         selected
           ? "border-[var(--zf-primary)] bg-[color-mix(in_srgb,var(--zf-primary)_10%,transparent)]"
           : "border-[color-mix(in_srgb,var(--zf-text)_15%,transparent)] hover:border-[color-mix(in_srgb,var(--zf-primary)_60%,transparent)]",
@@ -74,7 +77,9 @@ function QuestionInput({
   value,
   onChange,
   onEnter,
+  t,
 }: {
+  t: ReturnType<typeof blockT>;
   q: Question;
   k: string;
   value: string | string[] | undefined;
@@ -90,7 +95,7 @@ function QuestionInput({
         {opts.map((o, i) => (
           <Choice
             key={o.label}
-            letter={String.fromCharCode(65 + i)}
+            letter={t("forms.letters").split(" ")[i] ?? String(i + 1)}
             label={o.label}
             multi={multi}
             selected={arr.includes(o.label)}
@@ -110,7 +115,7 @@ function QuestionInput({
         value={(value as string) ?? ""}
         onChange={(e) => onChange(e.target.value)}
       >
-        <option value="">Choose…</option>
+        <option value="">{t("forms.choose")}</option>
         {opts.map((o) => (
           <option key={o.label}>{o.label}</option>
         ))}
@@ -144,6 +149,7 @@ function QuestionInput({
 }
 
 export function SurveyView(p: Props) {
+  const t = blockT(p);
   const [answers, setAnswers] = useState<Answers>({});
   const [contact, setContact] = useState({ email: "", name: "" });
   const [step, setStep] = useState(0);
@@ -163,8 +169,9 @@ export function SurveyView(p: Props) {
   };
 
   async function submit() {
-    if (!p.live) return setError("Forms submit on your published page, not in the editor.");
-    for (let i = 0; i < qs.length; i++) if (missing(i)) return setError(`Please answer: ${qs[i]!.label}`);
+    if (!p.live) return setError(t("forms.notInEditor"));
+    for (let i = 0; i < qs.length; i++)
+      if (missing(i)) return setError(t("forms.answerRequired", { question: qs[i]!.label }));
     setState("sending");
     setError("");
     try {
@@ -180,18 +187,18 @@ export function SurveyView(p: Props) {
         }),
       });
       const json = (await res.json().catch(() => ({}))) as { redirect?: string; outcome?: string; error?: string };
-      if (!res.ok) throw new Error(json.error ?? "Something went wrong. Please try again.");
+      if (!res.ok) throw new Error(json.error ?? t("common.somethingWrong"));
       if (json.redirect) return window.location.assign(json.redirect);
       setOutcome(json.outcome ?? null);
       setState("done");
     } catch (err) {
       setState("idle");
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setError(err instanceof Error ? err.message : t("common.somethingWrong"));
     }
   }
 
   const next = () => {
-    if (step < qs.length && missing(step)) return setError("Please answer this question to continue.");
+    if (step < qs.length && missing(step)) return setError(t("forms.answerToContinue"));
     setError("");
     if (step + 1 >= total) return void submit();
     setStep(step + 1);
@@ -208,7 +215,7 @@ export function SurveyView(p: Props) {
         </span>
         {outcome ? (
           <>
-            <p className="text-sm font-semibold tracking-wider uppercase opacity-60">Your result</p>
+            <p className="text-sm font-semibold tracking-wider uppercase opacity-60">{t("forms.yourResult")}</p>
             <p className="text-3xl font-bold" style={{ fontFamily: "var(--zf-heading-font)" }}>
               {outcome}
             </p>
@@ -222,7 +229,7 @@ export function SurveyView(p: Props) {
   if (!qs.length)
     return (
       <div className="rounded-[var(--zf-radius)] border border-dashed p-8 text-center opacity-60">
-        Add questions in the panel on the right →
+        {t("forms.addQuestions")}
       </div>
     );
 
@@ -231,8 +238,8 @@ export function SurveyView(p: Props) {
       {p.askName && (
         <input
           className={input}
-          placeholder="Your first name"
-          aria-label="Name"
+          placeholder={t("forms.firstName")}
+          aria-label={t("forms.name")}
           autoComplete="name"
           value={contact.name}
           onChange={(e) => setContact({ ...contact, name: e.target.value })}
@@ -241,8 +248,8 @@ export function SurveyView(p: Props) {
       <input
         className={input}
         type="email"
-        placeholder="Your best email"
-        aria-label="Email"
+        placeholder={t("forms.bestEmail")}
+        aria-label={t("forms.email")}
         autoComplete="email"
         required
         value={contact.email}
@@ -262,7 +269,7 @@ export function SurveyView(p: Props) {
     >
       {state === "sending" && <Loader2Icon className="size-5 animate-spin" />}
       {label}
-      {state !== "sending" && <ArrowRightIcon className="size-5" />}
+      {state !== "sending" && <ArrowRightIcon className="size-5 rtl:-scale-x-100" />}
     </button>
   );
 
@@ -276,6 +283,7 @@ export function SurveyView(p: Props) {
               {q.required && <span style={{ color: "var(--zf-primary)" }}> *</span>}
             </p>
             <QuestionInput
+              t={t}
               q={q}
               k={questionKey(i)}
               value={answers[questionKey(i)]}
@@ -308,9 +316,7 @@ export function SurveyView(p: Props) {
         />
       </div>
       <div key={step} className="zf-fade-in grid gap-4">
-        <p className="text-sm font-semibold opacity-60">
-          {step + 1} / {total}
-        </p>
+        <p className="text-sm font-semibold opacity-60">{t("forms.progress", { step: step + 1, total })}</p>
         {q ? (
           <>
             <p className="text-2xl font-bold" style={{ fontFamily: "var(--zf-heading-font)" }}>
@@ -318,6 +324,7 @@ export function SurveyView(p: Props) {
               {q.required && <span style={{ color: "var(--zf-primary)" }}> *</span>}
             </p>
             <QuestionInput
+              t={t}
               q={q}
               k={questionKey(step)}
               value={answers[questionKey(step)]}
@@ -334,7 +341,7 @@ export function SurveyView(p: Props) {
         ) : (
           <>
             <p className="text-2xl font-bold" style={{ fontFamily: "var(--zf-heading-font)" }}>
-              Where should we send your results?
+              {t("forms.whereToSend")}
             </p>
             {contactFields}
           </>
@@ -352,11 +359,11 @@ export function SurveyView(p: Props) {
             onClick={() => (setError(""), setStep(step - 1))}
             className="inline-flex h-11 items-center gap-1.5 px-3 text-sm font-medium opacity-70 hover:opacity-100"
           >
-            <ArrowLeftIcon className="size-4" /> Back
+            <ArrowLeftIcon className="size-4 rtl:-scale-x-100" /> {t("forms.back")}
           </button>
         )}
         <div className="flex-1" />
-        {submitBtn(step + 1 >= total ? p.buttonLabel : "Next", next)}
+        {submitBtn(step + 1 >= total ? p.buttonLabel : t("forms.next"), next)}
       </div>
     </div>
   );

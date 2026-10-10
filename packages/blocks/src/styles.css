@@ -18,8 +18,8 @@
 .zf-prose ul,
 .zf-prose ol {
   margin: 0 0 0.85em;
-  padding-left: 1.4em;
-  text-align: left;
+  padding-inline-start: 1.4em;
+  text-align: start;
 }
 .zf-prose ul {
   list-style: disc;
@@ -40,8 +40,8 @@
   color: var(--zf-fg);
 }
 .zf-prose blockquote {
-  border-left: 3px solid var(--zf-primary);
-  padding-left: 1em;
+  border-inline-start: 3px solid var(--zf-primary);
+  padding-inline-start: 1em;
   font-style: italic;
 }
 .zf-page h1,

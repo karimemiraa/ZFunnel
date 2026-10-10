@@ -216,7 +216,7 @@ export function ModerationFeed({ workspaceSlug, items }: { workspaceSlug: string
             <span className="font-medium text-foreground">{i.author}</span> in # {i.space} ·{" "}
             {new Date(i.at).toLocaleString()}
             {i.pinned && <span className="text-amber-600">· Pinned</span>}
-            <span className="ml-auto flex gap-1">
+            <span className="ms-auto flex gap-1">
               {i.kind === "post" && (
                 <Button
                   variant="ghost"

@@ -191,7 +191,7 @@ export function SegmentBuilder({
                     aria-label="Remove rule"
                     disabled={rules.length === 1}
                     onClick={() => setRules((x) => x.filter((_, j) => j !== i))}
-                    className="ml-auto"
+                    className="ms-auto"
                   >
                     <XIcon />
                   </Button>

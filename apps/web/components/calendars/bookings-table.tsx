@@ -21,7 +21,7 @@ export function BookingsTable({
   return (
     <div className="overflow-hidden rounded-xl border bg-card">
       <table className="w-full text-sm">
-        <thead className="bg-muted/50 text-left text-xs font-medium tracking-wide text-muted-foreground uppercase">
+        <thead className="bg-muted/50 text-start text-xs font-medium tracking-wide text-muted-foreground uppercase">
           <tr>
             <th className="px-4 py-3">When</th>
             <th className="px-4 py-3">Who</th>
@@ -57,7 +57,7 @@ export function BookingsTable({
                 {b.notes && <div className="mt-1 max-w-sm truncate text-xs text-muted-foreground">“{b.notes}”</div>}
               </td>
               {showCalendar && <td className="px-4 py-3 text-muted-foreground max-md:hidden">{calendar}</td>}
-              <td className="px-4 py-3 text-right">
+              <td className="px-4 py-3 text-end">
                 {b.status === "cancelled" ? (
                   <Badge variant="secondary">Cancelled</Badge>
                 ) : (

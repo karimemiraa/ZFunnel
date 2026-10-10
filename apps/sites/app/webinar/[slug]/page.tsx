@@ -5,13 +5,17 @@ import { Brand } from "@/app/brand";
 import { currentWorkspace } from "@/lib/site";
 import { publishedWebinar } from "@/lib/webinar";
 import { RegisterForm } from "./register-form";
+import { getT } from "@/lib/i18n";
 
 type P = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: P): Promise<Metadata> {
   const ws = await currentWorkspace();
   const w = ws ? await publishedWebinar(ws.id, (await params).slug) : null;
-  return w ? { title: `${w.title} · Free webinar`, description: w.description.slice(0, 160) } : { title: "Not found" };
+  const t = await getT();
+  return w
+    ? { title: t("webinar.metaTitle", { title: w.title }), description: w.description.slice(0, 160) }
+    : { title: t("shell.notFound") };
 }
 
 export const dynamic = "force-dynamic";
@@ -22,6 +26,7 @@ export default async function WebinarRegistration({ params }: P) {
   const w = await publishedWebinar(ws.id, (await params).slug);
   if (!w) notFound();
   // Same 10-minute grace as the register API, so late joiners can still get in.
+  const t = await getT();
   const sessions = upcomingSessions(w.schedule, w.timezone, new Date(), 4, 10);
   const points = w.description
     .split("\n")
@@ -39,7 +44,7 @@ export default async function WebinarRegistration({ params }: P) {
             style={{ background: `${ws.brandColor}33`, color: "#fff" }}
           >
             <span className="size-1.5 animate-pulse rounded-full bg-red-500" />
-            {w.schedule.kind === "live" ? "Live event" : "Free online training"}
+            {w.schedule.kind === "live" ? t("webinar.liveEvent") : t("webinar.freeTraining")}
           </p>
           <h1 className="mt-4 text-4xl font-bold tracking-tight text-balance sm:text-5xl">{w.title}</h1>
           {points.length > 0 && (
@@ -55,7 +60,7 @@ export default async function WebinarRegistration({ params }: P) {
             </ul>
           )}
           <p className="mt-8 text-sm text-zinc-400">
-            {w.durationMinutes} minutes · Hosted by {ws.name}
+            {t("webinar.hostedBy", { count: w.durationMinutes, name: ws.name })}
           </p>
         </section>
         <section className="rounded-2xl bg-white p-6 text-zinc-900 shadow-2xl sm:p-8">
@@ -69,8 +74,8 @@ export default async function WebinarRegistration({ params }: P) {
             />
           ) : (
             <div className="py-10 text-center">
-              <h2 className="text-xl font-bold">Registration is closed</h2>
-              <p className="mt-2 text-zinc-500">There are no upcoming sessions right now.</p>
+              <h2 className="text-xl font-bold">{t("webinar.closed")}</h2>
+              <p className="mt-2 text-zinc-500">{t("webinar.noSessions")}</p>
             </div>
           )}
         </section>

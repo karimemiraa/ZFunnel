@@ -29,12 +29,12 @@ export default async function FormsPage({ params }: { params: Promise<{ workspac
       ) : (
         <div className="overflow-hidden rounded-xl border bg-card">
           <table className="w-full text-sm">
-            <thead className="bg-muted/50 text-left text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            <thead className="bg-muted/50 text-start text-xs font-medium tracking-wide text-muted-foreground uppercase">
               <tr>
                 <th className="px-4 py-3">Form</th>
                 <th className="px-4 py-3 max-md:hidden">Funnel</th>
-                <th className="px-4 py-3 text-right">Responses</th>
-                <th className="px-4 py-3 text-right max-sm:hidden">Last response</th>
+                <th className="px-4 py-3 text-end">Responses</th>
+                <th className="px-4 py-3 text-end max-sm:hidden">Last response</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -53,8 +53,8 @@ export default async function FormsPage({ params }: { params: Promise<{ workspac
                     {f.funnelName ?? "Deleted funnel"}
                     {f.stepName && <span className="text-xs"> · {f.stepName}</span>}
                   </td>
-                  <td className="px-4 py-3 text-right font-semibold tabular-nums">{f.responses.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right text-muted-foreground max-sm:hidden">
+                  <td className="px-4 py-3 text-end font-semibold tabular-nums">{f.responses.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-end text-muted-foreground max-sm:hidden">
                     {timeAgo(new Date(f.last))}
                   </td>
                 </tr>

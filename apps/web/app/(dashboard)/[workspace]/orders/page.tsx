@@ -100,13 +100,13 @@ export default async function OrdersPage({
       ) : (
         <div className="overflow-hidden rounded-xl border bg-card">
           <table className="w-full text-sm">
-            <thead className="bg-muted/50 text-left text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            <thead className="bg-muted/50 text-start text-xs font-medium tracking-wide text-muted-foreground uppercase">
               <tr>
                 <th className="px-4 py-3">Order</th>
                 <th className="px-4 py-3">Customer</th>
                 <th className="px-4 py-3 max-lg:hidden">Items</th>
                 <th className="px-4 py-3 max-sm:hidden">Status</th>
-                <th className="px-4 py-3 text-right">Total</th>
+                <th className="px-4 py-3 text-end">Total</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -158,9 +158,7 @@ export default async function OrdersPage({
                   <td className="px-4 py-3 max-sm:hidden">
                     <OrderStatus status={o.status} test={o.test} />
                   </td>
-                  <td className="px-4 py-3 text-right font-semibold tabular-nums">
-                    {formatMoney(o.total, o.currency)}
-                  </td>
+                  <td className="px-4 py-3 text-end font-semibold tabular-nums">{formatMoney(o.total, o.currency)}</td>
                 </tr>
               ))}
             </tbody>

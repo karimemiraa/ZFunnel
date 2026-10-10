@@ -1,3 +1,4 @@
+import { getTranslator } from "@zfunnel/i18n";
 import { randomBytes } from "node:crypto";
 import { and, emailMessages, eq, webinarRegistrations } from "@zfunnel/db";
 import { system, upsertContact } from "@zfunnel/payments";
@@ -14,7 +15,7 @@ const schema = z.object({
   slug: z.string().max(60),
   sessionAt: z.string().datetime({ offset: true }),
   name: z.string().trim().max(120).optional(),
-  email: z.string().trim().toLowerCase().email("Please enter a valid email address.").max(254),
+  email: z.string().trim().toLowerCase().email("errors.invalidEmail").max(254),
 });
 
 const HOUR = 3_600_000;
@@ -26,11 +27,11 @@ export async function POST(req: Request) {
   const p = schema.safeParse(g.body);
   if (!p.success) return jsonError(p.error.issues[0]!.message);
   const w = await publishedWebinar(g.ws.id, p.data.slug);
-  if (!w) return jsonError("This webinar isn't available.", 404);
+  if (!w) return jsonError("errors.webinarUnavailable", 404);
   // Only a session we actually offer (a few minutes of grace for slow forms).
   const at = new Date(p.data.sessionAt);
   const offered = upcomingSessions(w.schedule, w.timezone, new Date(), 8, 10).some((s) => s.getTime() === at.getTime());
-  if (!offered) return jsonError("That session is no longer available. Please pick another time.");
+  if (!offered) return jsonError("errors.sessionUnavailable");
 
   const origin = requestOrigin(req.headers);
   const result = await system(async (tx) => {
@@ -52,13 +53,22 @@ export async function POST(req: Request) {
       .values({ workspaceId: g.ws.id, webinarId: w.id, contactId: contact.id, sessionAt: at, token })
       .returning({ id: webinarRegistrations.id });
     const until = at.getTime() - Date.now();
+    const t = getTranslator(g.ws.siteLocale);
     const plan: { kind: "webinar_confirm" | "webinar_reminder"; delay: number; subject: string }[] = [
-      { kind: "webinar_confirm", delay: 0, subject: `You're registered: ${w.title}` },
+      { kind: "webinar_confirm", delay: 0, subject: t("emails.webinarConfirmSubject", { title: w.title }) },
     ];
     if (until > 25 * HOUR)
-      plan.push({ kind: "webinar_reminder", delay: until - 24 * HOUR, subject: `Tomorrow: ${w.title}` });
+      plan.push({
+        kind: "webinar_reminder",
+        delay: until - 24 * HOUR,
+        subject: t("emails.webinarTomorrowSubject", { title: w.title }),
+      });
     if (until > 70 * 60_000)
-      plan.push({ kind: "webinar_reminder", delay: until - HOUR, subject: `Starting in 1 hour: ${w.title}` });
+      plan.push({
+        kind: "webinar_reminder",
+        delay: until - HOUR,
+        subject: t("emails.webinarHourSubject", { title: w.title }),
+      });
     const mails = await tx
       .insert(emailMessages)
       .values(
