@@ -1,6 +1,6 @@
 /** RFC 4180 CSV parser: quoted fields, escaped quotes, CRLF/LF, commas or semicolons. */
 export function parseCsv(input: string): string[][] {
-  const text = input.replace(/^﻿/, "");
+  const text = input.replace(/^\uFEFF/, "");
   const firstLine = text.split(/\r?\n/, 1)[0] ?? "";
   const delim = (firstLine.match(/;/g)?.length ?? 0) > (firstLine.match(/,/g)?.length ?? 0) ? ";" : ",";
   const rows: string[][] = [];
