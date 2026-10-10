@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@zfunnel/i18n/react";
 import { Button } from "@zfunnel/ui/button";
 import { NativeSelect } from "@zfunnel/ui/select";
 import { toast } from "@zfunnel/ui/toaster";
@@ -8,14 +9,14 @@ import { useState, useTransition } from "react";
 import { importSharedFunnel } from "@/lib/funnel-actions";
 
 export function ImportForm({ token, workspaces }: { token: string; workspaces: { slug: string; name: string }[] }) {
+  const t = useT();
   const [ws, setWs] = useState(workspaces[0]?.slug ?? "");
   const [pending, start] = useTransition();
-  if (!workspaces.length)
-    return <p className="text-sm text-muted-foreground">Create a workspace first, then come back to this link.</p>;
+  if (!workspaces.length) return <p className="text-sm text-muted-foreground">{t("funnels.shared.noWorkspace")}</p>;
   return (
     <div className="grid gap-3">
       <label className="grid gap-1.5 text-sm font-medium">
-        Import into
+        {t("funnels.shared.importInto")}
         <NativeSelect value={ws} onChange={(e) => setWs(e.target.value)}>
           {workspaces.map((w) => (
             <option key={w.slug} value={w.slug}>
@@ -34,7 +35,7 @@ export function ImportForm({ token, workspaces }: { token: string; workspaces: {
           })
         }
       >
-        {pending ? <Loader2Icon className="animate-spin" /> : <DownloadIcon />} Import funnel
+        {pending ? <Loader2Icon className="animate-spin" /> : <DownloadIcon />} {t("funnels.shared.import")}
       </Button>
     </div>
   );

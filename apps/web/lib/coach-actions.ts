@@ -8,6 +8,7 @@ import { enforce } from "./billing";
 import { COACH_SYSTEM, coachPrompt, parseCoach } from "./coach";
 import { collectCopy } from "./copy-slots";
 import { inWorkspace } from "./funnels";
+import { getLocale, getT } from "./i18n";
 import { requireUser } from "./session";
 import { getWorkspaceForUser } from "./workspaces";
 
@@ -16,13 +17,14 @@ type Result = { ok: true } | { ok: false; error: string };
 /** Asks the AI coach to review a funnel's numbers and copy; stores the advice. */
 export async function runCoach(workspaceSlug: string, funnelId: string, range: string): Promise<Result> {
   const user = await requireUser();
+  const t = await getT();
+  const locale = await getLocale();
   const ctx = await getWorkspaceForUser(user.id, workspaceSlug);
-  if (!ctx) return { ok: false, error: "Workspace not found" };
-  if (!aiConfigured()) return { ok: false, error: "AI isn't set up on this server yet (ANTHROPIC_API_KEY)." };
+  if (!ctx) return { ok: false, error: t("ai.workspaceNotFound") };
+  if (!aiConfigured()) return { ok: false, error: t("ai.notConfiguredServer") };
   const blocked = await enforce(ctx.membership.organizationId, "ai");
   if (blocked) return { ok: false, error: blocked };
-  if (!takeAiQuota(ctx.workspace.id, 30))
-    return { ok: false, error: "You've reached the hourly AI limit. Try again later." };
+  if (!takeAiQuota(ctx.workspace.id, 30)) return { ok: false, error: t("ai.rateLimit") };
   const days = RANGES[(range in RANGES ? range : "30") as RangeKey];
 
   const loaded = await inWorkspace(ctx, async (tx) => {
@@ -46,9 +48,9 @@ export async function runCoach(workspaceSlug: string, funnelId: string, range: s
     );
     return { f, content };
   });
-  if (!loaded) return { ok: false, error: "Funnel not found" };
+  if (!loaded) return { ok: false, error: t("ai.funnelNotFound") };
   const stats = await funnelAnalytics(ctx, funnelId, days);
-  if (!stats.steps.length) return { ok: false, error: "Add steps to this funnel first." };
+  if (!stats.steps.length) return { ok: false, error: t("ai.addStepsFirst") };
 
   const steps = stats.steps.map((s) => ({
     name: s.name,
@@ -64,7 +66,7 @@ export async function runCoach(workspaceSlug: string, funnelId: string, range: s
   try {
     const raw = await complete({
       system: COACH_SYSTEM,
-      prompt: coachPrompt({ funnelName: loaded.f.name, days, currency: stats.totals.currency, steps }),
+      prompt: coachPrompt({ funnelName: loaded.f.name, days, currency: stats.totals.currency, steps, locale }),
       maxTokens: 2000,
     });
     parsed = parseCoach(
@@ -74,7 +76,7 @@ export async function runCoach(workspaceSlug: string, funnelId: string, range: s
   } catch (err) {
     return { ok: false, error: (err as Error).message };
   }
-  if (!parsed) return { ok: false, error: "The coach's answer couldn't be read. Please try again." };
+  if (!parsed) return { ok: false, error: t("ai.coachUnreadable") };
   const visitors = Math.max(0, ...steps.map((s) => s.visitors));
   await inWorkspace(ctx, (tx) =>
     tx.insert(funnelInsights).values({

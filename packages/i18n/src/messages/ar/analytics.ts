@@ -1,0 +1,46 @@
+import type { Shape } from "../../core";
+import type { analytics as en } from "../en/analytics";
+
+export const analytics: Shape<typeof en> = {
+  title: "التحليلات",
+  description: "إحصاءات لكل خطوة في أقماع مبيعاتك، دون ملفات تعريف الارتباط ومع احترام كامل للخصوصية.",
+  allFunnels: "كل الأقماع",
+  rangeDays: {
+    zero: "{count} يوم",
+    one: "يوم واحد",
+    two: "يومان",
+    few: "{count} أيام",
+    many: "{count} يومًا",
+    other: "{count} يوم",
+  },
+  uniqueVisitors: "الزوار الفريدون",
+  pageViews: {
+    zero: "لا مشاهدات للصفحات",
+    one: "مشاهدة واحدة للصفحات",
+    two: "مشاهدتان للصفحات",
+    few: "{n} مشاهدات للصفحات",
+    many: "{n} مشاهدة للصفحات",
+    other: "{n} مشاهدة للصفحات",
+  },
+  leads: "العملاء المحتملون",
+  ofVisitors: "{percent} من الزوار",
+  sales: "المبيعات",
+  revenue: "الإيرادات",
+  perVisitor: "{amount} عائد لكل زائر",
+  emptyTitle: "لا توجد زيارات بعد",
+  emptyDescription: "انشر قمع مبيعات وشارك رابطه، وستظهر الزيارات والعملاء المحتملون والمبيعات هنا خلال ثوانٍ.",
+  revenuePerDay: "الإيرادات اليومية",
+  visitorsPerDay: "الزوار الفريدون يوميًا",
+  visitorsCount: {
+    zero: "لا زوار",
+    one: "زائر واحد",
+    two: "زائران",
+    few: "{n} زوار",
+    many: "{n} زائرًا",
+    other: "{n} زائر",
+  },
+  step: "الخطوة",
+  visitors: "الزوار",
+  conversion: "التحويل",
+  pickFunnel: "اختر قمعًا من الأعلى لترى معدل التحويل في كل خطوة.",
+};

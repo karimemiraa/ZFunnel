@@ -33,6 +33,8 @@ import { writeFunnelCopy } from "./ai-funnel";
 import { enforce } from "./billing";
 import { requireUser } from "./session";
 import { getSharedFunnel } from "./share";
+import { getT, localizeMessage } from "./i18n";
+import type { T } from "@zfunnel/i18n";
 import { canManage, getWorkspaceForUser, recordAudit, type WorkspaceContext } from "./workspaces";
 
 export type FormState = { error?: string; success?: string; fieldErrors?: Record<string, string[] | undefined> } | null;
@@ -40,9 +42,18 @@ type Result = { ok: true; message?: string } | { ok: false; error: string };
 
 async function ctxFor(workspaceSlug: string) {
   const user = await requireUser();
+  const t = await getT();
   const ctx = await getWorkspaceForUser(user.id, workspaceSlug);
-  if (!ctx) throw new Error("Workspace not found");
-  return { user, ctx };
+  if (!ctx) throw new Error(t("ai.workspaceNotFound"));
+  return { user, ctx, t };
+}
+
+/** Field errors in the dashboard language (schema messages may be i18n keys). */
+function fieldErrorsOf(t: T, error: z.ZodError) {
+  const errs = z.flattenError(error).fieldErrors as Record<string, string[] | undefined>;
+  return Object.fromEntries(
+    Object.entries(errs).map(([k, v]) => [k, v?.map((m) => localizeMessage(t, m) ?? m)]),
+  ) as Record<string, string[] | undefined>;
 }
 
 const uuid = z.string().uuid();
@@ -77,7 +88,7 @@ async function stepsInFunnel(tx: Tx, funnelId: string, ids: string[]) {
 // ---------- Funnels ----------
 
 const createFunnelSchema = z.object({
-  name: z.string().trim().min(2, "At least 2 characters").max(80),
+  name: z.string().trim().min(2, "funnels.errors.atLeast2").max(80),
   source: z.union([
     z.object({ preset: z.enum(Object.keys(FUNNEL_PRESETS) as [FunnelPreset, ...FunnelPreset[]]) }),
     z.object({ template: z.enum(TEMPLATES.map((t) => t.id) as [string, ...string[]]) }),
@@ -85,13 +96,13 @@ const createFunnelSchema = z.object({
 });
 
 export async function createFunnel(workspaceSlug: string, _prev: FormState, formData: FormData): Promise<FormState> {
-  const { user, ctx } = await ctxFor(workspaceSlug);
+  const { user, ctx, t } = await ctxFor(workspaceSlug);
   const choice = String(formData.get("source") ?? "");
   const parsed = createFunnelSchema.safeParse({
     name: formData.get("name"),
     source: choice.startsWith("template:") ? { template: choice.slice(9) } : { preset: choice.replace(/^preset:/, "") },
   });
-  if (!parsed.success) return { fieldErrors: z.flattenError(parsed.error).fieldErrors };
+  if (!parsed.success) return { fieldErrors: fieldErrorsOf(t, parsed.error) };
   const blocked = await enforce(ctx.membership.organizationId, "funnels");
   if (blocked) return { error: blocked };
   const brief = String(formData.get("brief") ?? "")
@@ -101,7 +112,7 @@ export async function createFunnel(workspaceSlug: string, _prev: FormState, form
   if (useAi) {
     const aiBlocked = await enforce(ctx.membership.organizationId, "ai");
     if (aiBlocked) return { error: aiBlocked };
-    if (!takeAiQuota(ctx.workspace.id)) return { error: "You've reached the hourly AI limit. Try again later." };
+    if (!takeAiQuota(ctx.workspace.id)) return { error: t("ai.rateLimit") };
   }
   const funnel = await createFunnelWithSteps(ctx, parsed.data.name, parsed.data.source);
   if (useAi) await writeFunnelCopy(ctx, funnel.id, brief);
@@ -122,13 +133,13 @@ export async function updateFunnel(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const { user, ctx } = await ctxFor(workspaceSlug);
+  const { user, ctx, t } = await ctxFor(workspaceSlug);
   const parsed = funnelSettingsSchema.safeParse({ name: formData.get("name"), slug: formData.get("slug") });
-  if (!parsed.success) return { fieldErrors: z.flattenError(parsed.error).fieldErrors };
+  if (!parsed.success) return { fieldErrors: fieldErrorsOf(t, parsed.error) };
   try {
     await inWorkspace(ctx, (tx) => tx.update(funnels).set(parsed.data).where(eq(funnels.id, funnelId)));
   } catch {
-    return { fieldErrors: { slug: ["Another funnel already uses this URL."] } };
+    return { fieldErrors: { slug: [t("funnels.errors.funnelSlugTaken")] } };
   }
   const isHome = formData.get("home") === "on";
   await setHomeFunnelInternal(ctx, isHome ? funnelId : null, funnelId);
@@ -139,7 +150,7 @@ export async function updateFunnel(
     data: parsed.data,
   });
   revalidateFunnel(workspaceSlug, funnelId);
-  return { success: "Saved." };
+  return { success: t("funnels.errors.saved") };
 }
 
 async function setHomeFunnelInternal(ctx: WorkspaceContext, homeId: string | null, funnelId: string) {
@@ -153,8 +164,8 @@ async function setHomeFunnelInternal(ctx: WorkspaceContext, homeId: string | nul
 }
 
 export async function archiveFunnel(workspaceSlug: string, funnelId: string) {
-  const { user, ctx } = await ctxFor(workspaceSlug);
-  if (!canManage(ctx.membership.role)) throw new Error("Only owners and admins can delete funnels.");
+  const { user, ctx, t } = await ctxFor(workspaceSlug);
+  if (!canManage(ctx.membership.role)) throw new Error(t("funnels.errors.onlyAdminsDelete"));
   await inWorkspace(ctx, (tx) => tx.update(funnels).set({ archivedAt: new Date() }).where(eq(funnels.id, funnelId)));
   await setHomeFunnelInternal(ctx, null, funnelId);
   await recordAudit(ctx, user.id, { action: "funnel.deleted", entityType: "funnel", entityId: funnelId });
@@ -163,18 +174,18 @@ export async function archiveFunnel(workspaceSlug: string, funnelId: string) {
 }
 
 export async function duplicateFunnel(workspaceSlug: string, funnelId: string): Promise<Result | void> {
-  const { user, ctx } = await ctxFor(workspaceSlug);
+  const { user, ctx, t } = await ctxFor(workspaceSlug);
   const blocked = await enforce(ctx.membership.organizationId, "funnels");
   if (blocked) return { ok: false, error: blocked };
   const copy = await inWorkspace(ctx, async (tx) => {
     const [src] = await tx.select().from(funnels).where(eq(funnels.id, funnelId));
-    if (!src) throw new Error("Funnel not found");
+    if (!src) throw new Error(t("ai.funnelNotFound"));
     const taken = new Set((await tx.select({ slug: funnels.slug }).from(funnels)).map((f) => f.slug));
     const [f] = await tx
       .insert(funnels)
       .values({
         workspaceId: ctx.workspace.id,
-        name: `${src.name} (copy)`,
+        name: t("funnels.copyName", { name: src.name }),
         slug: uniqueSlug(`${src.slug}-copy`, taken),
       })
       .returning();
@@ -202,9 +213,9 @@ export async function addStep(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const { ctx } = await ctxFor(workspaceSlug);
+  const { ctx, t } = await ctxFor(workspaceSlug);
   const parsed = addStepSchema.safeParse({ name: formData.get("name"), type: formData.get("type") });
-  if (!parsed.success) return { fieldErrors: z.flattenError(parsed.error).fieldErrors };
+  if (!parsed.success) return { fieldErrors: fieldErrorsOf(t, parsed.error) };
   await inWorkspace(ctx, async (tx) => {
     const steps = await tx.select().from(funnelSteps).where(eq(funnelSteps.funnelId, funnelId));
     const last = steps.sort((a, b) => b.position - a.position)[0];
@@ -227,7 +238,7 @@ export async function addStep(
       await tx.update(funnelSteps).set({ nextStepId: created!.id }).where(eq(funnelSteps.id, last.id));
   });
   revalidateFunnel(workspaceSlug, funnelId);
-  return { success: "Step added." };
+  return { success: t("funnels.errors.stepAdded") };
 }
 
 const stepSettingsSchema = z.object({
@@ -244,13 +255,13 @@ export async function updateStep(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const { ctx } = await ctxFor(workspaceSlug);
+  const { ctx, t } = await ctxFor(workspaceSlug);
   const parsed = stepSettingsSchema.safeParse(
     Object.fromEntries(["name", "slug", "type", "nextStepId", "declineStepId"].map((k) => [k, formData.get(k) ?? ""])),
   );
-  if (!parsed.success) return { fieldErrors: z.flattenError(parsed.error).fieldErrors };
+  if (!parsed.success) return { fieldErrors: fieldErrorsOf(t, parsed.error) };
   const { nextStepId, declineStepId, ...rest } = parsed.data;
-  if (nextStepId === stepId || declineStepId === stepId) return { error: "A step can't link to itself." };
+  if (nextStepId === stepId || declineStepId === stepId) return { error: t("funnels.errors.selfLink") };
   let funnelId = "";
   try {
     const bad = await inWorkspace(ctx, async (tx) => {
@@ -258,9 +269,9 @@ export async function updateStep(
         .select({ funnelId: funnelSteps.funnelId })
         .from(funnelSteps)
         .where(eq(funnelSteps.id, stepId));
-      if (!current) return "Step not found.";
+      if (!current) return t("funnels.errors.stepNotFound");
       if (!(await stepsInFunnel(tx, current.funnelId, [nextStepId, declineStepId])))
-        return "Links must point to steps in this funnel.";
+        return t("funnels.errors.linksInFunnel");
       funnelId = current.funnelId;
       await tx
         .update(funnelSteps)
@@ -270,10 +281,10 @@ export async function updateStep(
     });
     if (bad) return { error: bad };
   } catch {
-    return { fieldErrors: { slug: ["Another step in this funnel already uses this URL."] } };
+    return { fieldErrors: { slug: [t("funnels.errors.stepSlugTaken")] } };
   }
   revalidateFunnel(workspaceSlug, funnelId);
-  return { success: "Saved." };
+  return { success: t("funnels.errors.saved") };
 }
 
 export async function deleteStep(workspaceSlug: string, stepId: string): Promise<Result> {
@@ -299,8 +310,9 @@ export async function deleteStep(workspaceSlug: string, stepId: string): Promise
 }
 
 export async function reorderSteps(workspaceSlug: string, funnelId: string, orderedIds: string[]): Promise<Result> {
-  const { ctx } = await ctxFor(workspaceSlug);
-  if (!orderedIds.every((id) => uuid.safeParse(id).success)) return { ok: false, error: "Invalid steps" };
+  const { ctx, t } = await ctxFor(workspaceSlug);
+  if (!orderedIds.every((id) => uuid.safeParse(id).success))
+    return { ok: false, error: t("funnels.errors.invalidSteps") };
   await inWorkspace(ctx, async (tx) => {
     for (const [i, id] of orderedIds.entries())
       await tx
@@ -313,7 +325,7 @@ export async function reorderSteps(workspaceSlug: string, funnelId: string, orde
 }
 
 export async function duplicateStep(workspaceSlug: string, stepId: string): Promise<Result> {
-  const { ctx } = await ctxFor(workspaceSlug);
+  const { ctx, t } = await ctxFor(workspaceSlug);
   let funnelId = "";
   await inWorkspace(ctx, async (tx) => {
     const [s] = await tx.select().from(funnelSteps).where(eq(funnelSteps.id, stepId));
@@ -329,7 +341,7 @@ export async function duplicateStep(workspaceSlug: string, stepId: string): Prom
     await tx.insert(funnelSteps).values({
       workspaceId: ctx.workspace.id,
       funnelId: s.funnelId,
-      name: `${s.name} (copy)`,
+      name: t("funnels.copyName", { name: s.name }),
       type: s.type,
       slug: uniqueSlug(`${s.slug}-copy`, new Set(siblings.map((x) => x.slug))),
       position: s.position + 1,
@@ -368,10 +380,10 @@ export async function connectSteps(
   kind: "next" | "decline",
   targetId: string | null,
 ): Promise<Result> {
-  const { ctx } = await ctxFor(workspaceSlug);
+  const { ctx, t } = await ctxFor(workspaceSlug);
   if (!uuid.safeParse(sourceId).success || (targetId && !uuid.safeParse(targetId).success))
-    return { ok: false, error: "Invalid step" };
-  if (sourceId === targetId) return { ok: false, error: "A step can't link to itself." };
+    return { ok: false, error: t("funnels.errors.invalidStep") };
+  if (sourceId === targetId) return { ok: false, error: t("funnels.errors.selfLink") };
   const ok = await inWorkspace(ctx, async (tx) => {
     if (!(await stepsInFunnel(tx, funnelId, [sourceId, targetId ?? ""]))) return false;
     await tx
@@ -380,7 +392,7 @@ export async function connectSteps(
       .where(and(eq(funnelSteps.id, sourceId), eq(funnelSteps.funnelId, funnelId)));
     return true;
   });
-  if (!ok) return { ok: false, error: "Steps must belong to this funnel." };
+  if (!ok) return { ok: false, error: t("funnels.errors.stepsInFunnel") };
   revalidateFunnel(workspaceSlug, funnelId);
   return { ok: true };
 }
@@ -392,11 +404,11 @@ export async function saveDraft(
   stepId: string,
   data: unknown,
 ): Promise<Result & { savedAt?: string }> {
-  const { ctx } = await ctxFor(workspaceSlug);
+  const { ctx, t } = await ctxFor(workspaceSlug);
   const parsed = pageSchema.safeParse(data);
-  if (!parsed.success) return { ok: false, error: "This page data is invalid." };
+  if (!parsed.success) return { ok: false, error: t("funnels.errors.invalidPage") };
   if (JSON.stringify(parsed.data).length > MAX_PAGE_BYTES)
-    return { ok: false, error: "This page is too large (2 MB max). Remove some content." };
+    return { ok: false, error: t("funnels.errors.pageTooLarge") };
   const now = new Date();
   await inWorkspace(ctx, (tx) =>
     tx
@@ -412,7 +424,7 @@ export async function publishStep(
   stepId: string,
   data?: unknown,
 ): Promise<Result & { publishedAt?: string }> {
-  const { user, ctx } = await ctxFor(workspaceSlug);
+  const { user, ctx, t } = await ctxFor(workspaceSlug);
   if (data !== undefined) {
     const saved = await saveDraft(workspaceSlug, stepId, data);
     if (!saved.ok) return saved;
@@ -420,7 +432,7 @@ export async function publishStep(
   const now = new Date();
   const funnelId = await inWorkspace(ctx, async (tx) => {
     const [step] = await tx.select().from(funnelSteps).where(eq(funnelSteps.id, stepId));
-    if (!step) throw new Error("Step not found");
+    if (!step) throw new Error(t("funnels.errors.stepNotFound"));
     const [v] = await tx
       .insert(pageVersions)
       .values({ workspaceId: ctx.workspace.id, stepId, data: step.draft, createdBy: user.id })
@@ -479,15 +491,15 @@ export async function unpublishStep(workspaceSlug: string, stepId: string): Prom
 
 /** Starts an A/B test: variant B begins as a copy of the step's current draft. */
 export async function createVariant(workspaceSlug: string, stepId: string): Promise<Result & { id?: string }> {
-  const { user, ctx } = await ctxFor(workspaceSlug);
+  const { user, ctx, t } = await ctxFor(workspaceSlug);
   const blocked = await enforce(ctx.membership.organizationId, "splitTests");
   if (blocked) return { ok: false, error: blocked };
   const res = await inWorkspace(ctx, async (tx) => {
     const [step] = await tx.select().from(funnelSteps).where(eq(funnelSteps.id, stepId));
-    if (!step) return { error: "Step not found" };
-    if (!step.publishedVersionId) return { error: "Publish this page first, then test a variant against it." };
+    if (!step) return { error: t("funnels.errors.stepNotFound") };
+    if (!step.publishedVersionId) return { error: t("funnels.errors.publishBeforeVariant") };
     const existing = await tx.select({ id: stepVariants.id }).from(stepVariants).where(eq(stepVariants.stepId, stepId));
-    if (existing.length) return { error: "This page already has a split test running." };
+    if (existing.length) return { error: t("funnels.errors.splitRunning") };
     const [v] = await tx
       .insert(stepVariants)
       .values({ workspaceId: ctx.workspace.id, stepId, name: "B", draft: step.draft, weight: 50 })
@@ -505,11 +517,11 @@ export async function saveVariantDraft(
   variantId: string,
   data: unknown,
 ): Promise<Result & { savedAt?: string }> {
-  const { ctx } = await ctxFor(workspaceSlug);
+  const { ctx, t } = await ctxFor(workspaceSlug);
   const parsed = pageSchema.safeParse(data);
-  if (!parsed.success) return { ok: false, error: "This page data is invalid." };
+  if (!parsed.success) return { ok: false, error: t("funnels.errors.invalidPage") };
   if (JSON.stringify(parsed.data).length > MAX_PAGE_BYTES)
-    return { ok: false, error: "This page is too large (2 MB max). Remove some content." };
+    return { ok: false, error: t("funnels.errors.pageTooLarge") };
   const now = new Date();
   await inWorkspace(ctx, (tx) =>
     tx
@@ -525,7 +537,7 @@ export async function publishVariant(
   variantId: string,
   data?: unknown,
 ): Promise<Result & { publishedAt?: string }> {
-  const { user, ctx } = await ctxFor(workspaceSlug);
+  const { user, ctx, t } = await ctxFor(workspaceSlug);
   if (data !== undefined) {
     const saved = await saveVariantDraft(workspaceSlug, variantId, data);
     if (!saved.ok) return saved;
@@ -537,7 +549,7 @@ export async function publishVariant(
       .from(stepVariants)
       .innerJoin(funnelSteps, eq(funnelSteps.id, stepVariants.stepId))
       .where(eq(stepVariants.id, variantId));
-    if (!row) throw new Error("Variant not found");
+    if (!row) throw new Error(t("funnels.errors.variantNotFound"));
     const [pv] = await tx
       .insert(pageVersions)
       .values({ workspaceId: ctx.workspace.id, stepId: row.v.stepId, data: row.v.draft, createdBy: user.id })
@@ -558,25 +570,25 @@ export async function publishVariant(
 }
 
 export async function setVariantWeight(workspaceSlug: string, variantId: string, weight: number): Promise<Result> {
-  const { ctx } = await ctxFor(workspaceSlug);
+  const { ctx, t } = await ctxFor(workspaceSlug);
   const w = z.number().int().min(0).max(100).safeParse(weight);
-  if (!w.success) return { ok: false, error: "Choose a split between 0 and 100%." };
+  if (!w.success) return { ok: false, error: t("funnels.errors.splitRange") };
   await inWorkspace(ctx, (tx) => tx.update(stepVariants).set({ weight: w.data }).where(eq(stepVariants.id, variantId)));
   return { ok: true };
 }
 
 /** Ends the test. If the variant wins, it becomes the step's draft and live page. */
 export async function endSplitTest(workspaceSlug: string, stepId: string, winner: "a" | string): Promise<Result> {
-  const { user, ctx } = await ctxFor(workspaceSlug);
+  const { user, ctx, t } = await ctxFor(workspaceSlug);
   const funnelId = await inWorkspace(ctx, async (tx) => {
     const [step] = await tx.select().from(funnelSteps).where(eq(funnelSteps.id, stepId));
-    if (!step) throw new Error("Step not found");
+    if (!step) throw new Error(t("funnels.errors.stepNotFound"));
     if (winner !== "a") {
       const [v] = await tx
         .select()
         .from(stepVariants)
         .where(and(eq(stepVariants.id, winner), eq(stepVariants.stepId, stepId)));
-      if (!v) throw new Error("Variant not found");
+      if (!v) throw new Error(t("funnels.errors.variantNotFound"));
       const now = new Date();
       await tx
         .update(funnelSteps)
@@ -597,7 +609,10 @@ export async function endSplitTest(workspaceSlug: string, stepId: string, winner
     data: { winner: winner === "a" ? "original" : "variant" },
   });
   revalidateFunnel(workspaceSlug, funnelId);
-  return { ok: true, message: winner === "a" ? "Kept the original page" : "The variant is now your live page" };
+  return {
+    ok: true,
+    message: winner === "a" ? t("funnels.errors.keptOriginal") : t("funnels.errors.variantLive"),
+  };
 }
 
 // ── Share funnels ────────────────────────────────────────────────────────────
@@ -621,9 +636,9 @@ export async function setFunnelSharing(
 
 /** Imports a full copy of a shared funnel into a workspace the user can manage. */
 export async function importSharedFunnel(token: string, workspaceSlug: string): Promise<Result | void> {
-  const { user, ctx } = await ctxFor(workspaceSlug);
+  const { user, ctx, t } = await ctxFor(workspaceSlug);
   const shared = await getSharedFunnel(token);
-  if (!shared) return { ok: false, error: "This share link is no longer active." };
+  if (!shared) return { ok: false, error: t("funnels.errors.shareInactive") };
   const blocked = await enforce(ctx.membership.organizationId, "funnels");
   if (blocked) return { ok: false, error: blocked };
   const f = await inWorkspace(ctx, async (tx) => {

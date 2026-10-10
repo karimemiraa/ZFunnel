@@ -10,8 +10,8 @@ import { StepList } from "@/components/funnels/step-list";
 import { StepOffers } from "@/components/funnels/step-offers";
 import { SplitTest } from "@/components/funnels/split-test";
 import { StepPanel } from "@/components/funnels/step-panel";
-import { formatMoney } from "@zfunnel/payments/money";
 import { getStepOfferList, listProducts } from "@/lib/commerce";
+import { getFmt, getT } from "@/lib/i18n";
 import { requireWorkspace } from "@/lib/context";
 import { confidence, getSplitStats, getVariants } from "@/lib/split";
 import { getFunnel, type StepSummary } from "@/lib/funnels";
@@ -26,7 +26,7 @@ function status(s: StepSummary): "live" | "changed" | "draft" {
 export async function generateMetadata({ params }: { params: Promise<{ workspace: string; funnelId: string }> }) {
   const ctx = await requireWorkspace(params);
   const data = await getFunnel(ctx, (await params).funnelId);
-  return { title: data?.funnel.name ?? "Funnel" };
+  return { title: data?.funnel.name ?? (await getT())("funnels.funnel") };
 }
 
 export default async function FunnelPage({
@@ -37,6 +37,8 @@ export default async function FunnelPage({
   searchParams: Promise<{ step?: string; view?: string }>;
 }) {
   const ctx = await requireWorkspace(params);
+  const t = await getT();
+  const f = await getFmt();
   const { funnelId } = await params;
   const { step: stepParam, view } = await searchParams;
   const data = await getFunnel(ctx, funnelId);
@@ -57,12 +59,17 @@ export default async function FunnelPage({
     const r = splitRows.find((x) => x.key === key);
     return { key, label, visitors: r?.visitors ?? 0, converted: r?.converted ?? 0, rate: r?.rate ?? 0 };
   };
-  const splitTable = variant ? [statFor("a", "A · Original"), statFor(variant.id, `${variant.name} · Variant`)] : [];
+  const splitTable = variant
+    ? [
+        statFor("a", t("funnels.split.originalRow")),
+        statFor(variant.id, t("funnels.split.variantRow", { name: variant.name })),
+      ]
+    : [];
   const productOptions = productList.flatMap((p) => {
     const price = p.prices.at(-1);
     if (!price) return [];
     const suffix = price.type === "one_time" ? "" : `/${price.interval}`;
-    return [{ priceId: price.id, label: `${p.name}: ${formatMoney(price.amount, price.currency)}${suffix}` }];
+    return [{ priceId: price.id, label: `${p.name}: ${f.money(price.amount, price.currency)}${suffix}` }];
   });
 
   return (
@@ -73,7 +80,7 @@ export default async function FunnelPage({
             href={`/${ws}/funnels`}
             className="mb-1 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
           >
-            <ArrowLeftIcon className="size-3.5 rtl:-scale-x-100" /> Funnels
+            <ArrowLeftIcon className="size-3.5 rtl:-scale-x-100" /> {t("funnels.title")}
           </Link>
           <h1 className="truncate text-2xl font-semibold tracking-tight">{funnel.name}</h1>
         </div>
@@ -91,18 +98,18 @@ export default async function FunnelPage({
 
       <div className="mb-6 inline-flex rounded-lg bg-muted p-1 text-sm">
         {[
-          { href: base, label: "Steps", icon: ListIcon, active: !isMap },
-          { href: `${base}?view=map`, label: "Map", icon: WorkflowIcon, active: isMap },
-        ].map((t) => (
+          { href: base, label: t("funnels.tabSteps"), icon: ListIcon, active: !isMap },
+          { href: `${base}?view=map`, label: t("funnels.tabMap"), icon: WorkflowIcon, active: isMap },
+        ].map((tab) => (
           <Link
-            key={t.label}
-            href={t.href}
+            key={tab.href}
+            href={tab.href}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-medium transition-all",
-              t.active ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground",
+              tab.active ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground",
             )}
           >
-            <t.icon className="size-4" /> {t.label}
+            <tab.icon className="size-4" /> {tab.label}
           </Link>
         ))}
       </div>
@@ -126,9 +133,9 @@ export default async function FunnelPage({
             }))}
           />
           <p className="mt-3 text-sm text-muted-foreground">
-            Drag from the <span className="font-medium text-emerald-600">green</span> handle to set the next step, or
-            from the <span className="font-medium text-rose-600">red</span> handle to set where &ldquo;No thanks&rdquo;
-            goes. Select an arrow and press Delete to remove it. Double-click a step to open it.
+            {t("funnels.mapHelp1")} <span className="font-medium text-emerald-600">{t("funnels.mapGreen")}</span>{" "}
+            {t("funnels.mapHelp2")} <span className="font-medium text-rose-600">{t("funnels.mapRed")}</span>{" "}
+            {t("funnels.mapHelp3")}
           </p>
         </>
       ) : (
@@ -186,7 +193,7 @@ export default async function FunnelPage({
                 }
               />
             ) : (
-              <p className="text-muted-foreground">This funnel has no steps yet. Add one to get started.</p>
+              <p className="text-muted-foreground">{t("funnels.noSteps")}</p>
             )}
           </section>
         </div>

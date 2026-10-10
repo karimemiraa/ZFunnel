@@ -8,23 +8,27 @@ import { aiConfigured } from "@/lib/ai";
 import { PageHeader } from "@/components/page-header";
 import { requireWorkspace } from "@/lib/context";
 import { listFunnels } from "@/lib/funnels";
+import { getFmt, getT } from "@/lib/i18n";
 import { presetList, templateList } from "@/lib/presets";
-import { timeAgo } from "@/lib/format";
 
-export const metadata = { title: "Funnels" };
+export async function generateMetadata() {
+  return { title: (await getT())("funnels.title") };
+}
 
 export default async function FunnelsPage({ params }: { params: Promise<{ workspace: string }> }) {
   const ctx = await requireWorkspace(params);
+  const t = await getT();
+  const f = await getFmt();
   const funnels = await listFunnels(ctx);
-  const presets = presetList();
-  const templates = templateList();
+  const presets = presetList(t);
+  const templates = templateList(t);
   const ws = ctx.workspace.slug;
 
   return (
     <>
       <PageHeader
-        title="Funnels"
-        description="Build, publish and optimize your sales funnels."
+        title={t("funnels.title")}
+        description={t("funnels.description")}
         actions={
           <NewFunnelDialog workspaceSlug={ws} presets={presets} templates={templates} aiEnabled={aiConfigured()} />
         }
@@ -32,8 +36,8 @@ export default async function FunnelsPage({ params }: { params: Promise<{ worksp
       {funnels.length === 0 ? (
         <EmptyState
           icon={<FilterIcon />}
-          title="Create your first funnel"
-          description="Start from a proven structure: lead magnet, sales funnel or tripwire. Every page comes pre-designed."
+          title={t("funnels.emptyTitle")}
+          description={t("funnels.emptyDescription")}
           action={
             <NewFunnelDialog
               workspaceSlug={ws}
@@ -42,7 +46,7 @@ export default async function FunnelsPage({ params }: { params: Promise<{ worksp
               aiEnabled={aiConfigured()}
               trigger={
                 <Button size="lg">
-                  <PlusIcon /> Create funnel
+                  <PlusIcon /> {t("funnels.createFunnel")}
                 </Button>
               }
             />
@@ -50,19 +54,19 @@ export default async function FunnelsPage({ params }: { params: Promise<{ worksp
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {funnels.map((f) => {
-            const live = f.publishedCount > 0;
+          {funnels.map((fn) => {
+            const live = fn.publishedCount > 0;
             return (
               <Link
-                key={f.id}
-                href={`/${ws}/funnels/${f.id}`}
+                key={fn.id}
+                href={`/${ws}/funnels/${fn.id}`}
                 className="group overflow-hidden rounded-xl border bg-card transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-black/5"
               >
                 <div className="relative h-40 overflow-hidden border-b bg-muted/60">
-                  {f.firstStepId ? (
+                  {fn.firstStepId ? (
                     <iframe
-                      src={`/preview/${ws}/${f.firstStepId}?thumb=1`}
-                      title={`${f.name} preview`}
+                      src={`/preview/${ws}/${fn.firstStepId}?thumb=1`}
+                      title={t("funnels.previewOf", { name: fn.name })}
                       loading="lazy"
                       tabIndex={-1}
                       className="pointer-events-none absolute top-0 left-0 h-[640px] w-[1280px] origin-top-left scale-[0.3] border-0 transition-transform duration-500 group-hover:scale-[0.31]"
@@ -72,12 +76,14 @@ export default async function FunnelsPage({ params }: { params: Promise<{ worksp
                 </div>
                 <div className="flex items-start justify-between gap-3 p-4">
                   <div className="min-w-0">
-                    <h3 className="truncate font-semibold">{f.name}</h3>
+                    <h3 className="truncate font-semibold">{fn.name}</h3>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      {f.stepCount} {f.stepCount === 1 ? "step" : "steps"} · updated {timeAgo(f.updatedAt)}
+                      {t("funnels.cardMeta", { count: fn.stepCount, ago: f.timeAgo(fn.updatedAt) })}
                     </p>
                   </div>
-                  <Badge variant={live ? "success" : "secondary"}>{live ? "Live" : "Draft"}</Badge>
+                  <Badge variant={live ? "success" : "secondary"}>
+                    {live ? t("funnels.status.live") : t("funnels.status.draft")}
+                  </Badge>
                 </div>
               </Link>
             );

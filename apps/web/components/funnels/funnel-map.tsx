@@ -17,13 +17,15 @@ import {
   type NodeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import type { T } from "@zfunnel/i18n";
+import { useT } from "@zfunnel/i18n/react";
 import { toast } from "@zfunnel/ui/toaster";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { connectSteps, saveMapPositions } from "@/lib/funnel-actions";
 import type { StepType } from "@/lib/funnels";
-import { STEP_COLORS, STEP_LABELS } from "./step-type";
+import { STEP_COLORS, stepLabelKey } from "./step-type";
 
 type MapStep = {
   id: string;
@@ -39,6 +41,7 @@ type MapStep = {
 type StepNodeData = { step: MapStep };
 
 function StepNode({ data, selected }: NodeProps<Node<StepNodeData>>) {
+  const t = useT();
   const s = data.step;
   const color = STEP_COLORS[s.type];
   const hasDecline = s.type === "upsell" || s.type === "downsell";
@@ -50,12 +53,12 @@ function StepNode({ data, selected }: NodeProps<Node<StepNodeData>>) {
       <Handle type="target" position={Position.Left} className="!size-3 !border-2 !border-white !bg-zinc-400" />
       <div className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-white" style={{ background: color }}>
         <span className="flex size-5 items-center justify-center rounded bg-white/25 text-[11px]">{s.index + 1}</span>
-        {STEP_LABELS[s.type]}
+        {t(stepLabelKey(s.type))}
       </div>
       <div className="px-3 py-2.5">
         <div className="truncate text-sm font-medium">{s.name}</div>
         <div className="mt-0.5 text-[11px] text-muted-foreground">
-          {s.status === "live" ? "● Live" : s.status === "changed" ? "● Unpublished changes" : "○ Draft"}
+          {s.status === "draft" ? "○" : "●"} {t(`funnels.status.${s.status}`)}
         </div>
       </div>
       <Handle
@@ -63,7 +66,7 @@ function StepNode({ data, selected }: NodeProps<Node<StepNodeData>>) {
         type="source"
         position={Position.Right}
         className="!size-3 !border-2 !border-white !bg-emerald-500"
-        title="Next / accept"
+        title={t("funnels.mapNextHandle")}
       />
       {hasDecline && (
         <Handle
@@ -71,7 +74,7 @@ function StepNode({ data, selected }: NodeProps<Node<StepNodeData>>) {
           type="source"
           position={Position.Bottom}
           className="!size-3 !border-2 !border-white !bg-rose-500"
-          title="Decline"
+          title={t("funnels.mapDeclineHandle")}
         />
       )}
     </div>
@@ -80,7 +83,7 @@ function StepNode({ data, selected }: NodeProps<Node<StepNodeData>>) {
 
 const nodeTypes = { step: StepNode };
 
-function toEdges(steps: MapStep[]): Edge[] {
+function toEdges(steps: MapStep[], t: T): Edge[] {
   return steps.flatMap((s) => [
     ...(s.nextStepId
       ? [
@@ -90,7 +93,7 @@ function toEdges(steps: MapStep[]): Edge[] {
             sourceHandle: "next",
             target: s.nextStepId,
             animated: true,
-            label: s.type === "upsell" || s.type === "downsell" ? "Yes" : undefined,
+            label: s.type === "upsell" || s.type === "downsell" ? t("funnels.mapYes") : undefined,
             style: { stroke: "#10b981", strokeWidth: 2 },
             markerEnd: { type: MarkerType.ArrowClosed, color: "#10b981" },
           },
@@ -103,7 +106,7 @@ function toEdges(steps: MapStep[]): Edge[] {
             source: s.id,
             sourceHandle: "decline",
             target: s.declineStepId,
-            label: "No thanks",
+            label: t("funnels.mapNoThanks"),
             style: { stroke: "#f43f5e", strokeWidth: 2, strokeDasharray: "6 4" },
             markerEnd: { type: MarkerType.ArrowClosed, color: "#f43f5e" },
           },
@@ -123,12 +126,13 @@ export function FunnelMap({
   funnelId: string;
   base: string;
 }) {
+  const t = useT();
   const router = useRouter();
   const { resolvedTheme } = useTheme();
   const [nodes, , onNodesChange] = useNodesState<Node<StepNodeData>>(
     steps.map((s) => ({ id: s.id, type: "step", position: { x: s.x, y: s.y }, data: { step: s } })),
   );
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(toEdges(steps));
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(toEdges(steps, t));
 
   const onConnect = useCallback(
     async (c: Connection) => {
@@ -144,12 +148,12 @@ export function FunnelMap({
           declineStepId: null,
           [kind === "next" ? "nextStepId" : "declineStepId"]: c.target,
         };
-        return [...rest, ...toEdges([step as MapStep])];
+        return [...rest, ...toEdges([step as MapStep], t)];
       });
-      toast.success(kind === "next" ? "Next step updated" : "Decline path updated");
+      toast.success(kind === "next" ? t("funnels.mapNextUpdated") : t("funnels.mapDeclineUpdated"));
       router.refresh();
     },
-    [workspaceSlug, funnelId, setEdges, steps, router],
+    [workspaceSlug, funnelId, setEdges, steps, router, t],
   );
 
   return (
@@ -177,7 +181,7 @@ export function FunnelMap({
               e.sourceHandle === "decline" ? "decline" : "next",
               null,
             );
-          toast.success("Connection removed");
+          toast.success(t("funnels.mapConnectionRemoved"));
           router.refresh();
         }}
         onNodeDoubleClick={(_, n) => router.push(`${base}?step=${n.id}`)}

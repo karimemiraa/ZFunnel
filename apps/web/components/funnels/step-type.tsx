@@ -1,3 +1,4 @@
+import { useT } from "@zfunnel/i18n/react";
 import { cn } from "@zfunnel/ui/lib/utils";
 import type { StepType } from "@/lib/funnels";
 
@@ -11,15 +12,10 @@ export const STEP_COLORS: Record<StepType, string> = {
   page: "#64748b",
 };
 
-export const STEP_LABELS: Record<StepType, string> = {
-  optin: "Opt-in",
-  sales: "Sales page",
-  checkout: "Checkout",
-  upsell: "Upsell",
-  downsell: "Downsell",
-  thankyou: "Thank you",
-  page: "Page",
-};
+export const STEP_TYPES: StepType[] = ["optin", "sales", "checkout", "upsell", "downsell", "thankyou", "page"];
+
+/** Dictionary key for a step type's label: `t(stepLabelKey("optin"))`. */
+export const stepLabelKey = (type: StepType) => `funnels.stepTypes.${type}` as const;
 
 export function StepTypeDot({ type, className }: { type: StepType; className?: string }) {
   return (
@@ -30,14 +26,16 @@ export function StepTypeDot({ type, className }: { type: StepType; className?: s
   );
 }
 
+/** Client-only (uses the i18n context). */
 export function StepTypeBadge({ type }: { type: StepType }) {
+  const t = useT();
   return (
     <span
       className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium"
       style={{ background: `${STEP_COLORS[type]}1f`, color: STEP_COLORS[type] }}
     >
       <StepTypeDot type={type} />
-      {STEP_LABELS[type]}
+      {t(stepLabelKey(type))}
     </span>
   );
 }

@@ -4,6 +4,7 @@ import { sanitizeRichText } from "@zfunnel/email";
 import { z } from "zod";
 import { aiConfigured, complete, takeAiQuota } from "./ai";
 import { enforce } from "./billing";
+import { getT } from "./i18n";
 import { requireUser } from "./session";
 import { getWorkspaceForUser } from "./workspaces";
 
@@ -26,15 +27,15 @@ Return ONLY the new copy: no preamble, no quotes, no explanations, no markdown.`
 
 export async function aiRewrite(workspaceSlug: string, input: z.input<typeof schema>): Promise<Result> {
   const user = await requireUser();
+  const t = await getT();
   const ctx = await getWorkspaceForUser(user.id, workspaceSlug);
-  if (!ctx) return { ok: false, error: "Workspace not found" };
-  if (!aiConfigured()) return { ok: false, error: "AI isn't set up on this server yet (ANTHROPIC_API_KEY)." };
+  if (!ctx) return { ok: false, error: t("ai.workspaceNotFound") };
+  if (!aiConfigured()) return { ok: false, error: t("ai.notConfiguredServer") };
   const p = schema.safeParse(input);
-  if (!p.success) return { ok: false, error: "Invalid request" };
+  if (!p.success) return { ok: false, error: t("ai.invalidRequest") };
   const blocked = await enforce(ctx.membership.organizationId, "ai");
   if (blocked) return { ok: false, error: blocked };
-  if (!takeAiQuota(ctx.workspace.id))
-    return { ok: false, error: "You've reached the hourly AI limit. Try again later." };
+  if (!takeAiQuota(ctx.workspace.id)) return { ok: false, error: t("ai.rateLimit") };
   const { format, role, text, instruction, context } = p.data;
   const formatRule =
     format === "html"
@@ -58,7 +59,7 @@ export async function aiRewrite(workspaceSlug: string, input: z.input<typeof sch
         .replace(/^["“”']+|["“”']+$/g, "")
         .split("\n")[0]!
         .trim();
-    if (!out) return { ok: false, error: "The AI returned nothing. Try a different instruction." };
+    if (!out) return { ok: false, error: t("ai.emptyResult") };
     return { ok: true, text: out };
   } catch (err) {
     return { ok: false, error: (err as Error).message };

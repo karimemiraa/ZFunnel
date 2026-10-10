@@ -1,7 +1,8 @@
 "use client";
 
-import { formatMoney } from "@zfunnel/payments/money";
+import { useIntlLocale, useT } from "@zfunnel/i18n/react";
 import { useState } from "react";
+import { useFmt } from "@/lib/use-fmt";
 
 /** Single-series daily bar chart: one hue, rounded data-ends, hover tooltip, recessive axis. */
 export function BarChart({
@@ -10,19 +11,21 @@ export function BarChart({
   label,
 }: {
   data: { day: string; value: number }[];
-  unit: { currency: string } | { noun: string };
+  unit: { currency: string } | { noun: "visitors" };
   label: string;
 }) {
+  const t = useT();
+  const f = useFmt();
+  const intl = useIntlLocale();
   const format = (v: number) =>
-    "currency" in unit ? formatMoney(v, unit.currency) : `${v.toLocaleString()} ${unit.noun}`;
+    "currency" in unit ? f.money(v, unit.currency) : t("analytics.visitorsCount", { count: v, n: f.number(v) });
   const [hover, setHover] = useState<number | null>(null);
   const max = Math.max(1, ...data.map((d) => d.value));
   const W = 100 / data.length;
-  const fmtDay = (d: string) =>
-    new Date(`${d}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const fmtDay = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString(intl, { month: "short", day: "numeric" });
   const h = hover === null ? null : data[hover]!;
   return (
-    <figure className="relative" aria-label={label}>
+    <figure className="relative" aria-label={label} dir="ltr">
       <div className="relative h-44" onMouseLeave={() => setHover(null)}>
         <div className="absolute inset-x-0 bottom-0 border-t border-border" />
         {data.map((d, i) => (

@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@zfunnel/i18n/react";
 import { Button } from "@zfunnel/ui/button";
 import { cn } from "@zfunnel/ui/lib/utils";
 import { toast } from "@zfunnel/ui/toaster";
@@ -8,6 +9,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { createVariant, endSplitTest, setVariantWeight } from "@/lib/funnel-actions";
+import { useFmt } from "@/lib/use-fmt";
 
 type Row = { key: string; label: string; visitors: number; converted: number; rate: number };
 type Props = {
@@ -19,9 +21,10 @@ type Props = {
   confidence: number | null;
 };
 
-const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
-
 export function SplitTest(p: Props) {
+  const t = useT();
+  const f = useFmt();
+  const pct = (n: number) => f.percent(n, 1);
   const router = useRouter();
   const [pending, start] = useTransition();
   const [weight, setWeight] = useState(p.variant?.weight ?? 50);
@@ -33,7 +36,7 @@ export function SplitTest(p: Props) {
   ) =>
     start(async () => {
       const r = await fn();
-      if (!r.ok) return void toast.error(r.error ?? "Something went wrong");
+      if (!r.ok) return void toast.error(r.error ?? t("common.somethingWrong"));
       if (r.message) toast.success(r.message);
       after?.(r);
       router.refresh();
@@ -47,16 +50,13 @@ export function SplitTest(p: Props) {
             <FlaskConicalIcon className="size-[18px]" />
           </span>
           <div className="flex-1">
-            <h3 className="font-semibold">A/B split test</h3>
-            <p className="text-sm text-muted-foreground">
-              Test a different headline, offer or design against this page. We split traffic and show which converts
-              better.
-            </p>
+            <h3 className="font-semibold">{t("funnels.split.title")}</h3>
+            <p className="text-sm text-muted-foreground">{t("funnels.split.intro")}</p>
           </div>
           <Button
             variant="outline"
             disabled={pending || !p.published}
-            title={p.published ? undefined : "Publish this page first"}
+            title={p.published ? undefined : t("funnels.split.publishFirst")}
             onClick={() =>
               run(
                 () => createVariant(p.workspaceSlug, p.stepId),
@@ -64,7 +64,7 @@ export function SplitTest(p: Props) {
               )
             }
           >
-            {pending && <Loader2Icon className="animate-spin" />} Create variant B
+            {pending && <Loader2Icon className="animate-spin" />} {t("funnels.split.createVariant")}
           </Button>
         </div>
       </section>
@@ -77,22 +77,21 @@ export function SplitTest(p: Props) {
     <section className="rounded-xl border bg-card">
       <div className="flex flex-wrap items-center gap-3 border-b px-5 py-3">
         <FlaskConicalIcon className="size-4 text-sky-600" />
-        <h3 className="flex-1 font-semibold">Split test running</h3>
-        <span className="text-xs text-muted-foreground">Since {new Date(v.startedAt).toLocaleDateString()}</span>
+        <h3 className="flex-1 font-semibold">{t("funnels.split.running")}</h3>
+        <span className="text-xs text-muted-foreground">{t("funnels.split.since", { date: f.date(v.startedAt) })}</span>
       </div>
       {!v.published && (
         <p className="border-b bg-amber-500/10 px-5 py-2.5 text-sm text-amber-800 dark:text-amber-300">
-          Variant {v.name} isn't published yet, so everyone still sees the original. Open it in the editor and click
-          Publish.
+          {t("funnels.split.unpublished", { name: v.name })}
         </p>
       )}
       <table className="w-full text-sm">
         <thead className="text-start text-xs text-muted-foreground">
           <tr>
-            <th className="px-5 py-2 font-medium">Version</th>
-            <th className="px-3 py-2 text-end font-medium">Visitors</th>
-            <th className="px-3 py-2 text-end font-medium">Converted</th>
-            <th className="px-5 py-2 text-end font-medium">Rate</th>
+            <th className="px-5 py-2 font-medium">{t("funnels.split.version")}</th>
+            <th className="px-3 py-2 text-end font-medium">{t("funnels.split.visitors")}</th>
+            <th className="px-3 py-2 text-end font-medium">{t("funnels.split.converted")}</th>
+            <th className="px-5 py-2 text-end font-medium">{t("funnels.split.rate")}</th>
           </tr>
         </thead>
         <tbody className="divide-y">
@@ -114,7 +113,7 @@ export function SplitTest(p: Props) {
                     }
                     className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"
                   >
-                    <PencilIcon className="size-3" /> Edit
+                    <PencilIcon className="size-3" /> {t("common.edit")}
                   </Link>
                   <a
                     href={
@@ -126,12 +125,12 @@ export function SplitTest(p: Props) {
                     rel="noreferrer"
                     className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"
                   >
-                    <EyeIcon className="size-3" /> Preview
+                    <EyeIcon className="size-3" /> {t("funnels.preview")}
                   </a>
                 </div>
               </td>
-              <td className="px-3 py-3 text-end tabular-nums">{r.visitors.toLocaleString()}</td>
-              <td className="px-3 py-3 text-end tabular-nums">{r.converted.toLocaleString()}</td>
+              <td className="px-3 py-3 text-end tabular-nums">{f.number(r.visitors)}</td>
+              <td className="px-3 py-3 text-end tabular-nums">{f.number(r.converted)}</td>
               <td className="px-5 py-3 text-end font-semibold tabular-nums">{r.visitors ? pct(r.rate) : "—"}</td>
             </tr>
           ))}
@@ -140,17 +139,15 @@ export function SplitTest(p: Props) {
       <div className="grid gap-4 border-t px-5 py-4">
         <p className="text-sm text-muted-foreground">
           {conf === null
-            ? "Collecting data. Results become meaningful after about 20 visitors per version."
+            ? t("funnels.split.collecting")
             : conf >= 0.95
-              ? `${best?.label} is winning with ${Math.round(conf * 100)}% confidence.`
-              : `No clear winner yet (${Math.round(conf * 100)}% confidence). Keep the test running.`}
+              ? t("funnels.split.winning", { name: best?.label ?? "", percent: Math.round(conf * 100) })
+              : t("funnels.split.noWinner", { percent: Math.round(conf * 100) })}
         </p>
         <div className="grid gap-1.5">
           <div className="flex justify-between text-xs font-medium">
-            <span>Original · {100 - weight}%</span>
-            <span>
-              Variant {v.name} · {weight}%
-            </span>
+            <span>{t("funnels.split.originalWeight", { percent: 100 - weight })}</span>
+            <span>{t("funnels.split.variantWeight", { name: v.name, percent: weight })}</span>
           </div>
           <input
             type="range"
@@ -158,7 +155,7 @@ export function SplitTest(p: Props) {
             max={100}
             step={5}
             value={weight}
-            aria-label={`Traffic to variant ${v.name}`}
+            aria-label={t("funnels.split.trafficLabel", { name: v.name })}
             className="w-full accent-[var(--primary)]"
             onChange={(e) => {
               const w = Number(e.target.value);
@@ -176,20 +173,19 @@ export function SplitTest(p: Props) {
             variant="outline"
             disabled={pending}
             onClick={() =>
-              confirm("Keep the original page and end the test?") &&
-              run(() => endSplitTest(p.workspaceSlug, p.stepId, "a"))
+              confirm(t("funnels.split.confirmKeep")) && run(() => endSplitTest(p.workspaceSlug, p.stepId, "a"))
             }
           >
-            Keep original
+            {t("funnels.split.keepOriginal")}
           </Button>
           <Button
             disabled={pending || !v.published}
             onClick={() =>
-              confirm(`Make variant ${v.name} your live page and end the test?`) &&
+              confirm(t("funnels.split.confirmWinner", { name: v.name })) &&
               run(() => endSplitTest(p.workspaceSlug, p.stepId, v.id))
             }
           >
-            <TrophyIcon /> Variant {v.name} wins
+            <TrophyIcon /> {t("funnels.split.variantWins", { name: v.name })}
           </Button>
         </div>
       </div>
