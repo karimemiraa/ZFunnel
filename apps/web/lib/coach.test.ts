@@ -24,6 +24,12 @@ describe("conversion coach", () => {
     expect(p).toContain("Free class");
     expect(p).not.toContain("<b>");
     expect(p.length).toBeLessThan(2000);
+    expect(p).not.toContain("Arabic");
+  });
+
+  it("asks for Arabic when the dashboard is in Arabic", () => {
+    const p = coachPrompt({ funnelName: "F", days: 7, currency: "usd", steps: [], locale: "ar" });
+    expect(p).toContain("Write the summary and suggestions in Arabic.");
   });
 
   it("keeps known steps, strips HTML and caps the list", () => {

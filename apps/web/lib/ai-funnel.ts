@@ -5,6 +5,7 @@ import { sanitizeRichText } from "@zfunnel/email";
 import { complete } from "./ai";
 import { applyCopy, collectCopy } from "./copy-slots";
 import { inWorkspace } from "./funnels";
+import { getT } from "./i18n";
 import type { WorkspaceContext } from "./workspaces";
 
 const SYSTEM = `You are a world-class direct-response copywriter. You rewrite every piece of copy in a sales funnel so it fits the user's business.
@@ -39,7 +40,7 @@ export async function writeFunnelCopy(ctx: WorkspaceContext, funnelId: string, b
     parsed = JSON.parse(json) as typeof parsed;
   } catch (err) {
     console.error("[ai-funnel]", (err as Error).message);
-    return { updated: 0, error: "The AI couldn't write this funnel. The template copy is ready to edit." };
+    return { updated: 0, error: (await getT())("ai.funnelWriteFailed") };
   }
   const known = new Map(slots.map((s) => [s.id, s]));
   const byStep = new Map<number, { id: string; text: string }[]>();

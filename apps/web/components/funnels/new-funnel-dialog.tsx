@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@zfunnel/i18n/react";
 import { Button } from "@zfunnel/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@zfunnel/ui/dialog";
 import { FormMessage } from "@zfunnel/ui/form-message";
@@ -17,13 +18,14 @@ type Preset = { key: string; label: string; description: string; steps: [string,
 type Template = { id: string; name: string; category: string; description: string; steps: [string, StepType][] };
 
 function StepChips({ steps }: { steps: [string, StepType][] }) {
+  const t = useT();
   return (
     <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
       {steps.map(([name, type], i) => (
         <span key={i} className="inline-flex items-center gap-1 text-xs text-muted-foreground">
           <StepTypeDot type={type} />
           {name}
-          {i < steps.length - 1 && <span className="text-muted-foreground/50">→</span>}
+          {i < steps.length - 1 && <span className="text-muted-foreground/50">{t("funnels.forwardArrow")}</span>}
         </span>
       ))}
     </span>
@@ -43,42 +45,48 @@ export function NewFunnelDialog({
   trigger?: React.ReactNode;
   aiEnabled?: boolean;
 }) {
+  const t = useT();
   const [state, action, pending] = useActionState(createFunnel.bind(null, workspaceSlug), null);
   const [tab, setTab] = useState<"templates" | "structures">("templates");
   const [source, setSource] = useState(`template:${templates[0]!.id}`);
-  const [category, setCategory] = useState("All");
-  const categories = ["All", ...new Set(templates.map((t) => t.category))];
-  const shown = templates.filter((t) => category === "All" || t.category === category);
+  const [category, setCategory] = useState("");
+  const categories = ["", ...new Set(templates.map((tpl) => tpl.category))];
+  const shown = templates.filter((tpl) => !category || tpl.category === category);
 
   return (
     <Dialog>
       <DialogTrigger asChild>
         {trigger ?? (
           <Button>
-            <PlusIcon /> New funnel
+            <PlusIcon /> {t("funnels.newFunnel")}
           </Button>
         )}
       </DialogTrigger>
       <DialogContent className="max-h-[92dvh] sm:max-w-5xl">
         <DialogHeader>
-          <DialogTitle>Create a funnel</DialogTitle>
-          <DialogDescription>
-            Start from a professionally designed template, or from a bare structure.
-          </DialogDescription>
+          <DialogTitle>{t("funnels.createTitle")}</DialogTitle>
+          <DialogDescription>{t("funnels.createDescription")}</DialogDescription>
         </DialogHeader>
         <form action={action} className="flex min-h-0 flex-col gap-5">
           <input type="hidden" name="source" value={source} />
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="flex-1 space-y-2">
-              <Label htmlFor="funnel-name">Funnel name</Label>
-              <Input id="funnel-name" name="name" placeholder="Spring Masterclass" required minLength={2} autoFocus />
+              <Label htmlFor="funnel-name">{t("funnels.funnelName")}</Label>
+              <Input
+                id="funnel-name"
+                name="name"
+                placeholder={t("funnels.funnelNamePlaceholder")}
+                required
+                minLength={2}
+                autoFocus
+              />
               <FormMessage message={state?.fieldErrors?.name?.[0]} />
             </div>
             <div className="inline-flex rounded-lg bg-muted p-1 text-sm">
               {(
                 [
-                  ["templates", "Templates", LayoutTemplateIcon],
-                  ["structures", "Structures", WorkflowIcon],
+                  ["templates", t("funnels.tabTemplates"), LayoutTemplateIcon],
+                  ["structures", t("funnels.tabStructures"), WorkflowIcon],
                 ] as const
               ).map(([key, label, Icon]) => (
                 <button
@@ -112,18 +120,18 @@ export function NewFunnelDialog({
                       category === c ? "border-foreground bg-foreground text-background" : "hover:border-foreground/30",
                     )}
                   >
-                    {c}
+                    {c || t("templates.all")}
                   </button>
                 ))}
               </div>
               <div className="-mx-1 grid max-h-[52dvh] gap-4 overflow-y-auto px-1 pb-1 sm:grid-cols-2 lg:grid-cols-3">
-                {shown.map((t) => {
-                  const selected = source === `template:${t.id}`;
+                {shown.map((tpl) => {
+                  const selected = source === `template:${tpl.id}`;
                   return (
                     <button
-                      key={t.id}
+                      key={tpl.id}
                       type="button"
-                      onClick={() => setSource(`template:${t.id}`)}
+                      onClick={() => setSource(`template:${tpl.id}`)}
                       aria-pressed={selected}
                       className={cn(
                         "group relative overflow-hidden rounded-xl border text-start transition-all",
@@ -132,8 +140,8 @@ export function NewFunnelDialog({
                     >
                       <div className="relative h-36 overflow-hidden border-b bg-muted">
                         <iframe
-                          src={`/templates/${t.id}`}
-                          title={`${t.name} preview`}
+                          src={`/templates/${tpl.id}`}
+                          title={t("funnels.previewOf", { name: tpl.name })}
                           loading="lazy"
                           tabIndex={-1}
                           className="pointer-events-none absolute top-0 left-0 h-[600px] w-[1280px] origin-top-left scale-[0.245] border-0"
@@ -146,11 +154,11 @@ export function NewFunnelDialog({
                       </div>
                       <div className="space-y-1.5 p-3">
                         <div className="flex items-center justify-between gap-2">
-                          <span className="font-medium">{t.name}</span>
-                          <span className="text-[11px] text-muted-foreground">{t.category}</span>
+                          <span className="font-medium">{tpl.name}</span>
+                          <span className="text-[11px] text-muted-foreground">{tpl.category}</span>
                         </div>
-                        <p className="line-clamp-2 text-xs text-muted-foreground">{t.description}</p>
-                        <StepChips steps={t.steps} />
+                        <p className="line-clamp-2 text-xs text-muted-foreground">{tpl.description}</p>
+                        <StepChips steps={tpl.steps} />
                       </div>
                     </button>
                   );
@@ -180,27 +188,23 @@ export function NewFunnelDialog({
           {aiEnabled && source.startsWith("template:") && (
             <div className="grid gap-2 rounded-xl border border-violet-300/50 bg-violet-500/5 p-4">
               <Label htmlFor="funnel-brief" className="flex items-center gap-1.5">
-                <SparklesIcon className="size-4 text-violet-500" /> Let AI write every page (optional)
+                <SparklesIcon className="size-4 text-violet-500" /> {t("funnels.aiBriefLabel")}
               </Label>
               <Textarea
                 id="funnel-brief"
                 name="brief"
                 rows={3}
                 maxLength={1500}
-                placeholder="What do you sell, to whom, and why it's different. E.g. “An 8-week online yoga program for busy moms who want more energy, $97.”"
+                placeholder={t("funnels.aiBriefPlaceholder")}
               />
             </div>
           )}
           <FormMessage message={state?.error ?? state?.fieldErrors?.source?.[0]} />
           <div className="flex items-center justify-end gap-3">
-            {pending && (
-              <span className="text-sm text-muted-foreground">
-                Building your funnel… this can take up to a minute with AI.
-              </span>
-            )}
+            {pending && <span className="text-sm text-muted-foreground">{t("funnels.building")}</span>}
             <Button type="submit" disabled={pending} size="lg">
               {pending && <Loader2Icon className="animate-spin" />}
-              Create funnel
+              {t("funnels.createFunnel")}
             </Button>
           </div>
         </form>

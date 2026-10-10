@@ -1,6 +1,7 @@
 "use client";
 
 import { dir, type Locale } from "@zfunnel/i18n";
+import { useT } from "@zfunnel/i18n/react";
 
 import { createUsePuck, Puck, type Data } from "@puckeditor/core";
 import "@puckeditor/core/puck.css";
@@ -60,11 +61,16 @@ type Props = {
 const AUTOSAVE_MS = 1200;
 
 function SaveIndicator({ state }: { state: SaveState }) {
+  const t = useT();
   const map = {
-    saved: { icon: <CheckIcon className="size-3.5" />, text: "Saved", cls: "text-muted-foreground" },
-    dirty: { icon: <CloudIcon className="size-3.5" />, text: "Unsaved changes", cls: "text-muted-foreground" },
-    saving: { icon: <Loader2Icon className="size-3.5 animate-spin" />, text: "Saving…", cls: "text-muted-foreground" },
-    error: { icon: <TriangleAlertIcon className="size-3.5" />, text: "Not saved", cls: "text-destructive" },
+    saved: { icon: <CheckIcon className="size-3.5" />, text: t("common.saved"), cls: "text-muted-foreground" },
+    dirty: { icon: <CloudIcon className="size-3.5" />, text: t("editor.unsaved"), cls: "text-muted-foreground" },
+    saving: {
+      icon: <Loader2Icon className="size-3.5 animate-spin" />,
+      text: t("common.saving"),
+      cls: "text-muted-foreground",
+    },
+    error: { icon: <TriangleAlertIcon className="size-3.5" />, text: t("editor.notSaved"), cls: "text-destructive" },
   }[state.kind];
   return (
     <span
@@ -96,14 +102,15 @@ function EditorHeader({
   onPublish: () => void;
   publishing: boolean;
 }) {
+  const t = useT();
   const router = useRouter();
   const history = usePuck((s) => s.history);
   const back = `/${props.workspaceSlug}/funnels/${props.funnel.id}?step=${props.step.id}`;
   return (
     <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-background px-3">
-      <Tooltip label="Back to funnel" side="bottom">
+      <Tooltip label={t("editor.backToFunnel")} side="bottom">
         <Button variant="ghost" size="icon" asChild>
-          <Link href={back} aria-label="Back to funnel">
+          <Link href={back} aria-label={t("editor.backToFunnel")}>
             <ArrowLeftIcon className="rtl:-scale-x-100" />
           </Link>
         </Button>
@@ -118,7 +125,7 @@ function EditorHeader({
                 {props.step.name}
                 {props.variant && (
                   <span className="ms-1.5 rounded bg-sky-500/15 px-1.5 py-0.5 text-[10px] font-bold text-sky-700 dark:text-sky-400">
-                    VARIANT {props.variant.name}
+                    {t("editor.variantBadge", { name: props.variant.name })}
                   </span>
                 )}
               </span>
@@ -127,7 +134,7 @@ function EditorHeader({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-64">
-          <DropdownMenuLabel className="text-xs text-muted-foreground">Switch step</DropdownMenuLabel>
+          <DropdownMenuLabel className="text-xs text-muted-foreground">{t("editor.switchStep")}</DropdownMenuLabel>
           {props.steps.map((s, i) => (
             <DropdownMenuItem
               key={s.id}
@@ -142,19 +149,31 @@ function EditorHeader({
           ))}
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
-            <Link href={back}>Back to funnel overview</Link>
+            <Link href={back}>{t("editor.backToOverview")}</Link>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
       <div className="ms-1 flex items-center">
-        <Tooltip label="Undo (⌘Z)" side="bottom">
-          <Button variant="ghost" size="icon" disabled={!history.hasPast} onClick={history.back} aria-label="Undo">
+        <Tooltip label={t("editor.undoShortcut")} side="bottom">
+          <Button
+            variant="ghost"
+            size="icon"
+            disabled={!history.hasPast}
+            onClick={history.back}
+            aria-label={t("editor.undo")}
+          >
             <Undo2Icon />
           </Button>
         </Tooltip>
-        <Tooltip label="Redo (⇧⌘Z)" side="bottom">
-          <Button variant="ghost" size="icon" disabled={!history.hasFuture} onClick={history.forward} aria-label="Redo">
+        <Tooltip label={t("editor.redoShortcut")} side="bottom">
+          <Button
+            variant="ghost"
+            size="icon"
+            disabled={!history.hasFuture}
+            onClick={history.forward}
+            aria-label={t("editor.redo")}
+          >
             <Redo2Icon />
           </Button>
         </Tooltip>
@@ -174,11 +193,11 @@ function EditorHeader({
           target="_blank"
           rel="noreferrer"
         >
-          <EyeIcon /> <span className="max-sm:hidden">Preview</span>
+          <EyeIcon /> <span className="max-sm:hidden">{t("editor.preview")}</span>
         </a>
       </Button>
       <Button onClick={onPublish} disabled={publishing}>
-        {publishing ? <Loader2Icon className="animate-spin" /> : <RocketIcon />} Publish
+        {publishing ? <Loader2Icon className="animate-spin" /> : <RocketIcon />} {t("editor.publish")}
       </Button>
     </header>
   );
@@ -196,6 +215,7 @@ function CanvasDirection({ children, document: doc }: { children: React.ReactNod
 }
 
 export function PageEditor(props: Props) {
+  const t = useT();
   const [saveState, setSaveState] = useState<SaveState>({ kind: "saved", at: new Date(props.savedAt) });
   const [publishing, setPublishing] = useState(false);
   const latest = useRef<Data>(props.initialData);
@@ -239,11 +259,9 @@ export function PageEditor(props: Props) {
     setPublishing(false);
     if (res.ok) {
       setSaveState({ kind: "saved", at: new Date() });
-      toast.success(
-        props.variant ? `Variant ${props.variant.name} is live in your split test.` : "Published! Your page is live.",
-      );
+      toast.success(props.variant ? t("editor.variantLive", { name: props.variant.name }) : t("editor.published"));
     } else toast.error(res.error);
-  }, [props.workspaceSlug, props.step.id, props.variant]);
+  }, [props.workspaceSlug, props.step.id, props.variant, t]);
 
   // ⌘S / Ctrl+S saves immediately; warn before leaving with unsaved changes.
   useEffect(() => {
@@ -288,9 +306,9 @@ export function PageEditor(props: Props) {
           overrides={overrides}
           iframe={{ enabled: true, waitForStyles: true }}
           viewports={[
-            { width: 1280, height: "auto", label: "Desktop", icon: "Monitor" },
-            { width: 820, height: "auto", label: "Tablet", icon: "Tablet" },
-            { width: 390, height: "auto", label: "Mobile", icon: "Smartphone" },
+            { width: 1280, height: "auto", label: t("editor.desktop"), icon: "Monitor" },
+            { width: 820, height: "auto", label: t("editor.tablet"), icon: "Tablet" },
+            { width: 390, height: "auto", label: t("editor.mobile"), icon: "Smartphone" },
           ]}
           height="100dvh"
         />

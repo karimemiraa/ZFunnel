@@ -1,6 +1,7 @@
 "use client";
 
 import { createUsePuck } from "@puckeditor/core";
+import { useT } from "@zfunnel/i18n/react";
 import { Button } from "@zfunnel/ui/button";
 import { Input } from "@zfunnel/ui/input";
 import { Loader2Icon, SparklesIcon, XIcon } from "lucide-react";
@@ -24,14 +25,9 @@ export const EMAIL_AI_TARGETS: AiTargets = {
   Button: { prop: "label", format: "plain", role: "button" },
 };
 
-const QUICK = [
-  "Improve it",
-  "Make it shorter",
-  "Make it more persuasive",
-  "Add urgency",
-  "Make it friendlier",
-  "Fix grammar",
-];
+const QUICK = ["improve", "shorter", "persuasive", "urgency", "friendlier", "grammar"] as const;
+const BLOCK_NAMES = ["Heading", "Text", "Button", "Badge"] as const;
+const isBlockName = (s: string): s is (typeof BLOCK_NAMES)[number] => (BLOCK_NAMES as readonly string[]).includes(s);
 const strip = (s: string) =>
   s
     .replace(/<[^>]+>/g, " ")
@@ -49,6 +45,7 @@ export function AiAssist({
   context: string;
   targets: AiTargets;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [custom, setCustom] = useState("");
@@ -95,32 +92,37 @@ export function AiAssist({
   return (
     <div className="relative">
       <Button variant="outline" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="gap-1.5">
-        <SparklesIcon className="text-violet-500" /> <span className="max-sm:hidden">AI</span>
+        <SparklesIcon className="text-violet-500" /> <span className="max-sm:hidden">{t("ai.button")}</span>
       </Button>
       {open && (
         <div className="fixed end-4 top-16 z-50 max-h-[calc(100dvh-5rem)] w-[min(22rem,calc(100vw-2rem))] overflow-y-auto rounded-xl border bg-popover p-4 text-popover-foreground shadow-2xl">
           <div className="mb-3 flex items-center gap-2">
             <SparklesIcon className="size-4 text-violet-500" />
-            <h2 className="flex-1 text-sm font-semibold">AI copywriter</h2>
-            <Button variant="ghost" size="icon" className="size-7" aria-label="Close" onClick={() => setOpen(false)}>
+            <h2 className="flex-1 text-sm font-semibold">{t("ai.copywriter")}</h2>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7"
+              aria-label={t("common.close")}
+              onClick={() => setOpen(false)}
+            >
               <XIcon />
             </Button>
           </div>
           {!enabled ? (
-            <p className="text-sm text-muted-foreground">
-              AI isn't set up on this server yet. Ask your admin to add an Anthropic API key.
-            </p>
+            <p className="text-sm text-muted-foreground">{t("ai.notConfigured")}</p>
           ) : !target ? (
-            <p className="text-sm text-muted-foreground">
-              Select a heading, text or button on the page, then choose how to rewrite it.
-            </p>
+            <p className="text-sm text-muted-foreground">{t("ai.selectBlock")}</p>
           ) : (
             <div className="grid gap-3">
               <p className="line-clamp-2 rounded-lg bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
-                <span className="font-semibold text-foreground">{selected!.type}:</span> {strip(current) || "Empty"}
+                <span className="font-semibold text-foreground">
+                  {isBlockName(selected!.type) ? t(`ai.blocks.${selected!.type}`) : selected!.type}:
+                </span>{" "}
+                {strip(current) || t("ai.empty")}
               </p>
               <div className="flex flex-wrap gap-1.5">
-                {(current.trim() ? QUICK : ["Write a compelling version"]).map((q) => (
+                {(current.trim() ? QUICK.map((q) => t(`ai.quick.${q}`)) : [t("ai.quick.write")]).map((q) => (
                   <button
                     key={q}
                     type="button"
@@ -142,15 +144,15 @@ export function AiAssist({
                 <Input
                   value={custom}
                   onChange={(e) => setCustom(e.target.value)}
-                  placeholder="Or tell the AI what to write…"
+                  placeholder={t("ai.customPlaceholder")}
                   maxLength={500}
-                  aria-label="AI instruction"
+                  aria-label={t("ai.instruction")}
                 />
-                <Button type="submit" size="icon" disabled={busy || !custom.trim()} aria-label="Generate">
+                <Button type="submit" size="icon" disabled={busy || !custom.trim()} aria-label={t("ai.generate")}>
                   {busy ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
                 </Button>
               </form>
-              {busy && <p className="text-xs text-muted-foreground">Writing…</p>}
+              {busy && <p className="text-xs text-muted-foreground">{t("ai.writing")}</p>}
               {error && (
                 <p className="text-xs text-destructive" role="alert">
                   {error}
@@ -165,10 +167,10 @@ export function AiAssist({
                   )}
                   <div className="flex gap-2">
                     <Button size="sm" onClick={apply}>
-                      Use this
+                      {t("ai.useThis")}
                     </Button>
                     <Button size="sm" variant="ghost" disabled={busy} onClick={() => void run(lastInstruction)}>
-                      Try again
+                      {t("ai.tryAgain")}
                     </Button>
                   </div>
                 </div>

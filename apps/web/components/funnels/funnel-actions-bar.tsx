@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@zfunnel/i18n/react";
 import { Button } from "@zfunnel/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@zfunnel/ui/dialog";
 import { FormMessage } from "@zfunnel/ui/form-message";
@@ -24,43 +25,44 @@ export function FunnelActionsBar({
   origin: string;
   canDelete: boolean;
 }) {
+  const t = useT();
   const router = useRouter();
   const [busy, start] = useTransition();
   const [state, action, saving] = useActionState(updateFunnel.bind(null, workspaceSlug, funnel.id), null);
+  const host = origin.replace(/^https?:\/\//, "");
 
   useEffect(() => {
-    if (state?.success) toast.success("Funnel settings saved");
-  }, [state]);
+    if (state?.success) toast.success(t("funnels.settingsSaved"));
+  }, [state, t]);
 
   return (
     <div className="flex items-center gap-2">
       <Dialog>
         <DialogTrigger asChild>
           <Button variant="outline">
-            <SettingsIcon /> Settings
+            <SettingsIcon /> {t("funnels.settings")}
           </Button>
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Funnel settings</DialogTitle>
-            <DialogDescription>Name, address and actions for this funnel.</DialogDescription>
+            <DialogTitle>{t("funnels.settingsTitle")}</DialogTitle>
+            <DialogDescription>{t("funnels.settingsDescription")}</DialogDescription>
           </DialogHeader>
           <form action={action} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="f-name">Name</Label>
+              <Label htmlFor="f-name">{t("funnels.name")}</Label>
               <Input id="f-name" name="name" defaultValue={funnel.name} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="f-slug">URL path</Label>
-              <div className="flex items-center rounded-md border border-input">
-                <span className="border-e px-3 text-sm whitespace-nowrap text-muted-foreground">
-                  {origin.replace(/^https?:\/\//, "")}/
-                </span>
+              <Label htmlFor="f-slug">{t("funnels.urlPath")}</Label>
+              <div dir="ltr" className="flex items-center rounded-md border border-input">
+                <span className="border-e px-3 text-sm whitespace-nowrap text-muted-foreground">{host}/</span>
                 <input
                   id="f-slug"
                   name="slug"
                   defaultValue={funnel.slug}
                   required
+                  dir="ltr"
                   className="h-9 min-w-0 flex-1 bg-transparent px-3 text-sm outline-none"
                 />
               </div>
@@ -69,9 +71,9 @@ export function FunnelActionsBar({
             <label className="flex items-start gap-3 rounded-lg border p-3 text-sm">
               <input type="checkbox" name="home" defaultChecked={isHome} className="mt-0.5 size-4 accent-primary" />
               <span>
-                <span className="font-medium">Use as homepage</span>
+                <span className="font-medium">{t("funnels.useAsHomepage")}</span>
                 <span className="block text-muted-foreground">
-                  Show this funnel&apos;s first step at {origin.replace(/^https?:\/\//, "")}/
+                  {t("funnels.useAsHomepageHint", { host: `${host}/` })}
                 </span>
               </span>
             </label>
@@ -89,7 +91,7 @@ export function FunnelActionsBar({
                     })
                   }
                 >
-                  <CopyPlusIcon /> Duplicate
+                  <CopyPlusIcon /> {t("funnels.duplicate")}
                 </Button>
                 {canDelete && (
                   <Button
@@ -99,17 +101,17 @@ export function FunnelActionsBar({
                     className="text-destructive hover:text-destructive"
                     disabled={busy}
                     onClick={() => {
-                      if (confirm(`Delete the funnel “${funnel.name}”? Its pages go offline immediately.`))
+                      if (confirm(t("funnels.confirmDelete", { name: funnel.name })))
                         start(() => archiveFunnel(workspaceSlug, funnel.id));
                     }}
                   >
-                    <Trash2Icon /> Delete
+                    <Trash2Icon /> {t("common.delete")}
                   </Button>
                 )}
               </div>
               <Button type="submit" disabled={saving}>
                 {saving && <Loader2Icon className="animate-spin" />}
-                Save
+                {t("common.save")}
               </Button>
             </div>
           </form>
@@ -120,14 +122,13 @@ export function FunnelActionsBar({
         onClick={() =>
           start(async () => {
             const res = await publishFunnel(workspaceSlug, funnel.id);
-            if (res.ok)
-              toast.success(`Published ${res.count} ${res.count === 1 ? "step" : "steps"}. Your funnel is live!`);
+            if (res.ok) toast.success(t("funnels.publishedSteps", { count: res.count ?? 0 }));
             else toast.error(res.error);
             router.refresh();
           })
         }
       >
-        {busy ? <Loader2Icon className="animate-spin" /> : <RocketIcon />} Publish funnel
+        {busy ? <Loader2Icon className="animate-spin" /> : <RocketIcon />} {t("funnels.publishFunnel")}
       </Button>
     </div>
   );

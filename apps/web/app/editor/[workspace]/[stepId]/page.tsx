@@ -3,11 +3,14 @@ import { PageEditor } from "@/components/editor/page-editor";
 import { getEditorOffers } from "@/lib/commerce";
 import { getFunnel, getStepWithDraft } from "@/lib/funnels";
 import { aiConfigured } from "@/lib/ai";
+import { getT } from "@/lib/i18n";
 import { getVariant } from "@/lib/split";
 import { requireUser } from "@/lib/session";
 import { getWorkspaceForUser } from "@/lib/workspaces";
 
-export const metadata = { title: "Editor" };
+export async function generateMetadata() {
+  return { title: (await getT())("editor.title") };
+}
 
 export default async function EditorPage({
   params,

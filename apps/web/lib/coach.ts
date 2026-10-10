@@ -1,4 +1,5 @@
 import type { CoachSuggestion } from "@zfunnel/db";
+import type { Locale } from "@zfunnel/i18n";
 
 export const COACH_SYSTEM = `You are a senior conversion-rate-optimization consultant reviewing a sales funnel.
 You get each step's traffic and conversion numbers for a period, plus the copy on each page.
@@ -30,6 +31,8 @@ export function coachPrompt(input: {
   currency: string;
   steps: CoachStep[];
   split?: string[];
+  /** The dashboard language: the coach answers in it. */
+  locale?: Locale;
 }) {
   const lines = input.steps.map((s, i) => {
     const conv = s.tracked
@@ -51,6 +54,7 @@ export function coachPrompt(input: {
     `Funnel: "${input.funnelName}". Period: last ${input.days} days.`,
     `Steps in order:\n${lines.join("\n")}`,
     input.split?.length ? `Running split tests:\n${input.split.join("\n")}` : "",
+    input.locale === "ar" ? "Write the summary and suggestions in Arabic." : "",
     "Review this funnel and reply with the JSON object.",
   ]
     .filter(Boolean)

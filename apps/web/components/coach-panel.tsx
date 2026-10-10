@@ -1,6 +1,7 @@
 "use client";
 
 import type { CoachSuggestion } from "@zfunnel/db";
+import { useT } from "@zfunnel/i18n/react";
 import { Button } from "@zfunnel/ui/button";
 import { cn } from "@zfunnel/ui/lib/utils";
 import { toast } from "@zfunnel/ui/toaster";
@@ -8,6 +9,7 @@ import { Loader2Icon, RefreshCwIcon, SparklesIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { runCoach } from "@/lib/coach-actions";
+import { useFmt } from "@/lib/use-fmt";
 
 const IMPACT: Record<CoachSuggestion["impact"], string> = {
   high: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
@@ -28,13 +30,15 @@ export function CoachPanel({
   aiReady: boolean;
   insight: { summary: string; suggestions: CoachSuggestion[]; days: number; visitors: number; at: string } | null;
 }) {
+  const t = useT();
+  const f = useFmt();
   const [busy, start] = useTransition();
   const router = useRouter();
   const run = () =>
     start(async () => {
       const r = await runCoach(workspaceSlug, funnelId, range);
       if (!r.ok) return void toast.error(r.error);
-      toast.success("Your coach reviewed this funnel");
+      toast.success(t("ai.coach.reviewed"));
       router.refresh();
     });
   return (
@@ -42,20 +46,24 @@ export function CoachPanel({
       <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-5 py-4">
         <div>
           <h2 className="flex items-center gap-2 font-semibold">
-            <SparklesIcon className="size-4 text-primary" /> Conversion coach
+            <SparklesIcon className="size-4 text-primary" /> {t("ai.coach.title")}
           </h2>
           <p className="text-sm text-muted-foreground">
             {insight
-              ? `Based on ${insight.visitors.toLocaleString()} visitors over ${insight.days} days · ${new Date(insight.at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
-              : "AI reviews this funnel's numbers and copy and tells you what to fix first."}
+              ? t("ai.coach.basedOn", {
+                  count: insight.days,
+                  visitors: f.number(insight.visitors),
+                  date: f.date(insight.at),
+                })
+              : t("ai.coach.intro")}
           </p>
         </div>
         <Button onClick={run} disabled={busy || !aiReady} variant={insight ? "outline" : "default"}>
           {busy ? <Loader2Icon className="animate-spin" /> : insight ? <RefreshCwIcon /> : <SparklesIcon />}
-          {busy ? "Analyzing…" : insight ? "Analyze again" : "Analyze my funnel"}
+          {busy ? t("ai.coach.analyzing") : insight ? t("ai.coach.again") : t("ai.coach.analyze")}
         </Button>
       </div>
-      {!aiReady && <p className="px-5 py-4 text-sm text-muted-foreground">AI isn't set up on this server yet.</p>}
+      {!aiReady && <p className="px-5 py-4 text-sm text-muted-foreground">{t("ai.coach.notReady")}</p>}
       {insight && (
         <div className="space-y-4 p-5">
           <p className="text-sm leading-relaxed">{insight.summary}</p>
@@ -68,12 +76,16 @@ export function CoachPanel({
                   </span>
                   <span className="font-medium">{s.title}</span>
                   <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium capitalize", IMPACT[s.impact])}>
-                    {s.impact} impact
+                    {t(`ai.coach.impact.${s.impact}`)}
                   </span>
                 </div>
-                {s.step && <p className="mb-1 text-xs font-medium text-muted-foreground">Step: {s.step}</p>}
+                {s.step && (
+                  <p className="mb-1 text-xs font-medium text-muted-foreground">
+                    {t("ai.coach.step", { name: s.step })}
+                  </p>
+                )}
                 <p className="text-sm">{s.change}</p>
-                {s.why && <p className="mt-1.5 text-xs text-muted-foreground">Why: {s.why}</p>}
+                {s.why && <p className="mt-1.5 text-xs text-muted-foreground">{t("ai.coach.why", { why: s.why })}</p>}
               </li>
             ))}
           </ol>

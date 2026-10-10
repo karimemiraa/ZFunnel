@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@zfunnel/i18n/react";
 import { Button } from "@zfunnel/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@zfunnel/ui/dialog";
 import { Input } from "@zfunnel/ui/input";
@@ -18,6 +19,7 @@ export function ShareFunnel({
   funnelId: string;
   token: string | null;
 }) {
+  const t = useT();
   const router = useRouter();
   const [token, setToken] = useState(initial);
   const [pending, start] = useTransition();
@@ -33,29 +35,32 @@ export function ShareFunnel({
     <Dialog>
       <DialogTrigger asChild>
         <Button variant="outline">
-          <Share2Icon /> Share
+          <Share2Icon /> {t("funnels.share.button")}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Share this funnel</DialogTitle>
-          <DialogDescription>
-            Anyone with the link can preview it and import a copy into their own ZFunnel account. Your products,
-            contacts and settings are never shared.
-          </DialogDescription>
+          <DialogTitle>{t("funnels.share.title")}</DialogTitle>
+          <DialogDescription>{t("funnels.share.description")}</DialogDescription>
         </DialogHeader>
         {token ? (
           <div className="grid gap-3">
             <div className="flex gap-2">
-              <Input readOnly value={link} aria-label="Share link" onFocus={(e) => e.target.select()} />
+              <Input
+                readOnly
+                dir="ltr"
+                value={link}
+                aria-label={t("funnels.share.linkLabel")}
+                onFocus={(e) => e.target.select()}
+              />
               <Button
                 variant="outline"
                 onClick={() => {
                   void navigator.clipboard.writeText(link);
-                  toast.success("Link copied");
+                  toast.success(t("funnels.share.copied"));
                 }}
               >
-                <CopyIcon /> Copy
+                <CopyIcon /> {t("common.copy")}
               </Button>
             </div>
             <Button
@@ -64,12 +69,12 @@ export function ShareFunnel({
               disabled={pending}
               onClick={() => toggle(false)}
             >
-              {pending && <Loader2Icon className="animate-spin" />} Stop sharing (the link stops working)
+              {pending && <Loader2Icon className="animate-spin" />} {t("funnels.share.stop")}
             </Button>
           </div>
         ) : (
           <Button disabled={pending} onClick={() => toggle(true)}>
-            {pending && <Loader2Icon className="animate-spin" />} Create share link
+            {pending && <Loader2Icon className="animate-spin" />} {t("funnels.share.create")}
           </Button>
         )}
       </DialogContent>

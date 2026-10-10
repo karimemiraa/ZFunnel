@@ -1,9 +1,12 @@
 import { Render } from "@puckeditor/core/rsc";
 import { buildTemplate, config } from "@zfunnel/blocks";
 import { notFound } from "next/navigation";
+import { getT } from "@/lib/i18n";
 import { requireUser } from "@/lib/session";
 
-export const metadata = { title: "Template preview", robots: { index: false } };
+export async function generateMetadata() {
+  return { title: (await getT())("templates.previewTitle"), robots: { index: false } };
+}
 
 /** Renders a template's first page, used for gallery thumbnails. */
 export default async function TemplatePreview({ params }: { params: Promise<{ id: string }> }) {

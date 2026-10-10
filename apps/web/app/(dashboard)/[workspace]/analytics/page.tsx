@@ -1,4 +1,3 @@
-import { formatMoney } from "@zfunnel/payments/money";
 import { EmptyState } from "@zfunnel/ui/empty-state";
 import { cn } from "@zfunnel/ui/lib/utils";
 import { BarChart3Icon, DollarSignIcon, MousePointerClickIcon, ShoppingCartIcon, UsersIcon } from "lucide-react";
@@ -13,8 +12,11 @@ import { desc, eq, funnelInsights } from "@zfunnel/db";
 import { inWorkspace, listFunnels } from "@/lib/funnels";
 import { funnelAnalytics, RANGES, type RangeKey } from "@/lib/analytics";
 import { requireWorkspace } from "@/lib/context";
+import { getFmt, getT } from "@/lib/i18n";
 
-export const metadata = { title: "Analytics" };
+export async function generateMetadata() {
+  return { title: (await getT())("analytics.title") };
+}
 
 export default async function AnalyticsPage({
   params,
@@ -24,6 +26,8 @@ export default async function AnalyticsPage({
   searchParams: Promise<{ funnel?: string; range?: string }>;
 }) {
   const ctx = await requireWorkspace(params);
+  const t = await getT();
+  const fm = await getFmt();
   const sp = await searchParams;
   const range = (sp.range && sp.range in RANGES ? sp.range : "30") as RangeKey;
   const funnels = await listFunnels(ctx);
@@ -56,11 +60,11 @@ export default async function AnalyticsPage({
 
   return (
     <>
-      <PageHeader title="Analytics" description="Cookieless, privacy-friendly stats for every funnel step." />
+      <PageHeader title={t("analytics.title")} description={t("analytics.description")} />
       <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="inline-flex max-w-full overflow-x-auto rounded-lg bg-muted p-1 text-sm">
           <Link href={href({ funnel: null })} className={pill(!funnel)}>
-            All funnels
+            {t("analytics.allFunnels")}
           </Link>
           {funnels.map((f) => (
             <Link key={f.id} href={href({ funnel: f.id })} className={pill(funnel?.id === f.id)}>
@@ -71,7 +75,7 @@ export default async function AnalyticsPage({
         <div className="inline-flex rounded-lg bg-muted p-1 text-sm">
           {Object.keys(RANGES).map((r) => (
             <Link key={r} href={href({ range: r })} className={pill(range === r)}>
-              {r} days
+              {t("analytics.rangeDays", { count: Number(r) })}
             </Link>
           ))}
         </div>
@@ -79,30 +83,32 @@ export default async function AnalyticsPage({
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          label="Unique visitors"
-          value={data.totals.visitors.toLocaleString()}
-          hint={`${data.totals.views.toLocaleString()} page views`}
+          label={t("analytics.uniqueVisitors")}
+          value={fm.number(data.totals.visitors)}
+          hint={t("analytics.pageViews", { count: data.totals.views, n: fm.number(data.totals.views) })}
           icon={UsersIcon}
         />
         <StatCard
-          label="Leads"
-          value={data.totals.leads.toLocaleString()}
+          label={t("analytics.leads")}
+          value={fm.number(data.totals.leads)}
           hint={
             data.totals.visitors
-              ? `${((data.totals.leads / data.totals.visitors) * 100).toFixed(1)}% of visitors`
+              ? t("analytics.ofVisitors", { percent: fm.percent(data.totals.leads / data.totals.visitors, 1) })
               : undefined
           }
           icon={MousePointerClickIcon}
         />
-        <StatCard label="Sales" value={data.totals.sales.toLocaleString()} icon={ShoppingCartIcon} />
+        <StatCard label={t("analytics.sales")} value={fm.number(data.totals.sales)} icon={ShoppingCartIcon} />
         <StatCard
-          label="Revenue"
-          value={formatMoney(data.totals.revenue, cur)}
+          label={t("analytics.revenue")}
+          value={fm.money(data.totals.revenue, cur)}
           hint={
             data.totals.otherCurrencies.length
-              ? `+ ${data.totals.otherCurrencies.map((o) => formatMoney(o.revenue, o.currency)).join(" + ")}`
+              ? `+ ${data.totals.otherCurrencies.map((o) => fm.money(o.revenue, o.currency)).join(" + ")}`
               : data.totals.visitors
-                ? `${formatMoney(Math.round(data.totals.revenue / data.totals.visitors), cur)} earnings per visitor`
+                ? t("analytics.perVisitor", {
+                    amount: fm.money(Math.round(data.totals.revenue / data.totals.visitors), cur),
+                  })
                 : undefined
           }
           icon={DollarSignIcon}
@@ -112,24 +118,24 @@ export default async function AnalyticsPage({
       {data.totals.views === 0 ? (
         <EmptyState
           icon={<BarChart3Icon />}
-          title="No traffic yet"
-          description="Publish a funnel and share its link. Visits, leads and sales show up here within seconds."
+          title={t("analytics.emptyTitle")}
+          description={t("analytics.emptyDescription")}
         />
       ) : (
         <>
           <div className="mb-6 grid gap-4 lg:grid-cols-2">
             <div className="rounded-xl border bg-card p-5">
-              <h2 className="mb-4 text-sm font-medium">Revenue per day</h2>
+              <h2 className="mb-4 text-sm font-medium">{t("analytics.revenuePerDay")}</h2>
               <BarChart
-                label="Revenue per day"
+                label={t("analytics.revenuePerDay")}
                 data={data.series.map((d) => ({ day: d.day, value: d.revenue }))}
                 unit={{ currency: cur }}
               />
             </div>
             <div className="rounded-xl border bg-card p-5">
-              <h2 className="mb-4 text-sm font-medium">Unique visitors per day</h2>
+              <h2 className="mb-4 text-sm font-medium">{t("analytics.visitorsPerDay")}</h2>
               <BarChart
-                label="Unique visitors per day"
+                label={t("analytics.visitorsPerDay")}
                 data={data.series.map((d) => ({ day: d.day, value: d.visitors }))}
                 unit={{ noun: "visitors" }}
               />
@@ -159,10 +165,10 @@ export default async function AnalyticsPage({
               <table className="w-full text-sm">
                 <thead className="bg-muted/50 text-start text-xs font-medium tracking-wide text-muted-foreground uppercase">
                   <tr>
-                    <th className="px-4 py-3">Step</th>
-                    <th className="px-4 py-3 text-end">Visitors</th>
-                    <th className="px-4 py-3">Conversion</th>
-                    <th className="px-4 py-3 text-end">Revenue</th>
+                    <th className="px-4 py-3">{t("analytics.step")}</th>
+                    <th className="px-4 py-3 text-end">{t("analytics.visitors")}</th>
+                    <th className="px-4 py-3">{t("analytics.conversion")}</th>
+                    <th className="px-4 py-3 text-end">{t("analytics.revenue")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -174,7 +180,7 @@ export default async function AnalyticsPage({
                           {s.name}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-end tabular-nums">{s.visitors.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-end tabular-nums">{fm.number(s.visitors)}</td>
                       <td className="px-4 py-3">
                         {s.tracked ? (
                           <div className="flex items-center gap-3">
@@ -185,8 +191,7 @@ export default async function AnalyticsPage({
                               />
                             </div>
                             <span className="tabular-nums">
-                              {(s.rate * 100).toFixed(1)}%{" "}
-                              <span className="text-muted-foreground">({s.conversions})</span>
+                              {fm.percent(s.rate, 1)} <span className="text-muted-foreground">({s.conversions})</span>
                             </span>
                           </div>
                         ) : (
@@ -194,7 +199,7 @@ export default async function AnalyticsPage({
                         )}
                       </td>
                       <td className="px-4 py-3 text-end font-medium tabular-nums">
-                        {s.revenue ? formatMoney(s.revenue, cur) : "—"}
+                        {s.revenue ? fm.money(s.revenue, cur) : "—"}
                       </td>
                     </tr>
                   ))}
@@ -202,7 +207,7 @@ export default async function AnalyticsPage({
               </table>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Pick a funnel above to see step-by-step conversion.</p>
+            <p className="text-sm text-muted-foreground">{t("analytics.pickFunnel")}</p>
           )}
         </>
       )}
