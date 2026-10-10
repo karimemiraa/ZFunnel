@@ -6,18 +6,20 @@ import { Label } from "@zfunnel/ui/label";
 import { Textarea } from "@zfunnel/ui/textarea";
 import { toast } from "@zfunnel/ui/toaster";
 import { Loader2Icon } from "lucide-react";
+import { useT } from "@zfunnel/i18n/react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { markAffiliatePaid, saveAffiliateSettings, setAffiliateStatus } from "@/lib/affiliate-actions";
 
 function useRun() {
+  const t = useT();
   const router = useRouter();
   const [pending, start] = useTransition();
   const run = (fn: () => Promise<{ ok: boolean; error?: string; message?: string }>) =>
     start(async () => {
       try {
         const r = await fn();
-        if (!r.ok) return void toast.error(r.error ?? "Something went wrong");
+        if (!r.ok) return void toast.error(r.error ?? t("affiliatesAdmin.somethingWrong"));
         if (r.message) toast.success(r.message);
         router.refresh();
       } catch (err) {
@@ -36,6 +38,7 @@ export function ProgramSettings({
   initial: { enabled: boolean; commissionPercent: number; cookieDays: number; terms: string };
   portalUrl: string;
 }) {
+  const t = useT();
   const [v, setV] = useState(initial);
   const { pending, run } = useRun();
   return (
@@ -53,17 +56,17 @@ export function ProgramSettings({
           checked={v.enabled}
           onChange={(e) => setV({ ...v, enabled: e.target.checked })}
         />
-        <span className="font-semibold">Affiliate program is open</span>
+        <span className="font-semibold">{t("affiliatesAdmin.programOpen")}</span>
       </label>
       <p className="-mt-2 text-sm text-muted-foreground">
-        Partners join at{" "}
-        <a href={portalUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+        {t("affiliatesAdmin.partnersJoinAt")}{" "}
+        <a href={portalUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline" dir="ltr">
           {portalUrl.replace(/^https?:\/\//, "")}
         </a>
       </p>
       <div className="grid grid-cols-2 gap-3">
         <div className="grid gap-1.5">
-          <Label htmlFor="aff-pct">Commission (%)</Label>
+          <Label htmlFor="aff-pct">{t("affiliatesAdmin.commission")}</Label>
           <Input
             id="aff-pct"
             type="number"
@@ -74,7 +77,7 @@ export function ProgramSettings({
           />
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor="aff-days">Cookie (days)</Label>
+          <Label htmlFor="aff-days">{t("affiliatesAdmin.cookieDays")}</Label>
           <Input
             id="aff-days"
             type="number"
@@ -86,18 +89,18 @@ export function ProgramSettings({
         </div>
       </div>
       <div className="grid gap-1.5">
-        <Label htmlFor="aff-terms">Terms (shown on the sign-up page)</Label>
+        <Label htmlFor="aff-terms">{t("affiliatesAdmin.terms")}</Label>
         <Textarea
           id="aff-terms"
           rows={3}
           value={v.terms}
           onChange={(e) => setV({ ...v, terms: e.target.value })}
-          placeholder="E.g. Commissions are paid monthly via PayPal once they pass the 30-day refund window."
+          placeholder={t("affiliatesAdmin.termsPlaceholder")}
         />
       </div>
       <div>
         <Button type="submit" disabled={pending}>
-          {pending && <Loader2Icon className="animate-spin" />} Save
+          {pending && <Loader2Icon className="animate-spin" />} {t("affiliatesAdmin.save")}
         </Button>
       </div>
     </form>
@@ -115,6 +118,7 @@ export function AffiliateRowActions({
   owed: number;
   status: "active" | "disabled";
 }) {
+  const t = useT();
   const { pending, run } = useRun();
   return (
     <div className="flex justify-end gap-1">
@@ -123,11 +127,10 @@ export function AffiliateRowActions({
           size="sm"
           disabled={pending}
           onClick={() =>
-            confirm("Mark all pending commissions of this affiliate as paid?") &&
-            run(() => markAffiliatePaid(workspaceSlug, id))
+            confirm(t("affiliatesAdmin.markPaidConfirm")) && run(() => markAffiliatePaid(workspaceSlug, id))
           }
         >
-          Mark paid
+          {t("affiliatesAdmin.markPaid")}
         </Button>
       )}
       <Button
@@ -136,7 +139,7 @@ export function AffiliateRowActions({
         disabled={pending}
         onClick={() => run(() => setAffiliateStatus(workspaceSlug, id, status === "active" ? "disabled" : "active"))}
       >
-        {status === "active" ? "Disable" : "Enable"}
+        {status === "active" ? t("affiliatesAdmin.disable") : t("affiliatesAdmin.enable")}
       </Button>
     </div>
   );

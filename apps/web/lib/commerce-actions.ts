@@ -5,7 +5,6 @@ import {
   createConnectedAccount,
   createOnboardingLink,
   CURRENCIES,
-  formatMoney,
   getAccountStatus,
   minimumAmount,
   parseMoney,
@@ -15,6 +14,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { getFmt, getT } from "./i18n";
 import { inWorkspace } from "./funnels";
 import { requireUser } from "./session";
 import { canManage, getWorkspaceForUser, recordAudit } from "./workspaces";
@@ -25,50 +25,53 @@ type Result = { ok: true } | { ok: false; error: string };
 async function ctxFor(workspaceSlug: string) {
   const user = await requireUser();
   const ctx = await getWorkspaceForUser(user.id, workspaceSlug);
-  if (!ctx) throw new Error("Workspace not found");
+  if (!ctx) throw new Error((await getT())("products.errors.workspaceNotFound"));
   return { user, ctx };
 }
 
 // ---------- Products ----------
 
-const productSchema = z
-  .object({
-    name: z.string().trim().min(2, "At least 2 characters").max(120),
-    description: z.string().trim().max(500).optional(),
-    imageUrl: z.union([z.literal(""), z.string().url("Must be a full URL (https://…)")]).optional(),
-    priceLabel: z.string().trim().max(60).optional(),
-    type: z.enum(["one_time", "recurring", "payment_plan"]),
-    amount: z.string(),
-    currency: z.enum(CURRENCIES),
-    interval: z.enum(["month", "year"]).optional(),
-    trialDays: z.coerce.number().int().min(0).max(365).optional(),
-    installments: z.coerce.number().int().min(2).max(36).optional(),
-    inStore: z.boolean(),
-    stock: z.coerce.number().int().min(0).max(1_000_000).optional(),
-    requiresShipping: z.boolean(),
-  })
-  .transform((v, c) => {
-    // Parsed with the chosen currency: JPY has no decimals, KWD has three.
-    const amount = parseMoney(v.amount, v.currency);
-    if (amount === null || amount < minimumAmount(v.currency)) {
-      c.addIssue({
-        code: "custom",
-        path: ["amount"],
-        message: `Enter a price of at least ${formatMoney(minimumAmount(v.currency), v.currency)}`,
-      });
-      return z.NEVER;
-    }
-    return { ...v, amount };
-  })
-  .refine((v) => v.type !== "payment_plan" || v.installments, {
-    message: "How many payments?",
-    path: ["installments"],
-  });
+const productSchema = (t: Awaited<ReturnType<typeof getT>>, money: (amount: number, currency: string) => string) =>
+  z
+    .object({
+      name: z.string().trim().min(2, t("products.errors.nameMin")).max(120),
+      description: z.string().trim().max(500).optional(),
+      imageUrl: z.union([z.literal(""), z.string().url(t("products.errors.imageUrl"))]).optional(),
+      priceLabel: z.string().trim().max(60).optional(),
+      type: z.enum(["one_time", "recurring", "payment_plan"]),
+      amount: z.string(),
+      currency: z.enum(CURRENCIES),
+      interval: z.enum(["month", "year"]).optional(),
+      trialDays: z.coerce.number().int().min(0).max(365).optional(),
+      installments: z.coerce.number().int().min(2).max(36).optional(),
+      inStore: z.boolean(),
+      stock: z.coerce.number().int().min(0).max(1_000_000).optional(),
+      requiresShipping: z.boolean(),
+    })
+    .transform((v, c) => {
+      // Parsed with the chosen currency: JPY has no decimals, KWD has three.
+      const amount = parseMoney(v.amount, v.currency);
+      if (amount === null || amount < minimumAmount(v.currency)) {
+        c.addIssue({
+          code: "custom",
+          path: ["amount"],
+          message: t("products.errors.minPrice", { amount: money(minimumAmount(v.currency), v.currency) }),
+        });
+        return z.NEVER;
+      }
+      return { ...v, amount };
+    })
+    .refine((v) => v.type !== "payment_plan" || v.installments, {
+      message: t("products.errors.installments"),
+      path: ["installments"],
+    });
 
-function readProductForm(formData: FormData) {
+async function readProductForm(formData: FormData) {
+  const t = await getT();
+  const f = await getFmt();
   const raw = Object.fromEntries(formData);
   const val = (k: string) => (raw[k] === "" || raw[k] === undefined ? undefined : raw[k]);
-  return productSchema.safeParse({
+  return productSchema(t, f.money).safeParse({
     name: raw.name,
     description: raw.description,
     imageUrl: raw.imageUrl ?? "",
@@ -92,7 +95,7 @@ export async function saveProduct(
   formData: FormData,
 ): Promise<FormState> {
   const { user, ctx } = await ctxFor(workspaceSlug);
-  const parsed = readProductForm(formData);
+  const parsed = await readProductForm(formData);
   if (!parsed.success) return { fieldErrors: z.flattenError(parsed.error).fieldErrors };
   const d = parsed.data;
   const priceValues = {
@@ -168,7 +171,8 @@ export async function saveProduct(
     data: { name: d.name },
   });
   revalidatePath(`/${workspaceSlug}/products`);
-  return { success: productId ? "Product saved" : "Product created" };
+  const t = await getT();
+  return { success: productId ? t("products.saved") : t("products.created") };
 }
 
 export async function archiveProduct(workspaceSlug: string, productId: string): Promise<Result> {
@@ -197,6 +201,7 @@ export async function addStepOffer(
   input: { priceId: string; role: "main" | "bump" | "upsell" | "downsell"; headline?: string; description?: string },
 ): Promise<Result> {
   const { ctx } = await ctxFor(workspaceSlug);
+  const t = await getT();
   const error = await inWorkspace(ctx, async (tx) => {
     // Both rows are RLS-scoped, but foreign keys bypass RLS, so check explicitly.
     const [price] = await tx
@@ -207,7 +212,7 @@ export async function addStepOffer(
       .select({ id: funnelSteps.id, funnelId: funnelSteps.funnelId })
       .from(funnelSteps)
       .where(eq(funnelSteps.id, stepId));
-    if (!price || !step) return "Product or step not found.";
+    if (!price || !step) return t("products.errors.notFound");
     // Bumps and upsells join the same order, so a funnel sells in one currency.
     const [other] = await tx
       .select({ currency: prices.currency })
@@ -216,8 +221,7 @@ export async function addStepOffer(
       .innerJoin(funnelSteps, eq(funnelSteps.id, stepOffers.stepId))
       .where(and(eq(funnelSteps.funnelId, step.funnelId), ne(prices.currency, price.currency)))
       .limit(1);
-    if (other)
-      return `This funnel already sells in ${other.currency.toUpperCase()}. All products in one funnel must use the same currency.`;
+    if (other) return t("products.errors.currencyMismatch", { currency: other.currency.toUpperCase() });
     const existing = await tx.select().from(stepOffers).where(eq(stepOffers.stepId, stepId));
     await tx.insert(stepOffers).values({
       workspaceId: ctx.workspace.id,
@@ -269,8 +273,9 @@ async function appOrigin() {
 
 export async function connectStripe(workspaceSlug: string) {
   const { user, ctx } = await ctxFor(workspaceSlug);
-  if (!canManage(ctx.membership.role)) throw new Error("Only owners and admins can connect payments.");
-  if (!stripeConfigured()) throw new Error("Stripe isn't configured on this server yet (STRIPE_SECRET_KEY).");
+  const t = await getT();
+  if (!canManage(ctx.membership.role)) throw new Error(t("products.errors.connectForbidden"));
+  if (!stripeConfigured()) throw new Error(t("products.errors.stripeNotConfigured"));
   let accountId = (
     await inWorkspace(ctx, (tx) => tx.select().from(paymentAccounts).where(eq(paymentAccounts.provider, "stripe")))
   )[0]?.externalId;
@@ -301,7 +306,7 @@ export async function refreshStripeStatus(workspaceSlug: string): Promise<Result
   const [acct] = await inWorkspace(ctx, (tx) =>
     tx.select().from(paymentAccounts).where(eq(paymentAccounts.provider, "stripe")),
   );
-  if (!acct || !stripeConfigured()) return { ok: false, error: "No Stripe account connected." };
+  if (!acct || !stripeConfigured()) return { ok: false, error: (await getT())("products.errors.noStripe") };
   const s = await getAccountStatus(acct.externalId);
   await inWorkspace(ctx, (tx) => tx.update(paymentAccounts).set(s).where(eq(paymentAccounts.id, acct.id)));
   revalidatePath(`/${workspaceSlug}/settings/payments`);
@@ -310,7 +315,8 @@ export async function refreshStripeStatus(workspaceSlug: string): Promise<Result
 
 export async function disconnectStripe(workspaceSlug: string): Promise<Result> {
   const { user, ctx } = await ctxFor(workspaceSlug);
-  if (!canManage(ctx.membership.role)) return { ok: false, error: "Only owners and admins can disconnect payments." };
+  if (!canManage(ctx.membership.role))
+    return { ok: false, error: (await getT())("products.errors.disconnectForbidden") };
   await inWorkspace(ctx, (tx) => tx.delete(paymentAccounts).where(eq(paymentAccounts.provider, "stripe")));
   await recordAudit(ctx, user.id, { action: "payments.disconnected", entityType: "payment_account" });
   revalidatePath(`/${workspaceSlug}/settings/payments`);

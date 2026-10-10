@@ -10,6 +10,7 @@ import { NativeSelect } from "@zfunnel/ui/select";
 import { Textarea } from "@zfunnel/ui/textarea";
 import { toast } from "@zfunnel/ui/toaster";
 import { Loader2Icon } from "lucide-react";
+import { useT } from "@zfunnel/i18n/react";
 import { startTransition, useActionState, useState } from "react";
 import { saveProduct, type FormState } from "@/lib/commerce-actions";
 import { CURRENCIES, minorUnits } from "@zfunnel/shared";
@@ -39,11 +40,7 @@ type Initial = {
   };
 };
 
-const TYPES = [
-  { value: "one_time", label: "One-time", hint: "Pay once" },
-  { value: "recurring", label: "Subscription", hint: "Monthly or yearly" },
-  { value: "payment_plan", label: "Payment plan", hint: "Split into installments" },
-] as const;
+const TYPES = [{ value: "one_time" }, { value: "recurring" }, { value: "payment_plan" }] as const;
 
 export function ProductDialog({
   workspaceSlug,
@@ -54,6 +51,7 @@ export function ProductDialog({
   initial?: Initial;
   trigger: React.ReactNode;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<(typeof TYPES)[number]["value"]>(initial?.price?.type ?? "one_time");
   const [state, action, pending] = useActionState(async (prev: FormState, fd: FormData) => {
@@ -72,10 +70,8 @@ export function ProductDialog({
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>{initial ? "Edit product" : "New product"}</DialogTitle>
-          <DialogDescription>
-            Products can be sold on any checkout, as an order bump, or as a one-click upsell.
-          </DialogDescription>
+          <DialogTitle>{initial ? t("products.editProduct") : t("products.newProduct")}</DialogTitle>
+          <DialogDescription>{t("products.dialogDescription")}</DialogDescription>
         </DialogHeader>
         <form
           // Not `action={action}`: React would reset every field after a validation error.
@@ -87,35 +83,35 @@ export function ProductDialog({
           className="grid gap-4"
         >
           <div className="space-y-2">
-            <Label htmlFor="p-name">Name</Label>
+            <Label htmlFor="p-name">{t("products.name")}</Label>
             <Input
               id="p-name"
               name="name"
               defaultValue={initial?.name}
-              placeholder="Masterclass: Lifetime access"
+              placeholder={t("products.namePlaceholder")}
               required
             />
             <FormMessage message={err("name")} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="p-desc">Short description</Label>
+            <Label htmlFor="p-desc">{t("products.shortDescription")}</Label>
             <Textarea
               id="p-desc"
               name="description"
               defaultValue={initial?.description ?? ""}
               rows={2}
-              placeholder="Shown on the order form"
+              placeholder={t("products.shortDescriptionPlaceholder")}
             />
           </div>
           <fieldset className="space-y-2">
-            <legend className="mb-2 text-sm font-medium">Pricing</legend>
+            <legend className="mb-2 text-sm font-medium">{t("products.pricing")}</legend>
             <div className="grid grid-cols-3 gap-2">
-              {TYPES.map((t) => (
+              {TYPES.map((ty) => (
                 <label
-                  key={t.value}
+                  key={ty.value}
                   className={cn(
                     "flex cursor-pointer flex-col rounded-lg border p-3 text-sm transition-colors",
-                    type === t.value
+                    type === ty.value
                       ? "border-primary bg-primary/5 ring-2 ring-primary/15"
                       : "hover:border-foreground/20",
                   )}
@@ -123,20 +119,22 @@ export function ProductDialog({
                   <input
                     type="radio"
                     name="type"
-                    value={t.value}
-                    checked={type === t.value}
-                    onChange={() => setType(t.value)}
+                    value={ty.value}
+                    checked={type === ty.value}
+                    onChange={() => setType(ty.value)}
                     className="sr-only"
                   />
-                  <span className="font-medium">{t.label}</span>
-                  <span className="text-xs text-muted-foreground">{t.hint}</span>
+                  <span className="font-medium">{t(`products.types.${ty.value}`)}</span>
+                  <span className="text-xs text-muted-foreground">{t(`products.typeHints.${ty.value}`)}</span>
                 </label>
               ))}
             </div>
           </fieldset>
           <div className="grid grid-cols-[1fr_110px] gap-3">
             <div className="space-y-2">
-              <Label htmlFor="p-amount">{type === "payment_plan" ? "Amount per payment" : "Price"}</Label>
+              <Label htmlFor="p-amount">
+                {type === "payment_plan" ? t("products.amountPerPayment") : t("products.price")}
+              </Label>
               <Input
                 id="p-amount"
                 name="amount"
@@ -148,7 +146,7 @@ export function ProductDialog({
               <FormMessage message={err("amount")} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="p-currency">Currency</Label>
+              <Label htmlFor="p-currency">{t("products.currency")}</Label>
               <NativeSelect id="p-currency" name="currency" defaultValue={p?.currency ?? "usd"}>
                 {CURRENCIES.map((c) => (
                   <option key={c} value={c}>
@@ -161,15 +159,15 @@ export function ProductDialog({
           {type !== "one_time" && (
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="p-interval">Billing every</Label>
+                <Label htmlFor="p-interval">{t("products.billingEvery")}</Label>
                 <NativeSelect id="p-interval" name="interval" defaultValue={p?.interval ?? "month"}>
-                  <option value="month">Month</option>
-                  <option value="year">Year</option>
+                  <option value="month">{t("products.intervalOptions.month")}</option>
+                  <option value="year">{t("products.intervalOptions.year")}</option>
                 </NativeSelect>
               </div>
               {type === "recurring" ? (
                 <div className="space-y-2">
-                  <Label htmlFor="p-trial">Free trial (days)</Label>
+                  <Label htmlFor="p-trial">{t("products.freeTrialDays")}</Label>
                   <Input
                     id="p-trial"
                     name="trialDays"
@@ -182,7 +180,7 @@ export function ProductDialog({
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <Label htmlFor="p-inst">Number of payments</Label>
+                  <Label htmlFor="p-inst">{t("products.numberOfPayments")}</Label>
                   <Input
                     id="p-inst"
                     name="installments"
@@ -197,19 +195,30 @@ export function ProductDialog({
             </div>
           )}
           <div className="space-y-2">
-            <Label htmlFor="p-label">Price label (optional)</Label>
-            <Input id="p-label" name="priceLabel" defaultValue={p?.label ?? ""} placeholder="e.g. Lifetime access" />
+            <Label htmlFor="p-label">{t("products.priceLabel")}</Label>
+            <Input
+              id="p-label"
+              name="priceLabel"
+              defaultValue={p?.label ?? ""}
+              placeholder={t("products.priceLabelPlaceholder")}
+            />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="p-image">Image URL (optional)</Label>
-            <Input id="p-image" name="imageUrl" defaultValue={initial?.imageUrl ?? ""} placeholder="https://…" />
+            <Label htmlFor="p-image">{t("products.imageUrl")}</Label>
+            <Input
+              id="p-image"
+              name="imageUrl"
+              dir="ltr"
+              defaultValue={initial?.imageUrl ?? ""}
+              placeholder="https://…"
+            />
             <FormMessage message={err("imageUrl")} />
           </div>
           <fieldset className="grid gap-3 rounded-lg border p-3">
-            <legend className="px-1 text-sm font-medium">Store</legend>
+            <legend className="px-1 text-sm font-medium">{t("products.store")}</legend>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" name="inStore" className="size-4" defaultChecked={initial?.inStore ?? false} />{" "}
-              Sell in my online store (/store)
+              {t("products.sellInStore")}
             </label>
             <label className="flex items-center gap-2 text-sm">
               <input
@@ -218,10 +227,10 @@ export function ProductDialog({
                 className="size-4"
                 defaultChecked={initial?.requiresShipping ?? false}
               />{" "}
-              Physical product: ask for a shipping address
+              {t("products.physical")}
             </label>
             <div className="space-y-1">
-              <Label htmlFor="p-stock">Stock (leave empty for unlimited)</Label>
+              <Label htmlFor="p-stock">{t("products.stock")}</Label>
               <Input
                 id="p-stock"
                 name="stock"
@@ -235,11 +244,11 @@ export function ProductDialog({
           <FormMessage message={state?.error} />
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-              Cancel
+              {t("products.cancel")}
             </Button>
             <Button type="submit" disabled={pending}>
               {pending && <Loader2Icon className="animate-spin" />}
-              {initial ? "Save product" : "Create product"}
+              {initial ? t("products.save") : t("products.create")}
             </Button>
           </div>
         </form>
