@@ -1,6 +1,8 @@
 {
   "$schema": "https://turborepo.com/schema.json",
   "globalEnv": [
+    "ANALYTICS_SALT",
+    "AUTH_RATE_LIMIT",
     "BETTER_AUTH_SECRET",
     "BETTER_AUTH_URL",
     "CI",

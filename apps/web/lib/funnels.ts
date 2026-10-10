@@ -1,6 +1,6 @@
 import "server-only";
 
-import { starterPage, type StarterStepType } from "@zfunnel/blocks";
+import { buildTemplate, starterPage, type StarterStepType } from "@zfunnel/blocks";
 import { and, asc, desc, eq, funnels, funnelSteps, getDb, sql, withWorkspace, type Tx } from "@zfunnel/db";
 import { slugify } from "@zfunnel/shared";
 import type { WorkspaceContext } from "./workspaces";
@@ -127,17 +127,25 @@ export function uniqueSlug(base: string, taken: Set<string>) {
   for (let i = 2; ; i++) if (!taken.has(`${root}-${i}`)) return `${root}-${i}`;
 }
 
-export async function createFunnelWithSteps(ctx: WorkspaceContext, name: string, preset: FunnelPreset) {
+export async function createFunnelWithSteps(
+  ctx: WorkspaceContext,
+  name: string,
+  source: { preset: FunnelPreset } | { template: string },
+) {
   return inWorkspace(ctx, async (tx) => {
     const existing = await tx.select({ slug: funnels.slug }).from(funnels);
     const slug = uniqueSlug(name, new Set(existing.map((f) => f.slug)));
     const [funnel] = await tx.insert(funnels).values({ workspaceId: ctx.workspace.id, name, slug }).returning();
-    const spec = FUNNEL_PRESETS[preset].steps;
+    const spec =
+      "template" in source
+        ? (buildTemplate(source.template) ?? []).map((s) => [s.name, s.type, s.page] as const)
+        : FUNNEL_PRESETS[source.preset].steps.map(([n, t]) => [n, t, starterPage(t, n)] as const);
+    if (!spec.length) throw new Error("Unknown template");
     const taken = new Set<string>();
     const rows = await tx
       .insert(funnelSteps)
       .values(
-        spec.map(([stepName, type], i) => {
+        spec.map(([stepName, type, draft], i) => {
           const s = uniqueSlug(stepName, taken);
           taken.add(s);
           return {
@@ -149,7 +157,7 @@ export async function createFunnelWithSteps(ctx: WorkspaceContext, name: string,
             position: i,
             mapX: i * 300,
             mapY: type === "downsell" ? 200 : 0,
-            draft: starterPage(type, stepName),
+            draft,
           };
         }),
       )

@@ -1,6 +1,6 @@
 "use server";
 
-import { starterPage } from "@zfunnel/blocks";
+import { starterPage, TEMPLATES } from "@zfunnel/blocks";
 import {
   and,
   eq,
@@ -65,14 +65,21 @@ async function stepsInFunnel(tx: Tx, funnelId: string, ids: string[]) {
 
 const createFunnelSchema = z.object({
   name: z.string().trim().min(2, "At least 2 characters").max(80),
-  preset: z.enum(Object.keys(FUNNEL_PRESETS) as [FunnelPreset, ...FunnelPreset[]]),
+  source: z.union([
+    z.object({ preset: z.enum(Object.keys(FUNNEL_PRESETS) as [FunnelPreset, ...FunnelPreset[]]) }),
+    z.object({ template: z.enum(TEMPLATES.map((t) => t.id) as [string, ...string[]]) }),
+  ]),
 });
 
 export async function createFunnel(workspaceSlug: string, _prev: FormState, formData: FormData): Promise<FormState> {
   const { user, ctx } = await ctxFor(workspaceSlug);
-  const parsed = createFunnelSchema.safeParse({ name: formData.get("name"), preset: formData.get("preset") });
+  const choice = String(formData.get("source") ?? "");
+  const parsed = createFunnelSchema.safeParse({
+    name: formData.get("name"),
+    source: choice.startsWith("template:") ? { template: choice.slice(9) } : { preset: choice.replace(/^preset:/, "") },
+  });
   if (!parsed.success) return { fieldErrors: z.flattenError(parsed.error).fieldErrors };
-  const funnel = await createFunnelWithSteps(ctx, parsed.data.name, parsed.data.preset);
+  const funnel = await createFunnelWithSteps(ctx, parsed.data.name, parsed.data.source);
   await recordAudit(ctx, user.id, {
     action: "funnel.created",
     entityType: "funnel",

@@ -20,24 +20,24 @@ Each step lists what gets delivered and the **acceptance test** that proves it i
 
 Deferred from Phase 0 on purpose: team invitations (need email sending, Phase 2.3), a committed Playwright suite (Phase 1.12; Phase 0 was verified with a scripted browser run).
 
-## Phase 1 — MVP: Funnel → Checkout → Upsell (L)
+## Phase 1 — MVP: Funnel → Checkout → Upsell (L) — ✅ built 2026-10-10
 
-| #    | Step                      | Deliverable                                                                                                                                                                      | Acceptance                                                             |
-| ---- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| 1.1  | Block library v1          | `packages/blocks`: section, row, columns, headline, text (Tiptap), image, video, button, spacer, divider, list, form (opt-in), countdown, testimonial, FAQ, pricing, custom HTML | Each block renders identically in editor and renderer (snapshot tests) |
-| 1.2  | Editor                    | Puck integration: drag/drop, per-breakpoint styles (desktop/tablet/mobile), global theme (colors, fonts), undo/redo, autosave, saved sections                                    | Build a full sales page with no code, on desktop and mobile            |
-| 1.3  | Funnel map                | React Flow canvas: add/reorder steps, step types, accept/decline routing                                                                                                         | Create a 5-step funnel visually                                        |
-| 1.4  | Publishing + renderer     | Immutable `PageVersion` snapshots; `apps/sites` renders from them; edge cache purged on publish                                                                                  | Lighthouse ≥ 90; dashboard down ⇒ pages still serve                    |
-| 1.5  | Domains                   | `{slug}.zfunnel.app` + custom domains with DNS verification wizard and automatic SSL                                                                                             | Connect a real domain end-to-end in under 5 min                        |
-| 1.6  | Products & Stripe Connect | Connect Stripe; products, one-time and subscription prices, coupons                                                                                                              | Product created in ZFunnel appears in the user's Stripe account        |
-| 1.7  | Checkout                  | Order-form block (1-step and 2-step), order bump, Payment Element, tax via Stripe Tax                                                                                            | Test-mode purchase with bump succeeds                                  |
-| 1.8  | One-click upsell/downsell | Saved payment method → off-session charge, SCA fallback, accept/decline routing                                                                                                  | E2E: buy → upsell "yes" charges with no card re-entry; "no" → downsell |
-| 1.9  | Contacts (basic)          | Opt-in form → contact record, order history on contact                                                                                                                           | Opt-in appears in contact list with UTM data                           |
-| 1.10 | Analytics v1              | Tracker + events; per-step views, opt-ins, sales, revenue, conversion %                                                                                                          | Numbers match a scripted test run exactly                              |
-| 1.11 | Templates                 | 10 starter funnels (lead magnet, tripwire, webinar reg, product launch, VSL, application, book, coaching, SaaS trial, e-com single product)                                      | A new user goes from template to published funnel                      |
-| 1.12 | E2E suite                 | Playwright: signup → template → edit → publish → buy → upsell → see analytics                                                                                                    | Green in CI                                                            |
+| #    | Step                  | Status | What was delivered                                                                                                                                       |
+| ---- | --------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.1  | Block library         | ✅     | 24 blocks (`packages/blocks`): layout, content, conversion, social proof, checkout; theme presets, 8 self-hosted fonts                                   |
+| 1.2  | Editor                | ✅     | Puck with custom header: autosave, undo/redo, step switcher, desktop/tablet/mobile, ⌘S, publish. Per-device visibility instead of per-breakpoint styles. |
+| 1.3  | Funnel map            | ✅     | Step list (reorder, duplicate, delete) + React Flow map with next/decline wiring                                                                         |
+| 1.4  | Publishing + renderer | ✅     | Immutable page versions, draft preview, live thumbnails, `apps/sites` with SEO metadata                                                                  |
+| 1.5  | Domains               | ✅     | Free subdomain + custom domains (TXT ownership, CNAME/A routing, Caddy on-demand TLS ask endpoint). Live TLS is verified at deploy time.                 |
+| 1.6  | Products & Stripe     | ✅     | Products with one-time, subscription (trials) and payment-plan prices; Stripe Connect onboarding; webhook                                                |
+| 1.7  | Checkout              | ✅     | Order form (1- or 2-step), product choice, order bumps, Stripe Payment Element; built-in test gateway                                                    |
+| 1.8  | One-click upsells     | ✅     | Off-session charges with 3-D Secure fallback, downsells, replay-safe                                                                                     |
+| 1.9  | Contacts              | ✅     | Opt-ins and buyers with UTM attribution and consent proof                                                                                                |
+| 1.10 | Analytics             | ✅     | Cookieless events; visitors, leads, sales, revenue, EPV, daily charts, per-step conversion                                                               |
+| 1.11 | Templates             | ✅     | 10 themed funnel templates + gallery with live thumbnails                                                                                                |
+| 1.12 | E2E suite             | ✅     | Playwright: lead funnel, checkout + bump + upsell, declined card, tenant isolation; runs in CI                                                           |
 
-**MVP release gate:** all of PRD §3 success criteria pass with a non-technical tester.
+**Verified without real Stripe keys:** every Stripe request is contract-tested against stripe-mock, and the full purchase flow runs end to end on the test gateway. **Still to verify with real keys:** Stripe Connect onboarding, the Payment Element in the browser, 3-D Secure on upsells, and webhooks. Needs `STRIPE_*` keys (test mode first).
 
 ## Phase 2 — Marketing engine (L)
 

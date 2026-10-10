@@ -92,3 +92,23 @@ Format: **ID — Title** · Status (Proposed / Accepted / Superseded) · Date. S
 - Deploy access uses an SSH key provided through the environment's secret settings, never pasted into chat.
 
 **Consequences.** Docker images, a production compose file and a deploy script become part of the repo. File storage can use local disk or Oracle Object Storage (S3-compatible).
+
+### ADR-011 — Built-in test payment gateway · **Accepted** · 2026-10-10
+
+**Decision.** `PAYMENTS_TEST_MODE=true` enables a fake gateway (card 4242…) when a workspace has no live Stripe account. Orders made this way are flagged `test`.
+
+**Why.** Users can rehearse a funnel before connecting Stripe, and CI runs the whole money path without keys.
+
+**Guardrail.** Never enable this in production for real customers. Workspaces with Stripe connected always use Stripe.
+
+### ADR-012 — Cookieless analytics · **Accepted** · 2026-10-10
+
+**Decision.** A visitor is a daily-rotating SHA-256 of (salt, workspace, IP, user agent). We store no cookies, no IPs, and only the referrer's host.
+
+**Consequences.** This is GDPR-friendly and needs no consent banner for funnel stats. Unique visitors are counted per day; people on a shared network and browser count as one visitor.
+
+### ADR-013 — One page per step (for now) · **Accepted** · 2026-10-10
+
+**Decision.** A funnel step stores its draft page directly. Published pages are immutable `page_versions`.
+
+**Consequences.** A/B variants (Phase 2.8) will add a `step_variants` table without breaking existing data.

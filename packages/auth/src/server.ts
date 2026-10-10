@@ -11,6 +11,13 @@ export const auth = betterAuth({
     enabled: true,
     minPasswordLength: 10,
   },
+  // Brute-force protection for sign-in/sign-up. AUTH_RATE_LIMIT=off exists only for
+  // automated end-to-end tests that create many accounts from one IP; never set it in production.
+  rateLimit: {
+    enabled: process.env.AUTH_RATE_LIMIT !== "off" && process.env.NODE_ENV === "production",
+    window: 60,
+    max: 100,
+  },
   session: {
     expiresIn: 60 * 60 * 24 * 30,
     updateAge: 60 * 60 * 24,

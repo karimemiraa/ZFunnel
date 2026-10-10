@@ -7,7 +7,7 @@ import { NewFunnelDialog } from "@/components/funnels/new-funnel-dialog";
 import { PageHeader } from "@/components/page-header";
 import { requireWorkspace } from "@/lib/context";
 import { listFunnels } from "@/lib/funnels";
-import { presetList } from "@/lib/presets";
+import { presetList, templateList } from "@/lib/presets";
 import { timeAgo } from "@/lib/format";
 
 export const metadata = { title: "Funnels" };
@@ -16,6 +16,7 @@ export default async function FunnelsPage({ params }: { params: Promise<{ worksp
   const ctx = await requireWorkspace(params);
   const funnels = await listFunnels(ctx);
   const presets = presetList();
+  const templates = templateList();
   const ws = ctx.workspace.slug;
 
   return (
@@ -23,7 +24,7 @@ export default async function FunnelsPage({ params }: { params: Promise<{ worksp
       <PageHeader
         title="Funnels"
         description="Build, publish and optimize your sales funnels."
-        actions={<NewFunnelDialog workspaceSlug={ws} presets={presets} />}
+        actions={<NewFunnelDialog workspaceSlug={ws} presets={presets} templates={templates} />}
       />
       {funnels.length === 0 ? (
         <EmptyState
@@ -34,6 +35,7 @@ export default async function FunnelsPage({ params }: { params: Promise<{ worksp
             <NewFunnelDialog
               workspaceSlug={ws}
               presets={presets}
+              templates={templates}
               trigger={
                 <Button size="lg">
                   <PlusIcon /> Create funnel

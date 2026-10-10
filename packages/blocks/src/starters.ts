@@ -1,6 +1,6 @@
 import type { ComponentData } from "@puckeditor/core";
 import { config, type Components, type PageData, type RootProps } from "./config";
-import { DEFAULT_THEME, type PageTheme } from "./theme";
+import { DEFAULT_THEME, THEME_PRESETS, type PageTheme } from "./theme";
 
 type BlockType = keyof Components;
 type Node = ComponentData;
@@ -27,7 +27,17 @@ export function columns(props: Partial<Components["Columns"]>, cols: Node[][]): 
 }
 
 export function page(title: string, content: Node[], theme: Partial<PageTheme & { preset: string }> = {}): PageData {
-  const root: RootProps = { ...DEFAULT_THEME, preset: "Indigo", title, seoDescription: "", ogImage: "", ...theme };
+  // A preset name expands to its colours; explicit theme values still win.
+  const preset = THEME_PRESETS.find((p) => p.name === theme.preset)?.theme ?? {};
+  const root: RootProps = {
+    ...DEFAULT_THEME,
+    preset: "Indigo",
+    title,
+    seoDescription: "",
+    ogImage: "",
+    ...preset,
+    ...theme,
+  };
   return { root: { props: root }, content } as PageData;
 }
 
