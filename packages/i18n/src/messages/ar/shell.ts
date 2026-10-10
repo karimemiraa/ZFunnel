@@ -14,4 +14,7 @@ export const shell: Shape<typeof en> = {
   newWorkspace: "مساحة عمل جديدة",
   switchWorkspace: "تبديل مساحة العمل",
   notFound: "غير موجود",
+  themeLight: "فاتح",
+  themeDark: "داكن",
+  themeSystem: "حسب النظام",
 };

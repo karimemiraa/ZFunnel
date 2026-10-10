@@ -22,4 +22,6 @@ export const common: Shape<typeof en> = {
   invalidEmail: "أدخل بريدًا إلكترونيًا صحيحًا من فضلك.",
   language: "اللغة",
   poweredBy: "مدعوم من ZFunnel",
+  justNow: "الآن",
+  never: "لم يحدث بعد",
 };

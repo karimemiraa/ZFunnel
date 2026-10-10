@@ -19,4 +19,6 @@ export const common = {
   invalidEmail: "Please enter a valid email address.",
   language: "Language",
   poweredBy: "Powered by ZFunnel",
+  justNow: "just now",
+  never: "never",
 };

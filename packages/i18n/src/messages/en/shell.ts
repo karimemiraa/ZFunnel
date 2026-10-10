@@ -11,4 +11,7 @@ export const shell = {
   newWorkspace: "New workspace",
   switchWorkspace: "Switch workspace",
   notFound: "Not found",
+  themeLight: "Light",
+  themeDark: "Dark",
+  themeSystem: "System",
 };

@@ -540,6 +540,9 @@ importers:
 
   packages/ui:
     dependencies:
+      '@zfunnel/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       class-variance-authority:
         specifier: 0.7.1
         version: 0.7.1
