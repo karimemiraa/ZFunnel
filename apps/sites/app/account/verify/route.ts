@@ -18,10 +18,12 @@ export async function GET(req: Request) {
   const ws = await currentWorkspace();
   const id = verifyToken("l", new URL(req.url).searchParams.get("t") ?? "");
   if (!ws || !id) return fail;
+  let next = "/account";
   const contactId = await system(async (tx) => {
     const [m] = await tx.select().from(emailMessages).where(eq(emailMessages.id, id)).for("update");
     if (!m || m.workspaceId !== ws.id || m.meta?.kind !== "login" || m.meta.usedAt || !m.contactId) return null;
     if (Date.now() - m.createdAt.getTime() > LOGIN_LINK_MINUTES * 60_000) return null;
+    if (m.meta.next && /^\/[a-z0-9/_-]{0,200}$/i.test(m.meta.next)) next = m.meta.next;
     await tx
       .update(emailMessages)
       .set({ meta: { ...m.meta, usedAt: new Date().toISOString() } })
@@ -29,7 +31,7 @@ export async function GET(req: Request) {
     return m.contactId;
   });
   if (!contactId) return fail;
-  const res = NextResponse.redirect(`${origin}/account`, 303);
+  const res = NextResponse.redirect(`${origin}${next}`, 303);
   res.cookies.set(CUSTOMER_COOKIE, customerCookieValue(contactId, ws.id), customerCookieOptions);
   return res;
 }

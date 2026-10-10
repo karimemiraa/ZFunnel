@@ -16,7 +16,8 @@ export type WorkflowNode =
   | { id: string; type: "wait"; amount: number; unit: "minutes" | "hours" | "days"; next?: string | null }
   | { id: string; type: "add_tag" | "remove_tag"; tag: string; next?: string | null }
   | { id: string; type: "condition"; rule: SegmentRule | null; yes?: string | null; no?: string | null }
-  | { id: string; type: "webhook"; url: string; next?: string | null };
+  | { id: string; type: "webhook"; url: string; next?: string | null }
+  | { id: string; type: "grant_course"; courseId: string | null; next?: string | null };
 
 export type WorkflowGraph = { start: string | null; nodes: Record<string, WorkflowNode> };
 export type WorkflowStatus = "draft" | "active" | "paused";

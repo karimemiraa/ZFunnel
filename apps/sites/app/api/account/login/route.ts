@@ -8,6 +8,11 @@ import { requestOrigin } from "@/lib/customer";
 
 const schema = z.object({
   email: z.string().trim().toLowerCase().email("Please enter a valid email address.").max(254),
+  // Same-site path only (never a full URL): prevents open redirects.
+  next: z
+    .string()
+    .regex(/^\/[a-z0-9/_-]{0,200}$/i)
+    .optional(),
 });
 
 /**
@@ -47,7 +52,7 @@ export async function POST(req: Request) {
         contactId: c.id,
         toEmail: parsed.data.email,
         subject: `Your sign-in link for ${g.ws.name}`,
-        meta: { kind: "login", siteOrigin: origin },
+        meta: { kind: "login", siteOrigin: origin, next: parsed.data.next },
       })
       .returning({ id: emailMessages.id });
     return m!.id;

@@ -86,8 +86,7 @@ export const NAV_MODULES: NavModule[] = [
     segment: "courses",
     label: "Courses",
     icon: BookOpenIcon,
-    phase: 3,
-    description: "Courses and memberships with drip content, quizzes and certificates.",
+    description: "Courses and memberships with drip content and progress tracking.",
   },
   {
     segment: "calendars",

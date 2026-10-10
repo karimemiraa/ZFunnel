@@ -3,6 +3,7 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createDb, type Db } from "./client";
 import { organization } from "./schema/auth";
+import { orgBilling } from "./schema/billing";
 import { contacts } from "./schema/contacts";
 import { funnels, funnelSteps, pageVersions } from "./schema/funnels";
 import { auditLogs, workspaces } from "./schema/tenancy";
@@ -118,6 +119,19 @@ describe.skipIf(!url)("row-level security", () => {
     }
     await expect(
       withWorkspace(db, ctxA, (tx) => tx.insert(funnels).values({ workspaceId: wsB, name: "x", slug: "x" })),
+    ).rejects.toThrow();
+  });
+
+  it("isolates organization billing", async () => {
+    await withOrganization(db, orgB, (tx) =>
+      tx.insert(orgBilling).values({ organizationId: orgB, plan: "pro", status: "active", provider: "test" }),
+    );
+    expect(await withOrganization(db, orgA, (tx) => tx.select().from(orgBilling))).toHaveLength(0);
+    expect(await withOrganization(db, orgB, (tx) => tx.select().from(orgBilling))).toHaveLength(1);
+    await expect(
+      withOrganization(db, orgA, (tx) =>
+        tx.insert(orgBilling).values({ organizationId: orgB, plan: "scale", status: "active", provider: "test" }),
+      ),
     ).rejects.toThrow();
   });
 

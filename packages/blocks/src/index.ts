@@ -2,6 +2,7 @@ export { config, emptyPage, type Components, type PageData, type RootProps } fro
 export * from "./runtime";
 export * from "./theme";
 export { safeUrl } from "./components/content";
+export { toEmbed } from "./utils";
 export { block, columns, page, section, starterPage, type StarterStepType } from "./starters";
 export { buildTemplate, TEMPLATES, type FunnelTemplate } from "./templates";
 export * from "./survey";

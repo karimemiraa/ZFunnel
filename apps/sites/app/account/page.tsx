@@ -1,5 +1,6 @@
 import { formatMoney } from "@zfunnel/payments/money";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentCustomer, customerAccount } from "@/lib/customer";
 import { currentWorkspace } from "@/lib/site";
@@ -41,7 +42,12 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
       <header className="border-b border-zinc-200 bg-white">
         <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-4">
           <span className="font-semibold">{ws.name}</span>
-          <SignOut />
+          <div className="flex items-center gap-6">
+            <Link href="/courses" className="text-sm font-medium text-zinc-500 hover:text-zinc-900">
+              My courses
+            </Link>
+            <SignOut />
+          </div>
         </div>
       </header>
       <div className="mx-auto grid max-w-3xl gap-8 px-4 py-10">

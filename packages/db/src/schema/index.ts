@@ -10,3 +10,4 @@ export * from "./email";
 export * from "./automations";
 export * from "./forms";
 export * from "./billing";
+export * from "./courses";

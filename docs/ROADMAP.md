@@ -73,6 +73,27 @@ Deferred from Phase 0 on purpose: team invitations (need email sending, Phase 2.
 
 Courses & memberships (modules, lessons, drip, video hosting, progress, quizzes, certificates) · Appointments (cal.diy-derived availability, Google/Outlook sync, paid bookings) · Websites & blog (menus, SEO, sitemap, RSS) · SMS via Twilio in workflows · Public REST API + webhooks + Zapier/Make apps · AI v2 (prompt → full funnel, image generation) · PayPal gateway.
 
+### Phase 3 plan (addendum, 2026-10-10)
+
+The owner asked to build all remaining phases without stopping, so this plan was not sent for sign-off.
+
+**Build order:** most revenue impact first, and each step reuses what already exists.
+
+| #   | Step                  | Scope (v1)                                                                                                                                                                                                                                                                   | Success criteria                                                                                                             |
+| --- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| 3.1 | Courses               | Courses → modules → lessons (video URL + rich text), drip by days after enrollment, free preview lessons. Access granted by buying linked products, by an automation step, or manually. Student area on the public site, using the customer-center login. Progress tracking. | A buyer of a linked product signs in, sees the course, completes lessons and sees progress. Locked drip lessons stay locked. |
+| 3.2 | Appointments          | Booking calendars: weekly availability, duration, buffer, minimum notice and timezone. A public booking page with time slots, a confirmation email and a contact + activity record. A “Booked” automation trigger.                                                           | A visitor books a free slot, the slot disappears, and the owner sees the booking.                                            |
+| 3.3 | Websites & blog       | Blog posts (rich text, cover image, SEO), a public `/blog` index and post pages, `sitemap.xml`, `robots.txt` and an RSS feed.                                                                                                                                                | Published posts are crawlable and listed in the sitemap and RSS.                                                             |
+| 3.4 | Public API + webhooks | Workspace API keys (hashed), a REST API for contacts, orders and courses (enroll), and outgoing webhooks for opt-ins, purchases, form submissions and bookings, signed with HMAC.                                                                                            | Create a contact with an API key. A webhook receives a signed purchase event.                                                |
+| 3.5 | SMS                   | A Twilio “Send SMS” automation step (per-workspace credentials).                                                                                                                                                                                                             | The step sends through Twilio. Without credentials it is skipped and logged.                                                 |
+| 3.6 | AI v2                 | Generate a complete funnel (copy for every block) from a short business description.                                                                                                                                                                                         | A prompt creates a ready-to-edit funnel.                                                                                     |
+
+**Status**
+
+- **3.1 Courses: done.** Covers modules and lessons (video embed + rich text), drip, free previews and up/down reordering. Access comes from linked products (granted inside `markPaymentSucceeded`, so the Stripe webhook path is covered too), the “Give course access” automation step, or manual enrollment and revocation. Students sign in at `{site}/courses` using the customer-center magic link and land back on the page they came from. Progress is tracked per lesson, and owners see students' progress.
+
+**Deferred (needs external accounts or partner approval):** Google/Outlook calendar sync (OAuth app review), PayPal (separate merchant onboarding), Zapier/Make listings (their review process; our webhooks + API already work with their generic “Webhooks” apps), certificates and video hosting (v1 uses YouTube/Vimeo/Wistia/Bunny URLs).
+
 ## Phase 4 — Platform & scale (L)
 
 E-commerce store (catalog, variants, cart, shipping, inventory; re-evaluate Medusa) · Community (spaces, posts, comments, notifications) · Affiliate center (links, multi-tier commissions, payouts report) · Message Hub (unified inbox: email + site chat + WhatsApp/SMS) · Agency mode & full white-label · Template/funnel marketplace + share-funnel links · ClickHouse for analytics at scale.

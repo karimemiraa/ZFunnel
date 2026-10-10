@@ -18,6 +18,7 @@
     "@zfunnel/email": "workspace:*",
     "@zfunnel/payments": "workspace:*",
     "@zfunnel/queue": "workspace:*",
+    "lucide-react": "1.48.0",
     "next": "16.3.6",
     "react": "19.3.0",
     "react-dom": "19.3.0",

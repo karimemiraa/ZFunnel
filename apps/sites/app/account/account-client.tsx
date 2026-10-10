@@ -5,7 +5,7 @@ import { useState } from "react";
 const btn =
   "inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-zinc-900 px-5 text-sm font-semibold text-white transition hover:bg-zinc-700 disabled:opacity-60";
 
-export function LoginForm({ error }: { error?: string }) {
+export function LoginForm({ error, next }: { error?: string; next?: string }) {
   const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
   const [message, setMessage] = useState(
     error === "link" ? "That link has expired or was already used. Request a new one below." : "",
@@ -30,7 +30,7 @@ export function LoginForm({ error }: { error?: string }) {
         const res = await fetch("/api/account/login", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ email }),
+          body: JSON.stringify({ email, next }),
         });
         const json = (await res.json().catch(() => ({}))) as { error?: string };
         if (!res.ok) {

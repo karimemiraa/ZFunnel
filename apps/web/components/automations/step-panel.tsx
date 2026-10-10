@@ -331,6 +331,25 @@ export function StepPanel(props: StepProps & { onDelete: () => void; onClose: ()
         <ConditionFields node={node} lookups={lookups} readOnly={readOnly} onChange={onChange} />
       )}
 
+      {node.type === "grant_course" && (
+        <fieldset disabled={readOnly}>
+          <Field label="Course" htmlFor="node-course" hint="The contact gets instant access in the member area.">
+            <NativeSelect
+              id="node-course"
+              value={node.courseId ?? ""}
+              onChange={(e) => onChange({ ...node, courseId: e.target.value || null })}
+            >
+              <option value="">Choose a course…</option>
+              {lookups.courses.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.title}
+                </option>
+              ))}
+            </NativeSelect>
+          </Field>
+        </fieldset>
+      )}
+
       {node.type === "webhook" && (
         <fieldset disabled={readOnly}>
           <Field

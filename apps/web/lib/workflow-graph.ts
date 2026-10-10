@@ -23,6 +23,8 @@ export function blankNode(type: NodeType, id = newId()): WorkflowNode {
       return { id, type, rule: null };
     case "webhook":
       return { id, type, url: "" };
+    case "grant_course":
+      return { id, type, courseId: null };
   }
 }
 

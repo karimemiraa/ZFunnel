@@ -98,6 +98,8 @@ export const emailMessages = pgTable(
       kind?: "login";
       siteOrigin?: string;
       usedAt?: string;
+      /** Path to open after signing in (same site only). */
+      next?: string;
     }>(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },

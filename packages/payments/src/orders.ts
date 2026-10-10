@@ -179,7 +179,21 @@ export async function markPaymentSucceeded(tx: Tx, paymentId: string, raw?: unkn
     .where(eq(payments.id, paymentId));
   await tx.update(orderItems).set({ status: "paid" }).where(eq(orderItems.paymentId, paymentId));
   await recomputeOrder(tx, p.orderId);
+  await grantCoursesForPayment(tx, paymentId);
   return p;
+}
+
+/** Enrolls the buyer in every course linked to the products just paid for (idempotent). */
+export async function grantCoursesForPayment(tx: Tx, paymentId: string) {
+  await tx.execute(sql`
+    insert into course_enrollments (workspace_id, course_id, contact_id, source)
+    select distinct cp.workspace_id, cp.course_id, o.contact_id, 'purchase'
+    from order_items oi
+    join orders o on o.id = oi.order_id and o.contact_id is not null
+    join prices pr on pr.id = oi.price_id
+    join course_products cp on cp.product_id = pr.product_id
+    where oi.payment_id = ${paymentId} and oi.status = 'paid'
+    on conflict (course_id, contact_id) do update set revoked_at = null`);
 }
 
 export async function markPaymentFailed(tx: Tx, paymentId: string, message: string) {

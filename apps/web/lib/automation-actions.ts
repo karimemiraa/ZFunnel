@@ -56,6 +56,7 @@ const nodeSchema: z.ZodType<WorkflowNode> = z.union([
   z.object({ id, type: z.enum(["add_tag", "remove_tag"]), tag: z.string().trim().max(40), next: ref }),
   z.object({ id, type: z.literal("condition"), rule: ruleSchema.nullable(), yes: ref, no: ref }),
   z.object({ id, type: z.literal("webhook"), url: z.string().trim().max(500), next: ref }),
+  z.object({ id, type: z.literal("grant_course"), courseId: uuid.nullable(), next: ref }),
 ]);
 const graphSchema = z.object({ start: ref.transform((v) => v ?? null), nodes: z.record(z.string(), nodeSchema) });
 
@@ -194,6 +195,7 @@ export async function setWorkflowStatus(
         if ((n.type === "add_tag" || n.type === "remove_tag") && !n.tag.trim()) return "Every tag step needs a tag.";
         if (n.type === "webhook" && !/^https?:\/\/.+/.test(n.url)) return "Every webhook step needs a valid URL.";
         if (n.type === "condition" && !n.rule) return "Every condition needs a rule.";
+        if (n.type === "grant_course" && !n.courseId) return "Choose a course for every “Give course access” step.";
       }
       const emailIds = nodes.flatMap((n) => (n.type === "send_email" && n.emailId ? [n.emailId] : []));
       if (emailIds.length) {

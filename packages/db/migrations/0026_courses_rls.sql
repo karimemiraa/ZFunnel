@@ -1,0 +1,11 @@
+SELECT app_enable_workspace_rls('courses');
+--> statement-breakpoint
+SELECT app_enable_workspace_rls('course_products');
+--> statement-breakpoint
+SELECT app_enable_workspace_rls('course_modules');
+--> statement-breakpoint
+SELECT app_enable_workspace_rls('course_lessons');
+--> statement-breakpoint
+SELECT app_enable_workspace_rls('course_enrollments');
+--> statement-breakpoint
+SELECT app_enable_workspace_rls('lesson_progress');

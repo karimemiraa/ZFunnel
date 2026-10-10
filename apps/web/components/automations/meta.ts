@@ -1,6 +1,7 @@
 import type { WorkflowNode, WorkflowTrigger } from "@zfunnel/db/schema";
 import {
   ClockIcon,
+  GraduationCapIcon,
   CreditCardIcon,
   FilterIcon,
   GitBranchIcon,
@@ -21,6 +22,12 @@ export const NODE_META: Record<WorkflowNode["type"], { label: string; icon: Luci
     remove_tag: { label: "Remove tag", icon: TagsIcon, color: "#f43f5e", hint: "Remove a tag" },
     condition: { label: "If / else", icon: GitBranchIcon, color: "#0ea5e9", hint: "Branch on a condition" },
     webhook: { label: "Webhook", icon: WebhookIcon, color: "#64748b", hint: "POST the contact to a URL" },
+    grant_course: {
+      label: "Give course access",
+      icon: GraduationCapIcon,
+      color: "#8b5cf6",
+      hint: "Enroll the contact in a course",
+    },
   };
 export const NODE_ORDER: WorkflowNode["type"][] = [
   "send_email",
@@ -51,6 +58,7 @@ export type Lookups = {
   products: { id: string; name: string }[];
   tags: string[];
   emails: { id: string; name: string; subject: string; preheader: string }[];
+  courses: { id: string; title: string }[];
 };
 
 export function triggerSummary(t: WorkflowTrigger, l: Pick<Lookups, "funnels" | "products">) {
@@ -67,7 +75,7 @@ export function triggerSummary(t: WorkflowTrigger, l: Pick<Lookups, "funnels" | 
   }
 }
 
-export function nodeSummary(n: WorkflowNode, l: Pick<Lookups, "emails">) {
+export function nodeSummary(n: WorkflowNode, l: Pick<Lookups, "emails" | "courses">) {
   switch (n.type) {
     case "send_email": {
       const e = l.emails.find((x) => x.id === n.emailId);
@@ -88,6 +96,8 @@ export function nodeSummary(n: WorkflowNode, l: Pick<Lookups, "emails">) {
       if (r.field === "custom") return `${r.key} ${r.op === "is_set" ? "is set" : `${r.op} “${r.value ?? ""}”`}`;
       return "Custom condition";
     }
+    case "grant_course":
+      return n.courseId ? (l.courses.find((c) => c.id === n.courseId)?.title ?? "A deleted course") : "Choose a course";
     case "webhook":
       return n.url ? n.url.replace(/^https?:\/\//, "").slice(0, 40) : "Set a URL";
   }

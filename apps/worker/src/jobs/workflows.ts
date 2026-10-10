@@ -4,6 +4,8 @@ import {
   and,
   contactActivities,
   contacts,
+  courseEnrollments,
+  courses,
   emailMessages,
   emails,
   eq,
@@ -177,6 +179,20 @@ async function runStep(
         .from(contacts)
         .where(and(eq(contacts.id, contact.id), ruleCondition(node.rule)));
       return { next: (r ? node.yes : node.no) ?? null, status: "ok", message: r ? "Yes" : "No" };
+    }
+    case "grant_course": {
+      const next = node.next ?? null;
+      if (!node.courseId) return { next, status: "skipped", message: "No course selected" };
+      const [c] = await tx.select({ title: courses.title }).from(courses).where(eq(courses.id, node.courseId));
+      if (!c) return { next, status: "skipped", message: "Course was deleted" };
+      await tx
+        .insert(courseEnrollments)
+        .values({ workspaceId: ctx.workspaceId, courseId: node.courseId, contactId: contact.id, source: "automation" })
+        .onConflictDoUpdate({
+          target: [courseEnrollments.courseId, courseEnrollments.contactId],
+          set: { revokedAt: null },
+        });
+      return { next, status: "ok", message: c.title };
     }
     case "webhook":
       // Performed outside the transaction (network call); see runWorkflow.

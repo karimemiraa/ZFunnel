@@ -12,5 +12,6 @@ export * from "./schema/email";
 export * from "./schema/automations";
 export * from "./schema/forms";
 export * from "./schema/billing";
+export * from "./schema/courses";
 export { and, asc, count, desc, eq, gt, gte, ilike, inArray, isNotNull, isNull, lt, ne, or, sql } from "drizzle-orm";
 export { ruleCondition, segmentCondition } from "./segments";

@@ -176,6 +176,20 @@
       "when": 1791639733526,
       "tag": "0024_billing_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1791640547332,
+      "tag": "0025_courses",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1791640548623,
+      "tag": "0026_courses_rls",
+      "breakpoints": true
     }
   ]
 }
