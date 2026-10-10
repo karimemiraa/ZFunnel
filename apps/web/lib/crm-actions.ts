@@ -13,11 +13,12 @@ import {
   pipelineStages,
   segments,
   sql,
-  type SegmentRule,
   type Tx,
 } from "@zfunnel/db";
 import { parseCsv, slugify } from "@zfunnel/shared";
+import { enqueueMany } from "@zfunnel/queue";
 import { revalidatePath } from "next/cache";
+import { ruleSchema } from "./rule-schema";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { inWorkspace } from "./funnels";
@@ -128,7 +129,7 @@ export async function setTags(
   if (!t.success) return { ok: false, error: t.error.issues[0]!.message };
   const ids = contactIds.filter((id) => uuid.safeParse(id).success).slice(0, 5000);
   if (!ids.length) return { ok: false, error: "No contacts selected" };
-  await inWorkspace(ctx, async (tx) => {
+  const changedIds = await inWorkspace(ctx, async (tx) => {
     const changed = await tx
       .update(contacts)
       .set({
@@ -154,7 +155,18 @@ export async function setTags(
           actorUserId: user.id,
         })),
       );
+    return changed.map((c) => c.id);
   });
+  if (mode === "add" && changedIds.length)
+    await enqueueMany(
+      "workflow-events",
+      changedIds.map((contactId) => ({
+        workspaceId: ctx.workspace.id,
+        contactId,
+        type: "tag_added" as const,
+        data: { tag: t.data },
+      })),
+    );
   revalidatePath(`/${workspaceSlug}/contacts`, "layout");
   return {
     ok: true,
@@ -284,24 +296,6 @@ export async function deleteField(workspaceSlug: string, fieldId: string): Promi
   revalidatePath(`/${workspaceSlug}/contacts`, "layout");
   return { ok: true };
 }
-
-const ruleSchema: z.ZodType<SegmentRule> = z.union([
-  z.object({ field: z.literal("tag"), op: z.enum(["has", "not_has"]), value: z.string().min(1).max(40) }),
-  z.object({ field: z.enum(["email", "name"]), op: z.literal("contains"), value: z.string().min(1).max(100) }),
-  z.object({
-    field: z.literal("created"),
-    op: z.enum(["within_days", "older_than_days"]),
-    value: z.number().int().min(1).max(3650),
-  }),
-  z.object({ field: z.literal("customer"), op: z.enum(["is", "is_not"]) }),
-  z.object({ field: z.literal("source_funnel"), op: z.literal("is"), value: z.string().uuid() }),
-  z.object({
-    field: z.literal("custom"),
-    key: z.string().min(1).max(60),
-    op: z.enum(["equals", "contains", "is_set"]),
-    value: z.string().max(100).optional(),
-  }),
-]);
 
 export async function saveSegment(
   workspaceSlug: string,

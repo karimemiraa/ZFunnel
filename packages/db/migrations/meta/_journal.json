@@ -120,6 +120,20 @@
       "when": 1791635601354,
       "tag": "0016_email_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1791636528224,
+      "tag": "0017_automations",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791636529298,
+      "tag": "0018_automations_rls",
+      "breakpoints": true
     }
   ]
 }

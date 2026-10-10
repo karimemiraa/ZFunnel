@@ -89,7 +89,7 @@ export const emailMessages = pgTable(
     clickedAt: timestamp({ withTimezone: true }),
     openCount: integer().notNull().default(0),
     clickCount: integer().notNull().default(0),
-    meta: jsonb().$type<{ test?: boolean; clicks?: string[] }>(),
+    meta: jsonb().$type<{ test?: boolean; clicks?: string[]; workflowId?: string; runId?: string }>(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [

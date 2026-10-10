@@ -33,6 +33,7 @@ export type OfferView = {
   offerId: string;
   role: OfferRole;
   priceId: string;
+  productId: string;
   productName: string;
   productDescription: string | null;
   label: string | null;
@@ -63,6 +64,7 @@ export async function getStepOffers(tx: Tx, stepId: string): Promise<OfferView[]
       trialDays: prices.trialDays,
       installments: prices.installments,
       stripePriceId: prices.stripePriceId,
+      productId: products.id,
       productName: products.name,
       productDescription: products.description,
     })

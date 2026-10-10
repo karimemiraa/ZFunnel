@@ -29,9 +29,9 @@ export async function listBroadcasts(ctx: WorkspaceContext) {
         b: broadcasts,
         name: emails.name,
         subject: emails.subject,
-        sent: sql<number>`(select count(*)::int from email_messages m where m.broadcast_id = ${broadcasts.id} and m.status = 'sent')`,
-        opened: sql<number>`(select count(*)::int from email_messages m where m.broadcast_id = ${broadcasts.id} and m.opened_at is not null)`,
-        clicked: sql<number>`(select count(*)::int from email_messages m where m.broadcast_id = ${broadcasts.id} and m.clicked_at is not null)`,
+        sent: sql<number>`(select count(*)::int from email_messages m where m.broadcast_id = "broadcasts"."id" and m.status = 'sent')`,
+        opened: sql<number>`(select count(*)::int from email_messages m where m.broadcast_id = "broadcasts"."id" and m.opened_at is not null)`,
+        clicked: sql<number>`(select count(*)::int from email_messages m where m.broadcast_id = "broadcasts"."id" and m.clicked_at is not null)`,
       })
       .from(broadcasts)
       .innerJoin(emails, eq(emails.id, broadcasts.emailId))

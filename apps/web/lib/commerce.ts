@@ -143,8 +143,8 @@ export async function listContacts(ctx: WorkspaceContext, opts: { q?: string; li
     return tx
       .select({
         contact: contacts,
-        orderCount: sql<number>`(select count(*)::int from orders o where o.contact_id = ${contacts.id} and o.status in ('paid','partially_refunded'))`,
-        spent: sql<number>`(select coalesce(sum(o.total),0)::int from orders o where o.contact_id = ${contacts.id} and o.status in ('paid','partially_refunded'))`,
+        orderCount: sql<number>`(select count(*)::int from orders o where o.contact_id = "contacts"."id" and o.status in ('paid','partially_refunded'))`,
+        spent: sql<number>`(select coalesce(sum(o.total),0)::int from orders o where o.contact_id = "contacts"."id" and o.status in ('paid','partially_refunded'))`,
         funnelName: sql<string | null>`(select f.name from funnels f where f.id = ${contacts.sourceFunnelId})`,
       })
       .from(contacts)

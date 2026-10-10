@@ -14,6 +14,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { OrderStatus } from "@/components/commerce/order-status";
 import { ContactProfile, NoteForm } from "@/components/crm/contact-profile";
+import { EnrollMenu } from "@/components/automations/enroll-menu";
+import { listWorkflows } from "@/lib/automations";
 import { requireWorkspace } from "@/lib/context";
 import { getContactDetail } from "@/lib/crm";
 import { timeAgo } from "@/lib/format";
@@ -47,12 +49,13 @@ const LABEL: Record<string, (b: string | null) => string> = {
   email_clicked: (b) => `Clicked: ${b}`,
   automation: (b) => `Automation: ${b}`,
   form: (b) => `Submitted ${b}`,
+  unsubscribed: (b) => `Unsubscribed${b ? ` via “${b}”` : ""}`,
 };
 
 export default async function ContactPage({ params }: { params: Promise<{ workspace: string; contactId: string }> }) {
   const ctx = await requireWorkspace(params);
   const { contactId } = await params;
-  const data = await getContactDetail(ctx, contactId);
+  const [data, workflows] = await Promise.all([getContactDetail(ctx, contactId), listWorkflows(ctx)]);
   if (!data) notFound();
   const { contact: c } = data;
   const ws = ctx.workspace.slug;
@@ -93,6 +96,11 @@ export default async function ContactPage({ params }: { params: Promise<{ worksp
           </div>
         </div>
         {c.unsubscribedAt && <Badge variant="warning">Unsubscribed from email</Badge>}
+        <EnrollMenu
+          workspaceSlug={ws}
+          contactId={c.id}
+          workflows={workflows.filter((w) => w.w.status === "active").map((w) => ({ id: w.w.id, name: w.w.name }))}
+        />
       </div>
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
         <ContactProfile

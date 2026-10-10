@@ -1,6 +1,7 @@
 import { Worker, type Processor } from "bullmq";
 import { QUEUES, redis, type SystemJob } from "@zfunnel/queue";
 import { processBroadcast, processEmail } from "./jobs/email";
+import { processWorkflowEvent, processWorkflowRun } from "./jobs/workflows";
 
 const connection = redis();
 
@@ -28,6 +29,8 @@ const workers = [
     concurrency: 10,
     limiter: { max: 10, duration: 1000 },
   }),
+  start(QUEUES.workflowEvents, (job) => processWorkflowEvent(job.data as never, job.id ?? `${Date.now()}`)),
+  start(QUEUES.workflowRuns, (job) => processWorkflowRun(job.data as never), { concurrency: 10 }),
 ];
 
 async function shutdown(signal: string) {

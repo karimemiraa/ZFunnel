@@ -62,6 +62,18 @@ export function queue<N extends QueueName>(name: N): Queue<Payloads[N]> {
   return queues.get(name) as Queue<Payloads[N]>;
 }
 
+/** Fire-and-forget bulk enqueue (same contract as enqueue). */
+export async function enqueueMany<N extends QueueName>(name: N, items: Payloads[N][]) {
+  try {
+    for (let i = 0; i < items.length; i += 500)
+      await (queue(name) as unknown as Queue).addBulk(items.slice(i, i + 500).map((data) => ({ name, data })));
+    return true;
+  } catch (err) {
+    console.error(`[queue] could not enqueue ${name}:`, (err as Error).message);
+    return false;
+  }
+}
+
 /**
  * Fire-and-forget enqueue for request handlers: a Redis outage must never break a
  * checkout or an opt-in, so failures are logged, not thrown.

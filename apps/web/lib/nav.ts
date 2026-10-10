@@ -72,7 +72,7 @@ export const NAV_MODULES: NavModule[] = [
     segment: "automations",
     label: "Automations",
     icon: WorkflowIcon,
-    phase: 2,
+
     description: "Visual workflows: triggers, waits, branches and actions.",
   },
   {

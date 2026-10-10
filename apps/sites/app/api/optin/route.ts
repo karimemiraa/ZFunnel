@@ -6,6 +6,7 @@ import { resolveStepForWorkspace } from "@/lib/resolve";
 import { currentWorkspace } from "@/lib/site";
 import { track } from "@/lib/track";
 import { logActivity } from "@zfunnel/payments";
+import { enqueue } from "@zfunnel/queue";
 
 const bodySchema = z.object({
   stepId: z.string().uuid(),
@@ -44,7 +45,7 @@ export async function POST(req: Request) {
   };
 
   const now = new Date();
-  await withSystem(getDb(), async (tx) => {
+  const contactId = await withSystem(getDb(), async (tx) => {
     const [c] = await tx
       .insert(contacts)
       .values({
@@ -69,6 +70,13 @@ export async function POST(req: Request) {
       })
       .returning({ id: contacts.id });
     await logActivity(tx, { workspaceId: ws.id, contactId: c!.id, type: "optin", body: "opt-in form" });
+    return c!.id;
+  });
+  await enqueue("workflow-events", {
+    workspaceId: ws.id,
+    contactId,
+    type: "optin",
+    data: { funnelId: step.funnelId, stepId: step.id },
   });
 
   await track(req.headers, {

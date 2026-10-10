@@ -1,4 +1,5 @@
-import { and, eq, orderItems, orders, payments } from "@zfunnel/db";
+import { and, eq, orderItems, orders, payments, prices } from "@zfunnel/db";
+import { enqueue } from "@zfunnel/queue";
 import {
   chargeTestCard,
   logActivity,
@@ -127,8 +128,9 @@ export async function POST(req: Request) {
   if (payment.status !== "succeeded" && order.contactId)
     await system(async (tx) => {
       const items = await tx
-        .select({ name: orderItems.productName })
+        .select({ name: orderItems.productName, productId: prices.productId })
         .from(orderItems)
+        .leftJoin(prices, eq(prices.id, orderItems.priceId))
         .where(eq(orderItems.orderId, order.id));
       await logActivity(tx, {
         workspaceId: g.ws.id,
@@ -136,6 +138,16 @@ export async function POST(req: Request) {
         type: "purchase",
         body: `#${order.number}: ${items.map((i) => i.name).join(", ")}`,
         data: { orderId: order.id },
+      });
+      await enqueue("workflow-events", {
+        workspaceId: g.ws.id,
+        contactId: order.contactId!,
+        type: "purchase",
+        data: {
+          orderId: order.id,
+          funnelId: order.funnelId ?? undefined,
+          productIds: items.flatMap((i) => (i.productId ? [i.productId] : [])).join(","),
+        },
       });
     });
   if (payment.status !== "succeeded")

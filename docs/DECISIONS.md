@@ -112,3 +112,19 @@ Format: **ID — Title** · Status (Proposed / Accepted / Superseded) · Date. S
 **Decision.** A funnel step stores its draft page directly. Published pages are immutable `page_versions`.
 
 **Consequences.** A/B variants (Phase 2.8) will add a `step_variants` table without breaking existing data.
+
+### ADR-014 — Puck for the email editor, not maily.to · **Accepted** · 2026-10-10
+
+**Decision.** Emails are built with the same Puck editor as pages, using a separate set of email-safe blocks. Each block renders the exact table-based HTML that is sent.
+
+**Why.** One editor to learn and maintain. The preview is the real output, so what users see is what lands in the inbox. maily.to would have added a second editor stack (Tiptap) for little gain.
+
+**Consequences.** Email blocks must stay email-client-safe: tables, inline styles, no scripts. Advanced layouts (multi-column) need dedicated blocks.
+
+### ADR-015 — Automations are a tree, executed by a durable worker · **Accepted** · 2026-10-10
+
+**Decision.** An automation is a trigger plus a tree of steps. Each step has one `next`; conditions have `yes`/`no` branches. Steps are inserted with “+” buttons rather than wired freely. Runs live in Postgres (`workflow_runs`, `workflow_run_logs`). BullMQ only carries wake-ups: start, after a wait, continue.
+
+**Why.** Trees cover welcome series, onboarding, tagging and branching, which is what ClickFunnels workflows do. They can't loop forever, and they're easy to lay out automatically. Keeping state in Postgres means a Redis flush loses at most a pending wake-up, never a contact's position. Each step commits under a row lock, so a retry never repeats a step.
+
+**Consequences.** A contact enters an automation once unless “Allow re-entry” is on; enrollment is idempotent per event. Editing a live automation requires pausing it. Pausing cancels waiting runs when they wake. Deleting a step a contact is waiting on ends that contact's run. Tags added _by_ an automation don't trigger other automations (prevents loops). Webhooks block private and loopback addresses (SSRF).

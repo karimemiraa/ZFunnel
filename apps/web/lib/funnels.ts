@@ -67,11 +67,11 @@ export async function listFunnels(ctx: WorkspaceContext) {
         name: funnels.name,
         slug: funnels.slug,
         updatedAt: funnels.updatedAt,
-        stepCount: sql<number>`(select count(*)::int from funnel_steps s where s.funnel_id = ${funnels.id})`,
-        publishedCount: sql<number>`(select count(*)::int from funnel_steps s where s.funnel_id = ${funnels.id} and s.published_version_id is not null)`,
+        stepCount: sql<number>`(select count(*)::int from funnel_steps s where s.funnel_id = "funnels"."id")`,
+        publishedCount: sql<number>`(select count(*)::int from funnel_steps s where s.funnel_id = "funnels"."id" and s.published_version_id is not null)`,
         firstStepId: sql<
           string | null
-        >`(select s.id from funnel_steps s where s.funnel_id = ${funnels.id} order by s.position limit 1)`,
+        >`(select s.id from funnel_steps s where s.funnel_id = "funnels"."id" order by s.position limit 1)`,
       })
       .from(funnels)
       .where(sql`${funnels.archivedAt} is null`)

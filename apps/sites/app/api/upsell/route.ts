@@ -18,10 +18,14 @@ import {
 } from "@zfunnel/payments";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { enqueue } from "@zfunnel/queue";
 import { z } from "zod";
 import { jsonError, publicPost } from "@/lib/api";
 import { resolveStepForWorkspace } from "@/lib/resolve";
 import { track } from "@/lib/track";
+
+const purchased = (workspaceId: string, contactId: string, productId: string, orderId: string) =>
+  enqueue("workflow-events", { workspaceId, contactId, type: "purchase", data: { productIds: productId, orderId } });
 
 const bodySchema = z.object({ stepId: z.string().uuid(), offerId: z.string().uuid().optional() });
 
@@ -91,6 +95,7 @@ export async function POST(req: Request) {
     await system((tx) =>
       logActivity(tx, { workspaceId: g.ws.id, contactId: session.contactId!, type: "upsell", body: offer.productName }),
     );
+    await purchased(g.ws.id, session.contactId!, offer.productId, session.orderId!);
     await track(req.headers, {
       workspaceId: g.ws.id,
       funnelId: step.funnelId,
@@ -174,6 +179,7 @@ export async function POST(req: Request) {
   await system((tx) =>
     logActivity(tx, { workspaceId: g.ws.id, contactId: session.contactId!, type: "upsell", body: offer.productName }),
   );
+  await purchased(g.ws.id, session.contactId!, offer.productId, session.orderId!);
   await track(req.headers, {
     workspaceId: g.ws.id,
     funnelId: step.funnelId,

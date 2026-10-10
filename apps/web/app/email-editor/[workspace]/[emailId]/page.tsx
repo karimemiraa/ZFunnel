@@ -11,14 +11,15 @@ export default async function EmailEditorPage({
   searchParams,
 }: {
   params: Promise<{ workspace: string; emailId: string }>;
-  searchParams: Promise<{ b?: string }>;
+  searchParams: Promise<{ b?: string; w?: string }>;
 }) {
-  const [{ workspace, emailId }, { b }, user] = await Promise.all([params, searchParams, requireUser()]);
+  const [{ workspace, emailId }, { b, w }, user] = await Promise.all([params, searchParams, requireUser()]);
   const ctx = await getWorkspaceForUser(user.id, workspace);
   if (!ctx) notFound();
   const email = await getEmailDesign(ctx, emailId);
   if (!email) notFound();
-  const back = b && /^[0-9a-f-]{36}$/i.test(b) ? `/${workspace}/email/${b}` : `/${workspace}/email`;
+  const isId = (v?: string) => !!v && /^[0-9a-f-]{36}$/i.test(v);
+  const back = isId(w) ? `/automation/${workspace}/${w}` : isId(b) ? `/${workspace}/email/${b}` : `/${workspace}/email`;
   return (
     <EmailEditor
       workspaceSlug={workspace}
