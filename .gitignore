@@ -16,3 +16,4 @@ playwright-report/
 dump.rdb
 apps/*/AGENTS.md
 apps/*/CLAUDE.md
+.claude/worktrees/
