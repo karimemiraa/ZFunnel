@@ -12,6 +12,7 @@ import {
 } from "@zfunnel/ui/dialog";
 import { Input } from "@zfunnel/ui/input";
 import { Label } from "@zfunnel/ui/label";
+import { useT } from "@zfunnel/i18n/react";
 import { Loader2Icon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -19,6 +20,7 @@ import { createCourse } from "@/lib/course-actions";
 
 export function NewCourse({ workspaceSlug, trigger }: { workspaceSlug: string; trigger: React.ReactNode }) {
   const router = useRouter();
+  const t = useT();
   const [error, setError] = useState("");
   const [pending, start] = useTransition();
   return (
@@ -26,8 +28,8 @@ export function NewCourse({ workspaceSlug, trigger }: { workspaceSlug: string; t
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>New course</DialogTitle>
-          <DialogDescription>We'll add a first module and a welcome lesson to get you started.</DialogDescription>
+          <DialogTitle>{t("coursesAdmin.newCourse")}</DialogTitle>
+          <DialogDescription>{t("coursesAdmin.newDialogDescription")}</DialogDescription>
         </DialogHeader>
         <form
           className="grid gap-4"
@@ -42,8 +44,14 @@ export function NewCourse({ workspaceSlug, trigger }: { workspaceSlug: string; t
           }}
         >
           <div className="grid gap-2">
-            <Label htmlFor="course-title">Course title</Label>
-            <Input id="course-title" name="title" placeholder="e.g. Funnel Mastery" required maxLength={120} />
+            <Label htmlFor="course-title">{t("coursesAdmin.courseTitleLabel")}</Label>
+            <Input
+              id="course-title"
+              name="title"
+              placeholder={t("coursesAdmin.courseTitlePlaceholder")}
+              required
+              maxLength={120}
+            />
           </div>
           {error && (
             <p className="text-sm text-destructive" role="alert">
@@ -52,7 +60,7 @@ export function NewCourse({ workspaceSlug, trigger }: { workspaceSlug: string; t
           )}
           <DialogFooter>
             <Button type="submit" disabled={pending}>
-              {pending && <Loader2Icon className="animate-spin" />} Create course
+              {pending && <Loader2Icon className="animate-spin" />} {t("coursesAdmin.createCourse")}
             </Button>
           </DialogFooter>
         </form>

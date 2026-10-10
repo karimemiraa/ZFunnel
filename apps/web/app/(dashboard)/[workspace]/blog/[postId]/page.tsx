@@ -6,12 +6,16 @@ import { PostEditor } from "@/components/blog/post-editor";
 import { deletePost } from "@/lib/blog-actions";
 import { getPost } from "@/lib/blog";
 import { requireWorkspace } from "@/lib/context";
+import { getT } from "@/lib/i18n";
 import { siteOrigin } from "@/lib/urls";
 
-export const metadata = { title: "Edit post" };
+export async function generateMetadata() {
+  return { title: (await getT())("blogAdmin.editPost") };
+}
 
 export default async function PostPage({ params }: { params: Promise<{ workspace: string; postId: string }> }) {
   const ctx = await requireWorkspace(params);
+  const t = await getT();
   const { postId } = await params;
   const post = await getPost(ctx, postId);
   if (!post) notFound();
@@ -23,11 +27,11 @@ export default async function PostPage({ params }: { params: Promise<{ workspace
           href={`/${ws}/blog`}
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeftIcon className="size-4 rtl:-scale-x-100" /> Blog
+          <ArrowLeftIcon className="size-4 rtl:-scale-x-100" /> {t("blogAdmin.title")}
         </Link>
         <form action={deletePost.bind(null, ws, post.id)}>
           <Button type="submit" variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive">
-            <Trash2Icon /> Delete
+            <Trash2Icon /> {t("blogAdmin.delete")}
           </Button>
         </form>
       </div>

@@ -1,9 +1,11 @@
+import { intlLocale } from "@zfunnel/i18n";
 import { Badge } from "@zfunnel/ui/badge";
 import Link from "next/link";
 import type { listBookings } from "@/lib/calendars";
+import { getLocale, getT } from "@/lib/i18n";
 import { CancelBookingButton } from "./calendar-ui";
 
-export function BookingsTable({
+export async function BookingsTable({
   rows,
   workspaceSlug,
   showCalendar,
@@ -12,10 +14,12 @@ export function BookingsTable({
   workspaceSlug: string;
   showCalendar?: boolean;
 }) {
+  const t = await getT();
+  const tag = intlLocale(await getLocale());
   if (!rows.length)
     return (
       <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-        No bookings here yet.
+        {t("calendarsAdmin.noBookings")}
       </p>
     );
   return (
@@ -23,9 +27,9 @@ export function BookingsTable({
       <table className="w-full text-sm">
         <thead className="bg-muted/50 text-start text-xs font-medium tracking-wide text-muted-foreground uppercase">
           <tr>
-            <th className="px-4 py-3">When</th>
-            <th className="px-4 py-3">Who</th>
-            {showCalendar && <th className="px-4 py-3 max-md:hidden">Calendar</th>}
+            <th className="px-4 py-3">{t("calendarsAdmin.colWhen")}</th>
+            <th className="px-4 py-3">{t("calendarsAdmin.colWho")}</th>
+            {showCalendar && <th className="px-4 py-3 max-md:hidden">{t("calendarsAdmin.colCalendar")}</th>}
             <th className="px-4 py-3" />
           </tr>
         </thead>
@@ -34,7 +38,7 @@ export function BookingsTable({
             <tr key={b.id} className={b.status === "cancelled" ? "opacity-50" : undefined}>
               <td className="px-4 py-3 whitespace-nowrap">
                 <div className="font-medium">
-                  {b.startAt.toLocaleString("en-US", {
+                  {b.startAt.toLocaleString(tag, {
                     timeZone: tz,
                     weekday: "short",
                     month: "short",
@@ -59,7 +63,7 @@ export function BookingsTable({
               {showCalendar && <td className="px-4 py-3 text-muted-foreground max-md:hidden">{calendar}</td>}
               <td className="px-4 py-3 text-end">
                 {b.status === "cancelled" ? (
-                  <Badge variant="secondary">Cancelled</Badge>
+                  <Badge variant="secondary">{t("calendarsAdmin.cancelled")}</Badge>
                 ) : (
                   b.startAt > new Date() && <CancelBookingButton workspaceSlug={workspaceSlug} id={b.id} />
                 )}

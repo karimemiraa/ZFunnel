@@ -6,29 +6,33 @@ import { NewCourse } from "@/components/courses/new-course";
 import { PageHeader } from "@/components/page-header";
 import { requireWorkspace } from "@/lib/context";
 import { listCourses } from "@/lib/courses";
+import { getT } from "@/lib/i18n";
 import { siteOrigin } from "@/lib/urls";
 
-export const metadata = { title: "Courses" };
+export async function generateMetadata() {
+  return { title: (await getT())("coursesAdmin.title") };
+}
 
 export default async function CoursesPage({ params }: { params: Promise<{ workspace: string }> }) {
   const ctx = await requireWorkspace(params);
   const ws = ctx.workspace.slug;
   const list = await listCourses(ctx);
+  const t = await getT();
   const button = (
     <Button>
-      <PlusIcon /> New course
+      <PlusIcon /> {t("coursesAdmin.newCourse")}
     </Button>
   );
   return (
     <>
       <PageHeader
-        title="Courses"
-        description="Sell online courses and memberships. Buyers get instant access in their member area."
+        title={t("coursesAdmin.title")}
+        description={t("coursesAdmin.description")}
         actions={
           <div className="flex gap-2">
             <Button variant="outline" asChild>
               <a href={`${siteOrigin(ws)}/courses`} target="_blank" rel="noreferrer">
-                Member area
+                {t("coursesAdmin.memberArea")}
               </a>
             </Button>
             <NewCourse workspaceSlug={ws} trigger={button} />
@@ -38,8 +42,8 @@ export default async function CoursesPage({ params }: { params: Promise<{ worksp
       {list.length === 0 ? (
         <EmptyState
           icon={<GraduationCapIcon />}
-          title="Create your first course"
-          description="Organize lessons into modules, drip them out over time, and give access automatically when someone buys."
+          title={t("coursesAdmin.emptyTitle")}
+          description={t("coursesAdmin.emptyDescription")}
           action={<NewCourse workspaceSlug={ws} trigger={button} />}
         />
       ) : (
@@ -68,15 +72,15 @@ export default async function CoursesPage({ params }: { params: Promise<{ worksp
                         : "rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground"
                     }
                   >
-                    {c.status === "published" ? "Published" : "Draft"}
+                    {c.status === "published" ? t("coursesAdmin.published") : t("coursesAdmin.draft")}
                   </span>
                 </div>
                 <div className="mt-2 flex gap-4 text-xs text-muted-foreground">
                   <span className="inline-flex items-center gap-1">
-                    <BookOpenIcon className="size-3.5" /> {lessons} lessons
+                    <BookOpenIcon className="size-3.5" /> {t("coursesAdmin.lessons", { count: lessons })}
                   </span>
                   <span className="inline-flex items-center gap-1">
-                    <UsersIcon className="size-3.5" /> {students} students
+                    <UsersIcon className="size-3.5" /> {t("coursesAdmin.students", { count: students })}
                   </span>
                 </div>
               </div>
