@@ -7,7 +7,8 @@
     ".": "./src/index.ts",
     "./fonts.css": "./src/fonts.css",
     "./styles.css": "./src/styles.css",
-    "./survey": "./src/survey.ts"
+    "./survey": "./src/survey.ts",
+    "./import": "./src/import.ts"
   },
   "scripts": {
     "lint": "eslint .",
@@ -30,11 +31,17 @@
     "@zfunnel/i18n": "workspace:*",
     "@zfunnel/shared": "workspace:*",
     "clsx": "2.1.1",
-    "lucide-react": "1.48.0"
+    "domhandler": "6.0.1",
+    "domutils": "4.0.2",
+    "htmlparser2": "12.0.0",
+    "lucide-react": "1.48.0",
+    "sanitize-html": "2.17.7"
   },
   "devDependencies": {
+    "@types/node": "22.20.4",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "@types/sanitize-html": "2.16.1",
     "@zfunnel/config": "workspace:*",
     "eslint": "9.39.5",
     "react": "19.3.0",

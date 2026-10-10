@@ -26,7 +26,8 @@ export default defineConfig({
   webServer: [
     {
       command: "pnpm --filter @zfunnel/web start",
-      env: { AUTH_RATE_LIMIT: "off" },
+      // The import test serves fixture pages from a local mock (private addresses are otherwise refused).
+      env: { AUTH_RATE_LIMIT: "off", FETCH_ALLOW_ORIGINS: "http://127.0.0.1:4013" },
       url: "http://localhost:3000/sign-in",
       reuseExistingServer: reuse,
       timeout: 120_000,

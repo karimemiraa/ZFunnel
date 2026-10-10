@@ -15,7 +15,7 @@ import {
   sql,
   type Tx,
 } from "@zfunnel/db";
-import { parseCsv, slugify } from "@zfunnel/shared";
+import { contactName, mapContactColumns, parseCreatedDate, parseCsv, slugify } from "@zfunnel/shared";
 import { enqueueMany } from "@zfunnel/queue";
 import { revalidatePath } from "next/cache";
 import { enforce } from "./billing";
@@ -214,13 +214,12 @@ export async function importContacts(workspaceSlug: string, csvText: string, tag
   if (csvText.length > 5_000_000) return { ok: false, error: t("contacts.err.fileTooLarge") };
   const rows = parseCsv(csvText);
   if (rows.length < 2) return { ok: false, error: t("contacts.err.fileEmpty") };
-  const header = rows[0]!.map((h) => h.trim().toLowerCase());
-  const col = (...names: string[]) => header.findIndex((h) => names.includes(h));
-  const iEmail = col("email", "e-mail", "email address");
+  // Recognises ClickFunnels (classic and 2.0) export headers too; see docs/IMPORT.md.
+  const cols = mapContactColumns(rows[0]!);
+  const iEmail = cols.email;
   if (iEmail < 0) return { ok: false, error: t("contacts.err.noEmailColumn") };
-  const iName = col("name", "full name", "first name");
-  const iPhone = col("phone", "phone number", "mobile");
-  const iTags = col("tags", "tag");
+  const iPhone = cols.phone;
+  const iTags = cols.tags;
   const extraTag = tag ? tagSchema.safeParse(tag) : null;
   const seen = new Set<string>();
   const values = rows.slice(1).flatMap((r) => {
@@ -234,9 +233,12 @@ export async function importContacts(workspaceSlug: string, csvText: string, tag
       {
         workspaceId: ctx.workspace.id,
         email: email.data,
-        name: iName >= 0 ? r[iName]?.trim().slice(0, 120) || null : null,
+        name: contactName(r, cols),
         phone: iPhone >= 0 ? r[iPhone]?.trim().slice(0, 40) || null : null,
         tags: [...new Set(tags)],
+        ...(cols.createdAt >= 0 && parseCreatedDate(r[cols.createdAt])
+          ? { createdAt: parseCreatedDate(r[cols.createdAt])! }
+          : {}),
       },
     ];
   });

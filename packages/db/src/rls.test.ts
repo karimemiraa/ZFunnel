@@ -6,6 +6,7 @@ import { organization } from "./schema/auth";
 import { orgBilling } from "./schema/billing";
 import { contacts } from "./schema/contacts";
 import { funnels, funnelSteps, pageVersions } from "./schema/funnels";
+import { mediaFiles } from "./schema/media";
 import { auditLogs, workspaces } from "./schema/tenancy";
 import { withOrganization, withSystem, withWorkspace } from "./tenant";
 
@@ -119,6 +120,19 @@ describe.skipIf(!url)("row-level security", () => {
     }
     await expect(
       withWorkspace(db, ctxA, (tx) => tx.insert(funnels).values({ workspaceId: wsB, name: "x", slug: "x" })),
+    ).rejects.toThrow();
+  });
+
+  it("isolates imported media files", async () => {
+    const ctxA = { organizationId: orgA, workspaceId: wsA };
+    const ctxB = { organizationId: orgB, workspaceId: wsB };
+    const file = { contentType: "image/png", size: 3, sha256: "abc", data: Buffer.from([1, 2, 3]) };
+    await withWorkspace(db, ctxB, (tx) => tx.insert(mediaFiles).values({ workspaceId: wsB, ...file }));
+    expect(await withWorkspace(db, ctxA, (tx) => tx.select().from(mediaFiles))).toHaveLength(0);
+    const [own] = await withWorkspace(db, ctxB, (tx) => tx.select().from(mediaFiles));
+    expect(own?.data).toEqual(Buffer.from([1, 2, 3]));
+    await expect(
+      withWorkspace(db, ctxA, (tx) => tx.insert(mediaFiles).values({ workspaceId: wsB, ...file, sha256: "x" })),
     ).rejects.toThrow();
   });
 

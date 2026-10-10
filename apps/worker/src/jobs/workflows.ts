@@ -1,5 +1,4 @@
-import { lookup } from "node:dns/promises";
-import { isIP } from "node:net";
+import { isPublicUrl } from "@zfunnel/shared/net";
 import {
   and,
   contactActivities,
@@ -91,37 +90,7 @@ export async function processWorkflowEvent(event: WorkflowEvent, eventId: string
 }
 
 /** Blocks webhooks to private, loopback and link-local addresses (SSRF). */
-export async function isPublicUrl(raw: string) {
-  let u: URL;
-  try {
-    u = new URL(raw);
-  } catch {
-    return false;
-  }
-  if (u.protocol !== "https:" && u.protocol !== "http:") return false;
-  const host = u.hostname.replace(/^\[|\]$/g, "");
-  const addrs = isIP(host) ? [host] : (await lookup(host, { all: true }).catch(() => [])).map((a) => a.address);
-  if (!addrs.length) return false;
-  return addrs.every((a) => !isPrivate(a));
-}
-function isPrivate(ip: string) {
-  if (ip.includes(":")) {
-    const l = ip.toLowerCase();
-    if (l.startsWith("::ffff:")) return isPrivate(l.slice(7));
-    return l === "::1" || l === "::" || l.startsWith("fc") || l.startsWith("fd") || l.startsWith("fe80");
-  }
-  const [a, b] = ip.split(".").map(Number) as [number, number];
-  return (
-    a === 10 ||
-    a === 127 ||
-    a === 0 ||
-    (a === 169 && b === 254) ||
-    (a === 172 && b >= 16 && b <= 31) ||
-    (a === 192 && b === 168) ||
-    (a === 100 && b >= 64 && b <= 127) ||
-    a >= 224
-  );
-}
+export { isPublicUrl };
 
 type StepResult = {
   next: string | null;

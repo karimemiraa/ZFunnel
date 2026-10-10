@@ -28,6 +28,7 @@ import { errors } from "./errors";
 import { forms } from "./forms";
 import { formsAdmin } from "./formsAdmin";
 import { funnels } from "./funnels";
+import { importer } from "./importer";
 import { inbox } from "./inbox";
 import { nav } from "./nav";
 import { orders } from "./orders";
@@ -78,6 +79,7 @@ export const en = {
   forms,
   formsAdmin,
   funnels,
+  importer,
   inbox,
   nav,
   orders,

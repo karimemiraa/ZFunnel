@@ -267,6 +267,8 @@ Live & evergreen webinars (LiveKit) · AI conversion coach (analyses funnel stat
 - Products, prices, order bumps, automations and email sequences can't be read from a page. They must be recreated, which is quick with the templates.
 - Only pages you own may be imported. The import tool says so.
 
+**7.3 status: Done.** Funnels → **Import from ClickFunnels** takes up to 10 published URLs (one step each, in order), a funnel name and an ownership confirmation. Pages are fetched through the SSRF-safe `safeFetch` in `@zfunnel/shared/net` and converted by `@zfunnel/blocks/import`. It recognizes classic CF (`data-de-type`, `.elHeadline`…), CF 2.0 (`data-page-element`) and plain HTML, and maps headings, text, images, buttons, YouTube/Vimeo/Wistia video, bullet lists, section colors and background images, 2–4 columns, opt-in forms, order forms (→ checkout step) and countdowns. Anything else becomes a sanitized custom-HTML block. Images (up to 30 per page, 5 MB each, raster only) are copied into the new `media_files` table and served from `/api/media/{id}` on the public site. The import runs synchronously, with no job queue (ADR-024). The contacts CSV import now reads ClickFunnels classic and 2.0 headers, including first and last name and the created date. The user guide is `docs/IMPORT.md`. **Later:** popups, multi-step CF forms and custom fields from the CSV.
+
 **Open questions for the owner.**
 
 1. Which email should be the first super admin? (Probably the account you just created.)

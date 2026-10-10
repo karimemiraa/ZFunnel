@@ -1,7 +1,7 @@
 import { Badge } from "@zfunnel/ui/badge";
 import { Button } from "@zfunnel/ui/button";
 import { EmptyState } from "@zfunnel/ui/empty-state";
-import { FilterIcon, PlusIcon } from "lucide-react";
+import { DownloadIcon, FilterIcon, PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { NewFunnelDialog } from "@/components/funnels/new-funnel-dialog";
 import { aiConfigured } from "@/lib/ai";
@@ -30,7 +30,14 @@ export default async function FunnelsPage({ params }: { params: Promise<{ worksp
         title={t("funnels.title")}
         description={t("funnels.description")}
         actions={
-          <NewFunnelDialog workspaceSlug={ws} presets={presets} templates={templates} aiEnabled={aiConfigured()} />
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" asChild>
+              <Link href={`/${ws}/funnels/import`}>
+                <DownloadIcon /> {t("importer.button")}
+              </Link>
+            </Button>
+            <NewFunnelDialog workspaceSlug={ws} presets={presets} templates={templates} aiEnabled={aiConfigured()} />
+          </div>
         }
       />
       {funnels.length === 0 ? (
