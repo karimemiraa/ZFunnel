@@ -6,7 +6,8 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:
  * Format: v1.<iv>.<tag>.<ciphertext> (base64url).
  */
 function key() {
-  const s = process.env.SECRETS_KEY ?? process.env.BETTER_AUTH_SECRET;
+  // `||`, not `??`: compose passes an empty SECRETS_KEY when unset, which must not become the key.
+  const s = process.env.SECRETS_KEY || process.env.BETTER_AUTH_SECRET;
   if (!s) throw new Error("SECRETS_KEY or BETTER_AUTH_SECRET must be set");
   return createHash("sha256").update(`zfunnel-secrets:${s}`).digest();
 }

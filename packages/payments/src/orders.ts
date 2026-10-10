@@ -87,7 +87,8 @@ export async function getPaymentSetup(tx: Tx, workspaceId: string): Promise<Paym
     .select()
     .from(paymentAccounts)
     .where(and(eq(paymentAccounts.workspaceId, workspaceId), eq(paymentAccounts.provider, "stripe")));
-  const pk = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? process.env.STRIPE_PUBLISHABLE_KEY;
+  // `||`: compose passes empty strings for unset keys.
+  const pk = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || process.env.STRIPE_PUBLISHABLE_KEY;
   if (acct?.chargesEnabled && stripeConfigured() && pk)
     return { provider: "stripe", accountId: acct.externalId, publishableKey: pk, livemode: acct.livemode };
   if (testModeEnabled()) return { provider: "test" };

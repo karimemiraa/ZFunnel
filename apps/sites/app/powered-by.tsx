@@ -1,6 +1,7 @@
 import { currentWorkspace } from "@/lib/site";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://zfunnel.app";
+// Same platform URL the worker uses; set by the production compose file.
+const APP_URL = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
 
 /** "Powered by ZFunnel" pill; removed for workspaces on a white-label plan that turned it off. */
 export async function PoweredBy() {

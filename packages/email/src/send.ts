@@ -22,7 +22,7 @@ function getTransport() {
 /** The platform's sending address; replies go to the workspace's own reply-to. */
 export function fromAddress(fromName: string) {
   const addr =
-    process.env.EMAIL_FROM ?? `hello@mail.${(process.env.ROOT_DOMAIN ?? "zfunnel.app").replace(/:\d+$/, "")}`;
+    process.env.EMAIL_FROM || `hello@mail.${(process.env.ROOT_DOMAIN ?? "zfunnel.app").replace(/:\d+$/, "")}`;
   return { name: fromName.replace(/[\r\n"<>]/g, "").slice(0, 80), address: addr };
 }
 
