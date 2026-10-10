@@ -33,6 +33,7 @@ export type ActivityType =
   | "email_sent"
   | "email_opened"
   | "email_clicked"
+  | "unsubscribed"
   | "deal_moved"
   | "automation"
   | "form";

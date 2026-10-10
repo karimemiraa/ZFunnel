@@ -12,6 +12,8 @@ const config: NextConfig = {
     "@zfunnel/db",
     "@zfunnel/blocks",
     "@zfunnel/payments",
+    "@zfunnel/email",
+    "@zfunnel/queue",
   ],
   poweredByHeader: false,
   // Self-contained server bundle for Docker (traces the monorepo's workspace packages).

@@ -11,3 +11,8 @@ next-env.d.ts
 .DS_Store
 test-results/
 playwright-report/
+
+# Generated locally
+dump.rdb
+apps/*/AGENTS.md
+apps/*/CLAUDE.md

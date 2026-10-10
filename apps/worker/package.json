@@ -7,9 +7,13 @@
     "dev": "tsx watch --env-file-if-exists=../../.env src/index.ts",
     "start": "tsx src/index.ts",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
+    "@zfunnel/db": "workspace:*",
+    "@zfunnel/email": "workspace:*",
+    "@zfunnel/queue": "workspace:*",
     "bullmq": "6.3.9",
     "ioredis": "6.0.0",
     "tsx": "4.23.15"
@@ -18,6 +22,7 @@
     "@types/node": "22.20.4",
     "@zfunnel/config": "workspace:*",
     "eslint": "9.39.5",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "5.0.2"
   }
 }

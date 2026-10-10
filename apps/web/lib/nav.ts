@@ -66,7 +66,6 @@ export const NAV_MODULES: NavModule[] = [
     segment: "email",
     label: "Email",
     icon: MailIcon,
-    phase: 2,
     description: "Broadcasts, sequences and a drag-and-drop email editor.",
   },
   {

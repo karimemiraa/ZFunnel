@@ -30,6 +30,7 @@ const ICONS = {
   email_sent: MailIcon,
   email_opened: MailIcon,
   email_clicked: MailIcon,
+  unsubscribed: MailIcon,
   automation: ZapIcon,
   form: FilterIcon,
 } as const;

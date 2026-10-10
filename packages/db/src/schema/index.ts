@@ -6,3 +6,4 @@ export * from "./commerce";
 export * from "./domains";
 export * from "./analytics";
 export * from "./crm";
+export * from "./email";

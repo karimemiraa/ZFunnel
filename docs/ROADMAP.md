@@ -55,6 +55,14 @@ Deferred from Phase 0 on purpose: team invitations (need email sending, Phase 2.
 | 2.10 | AI v1                     | Rewrite/generate copy in the editor; AI email writer                                                                                                                                        |
 | 2.11 | ZFunnel's own billing     | Plans, limits (contacts, emails, domains, workspaces), usage metering, trial                                                                                                                |
 
+### Phase 2 status
+
+| #       | Status      | Notes                                                                                                                                                                                                                                        |
+| ------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2.1–2.2 | Done        | Tags, custom fields, segment rule builder, timeline, CSV import/export, kanban pipelines.                                                                                                                                                    |
+| 2.3     | Done (core) | SMTP sending via worker queue (10/s), signed open/click/unsubscribe links, RFC 8058 one-click unsubscribe, hard-bounce handling, required postal address. **Later:** sending-domain wizard (SPF/DKIM/DMARC check) and provider bounce webhooks. |
+| 2.4     | Done (core) | Puck-based email editor (we chose Puck over maily.to so pages and emails share one editor; see ADR log), broadcasts to all/segment/tag, test send, schedule, per-broadcast open/click stats. **Later:** A/B subject lines, saved templates.   |
+
 ## Phase 3 — Products beyond funnels (L)
 
 Courses & memberships (modules, lessons, drip, video hosting, progress, quizzes, certificates) · Appointments (cal.diy-derived availability, Google/Outlook sync, paid bookings) · Websites & blog (menus, SEO, sitemap, RSS) · SMS via Twilio in workflows · Public REST API + webhooks + Zapier/Make apps · AI v2 (prompt → full funnel, image generation) · PayPal gateway.
