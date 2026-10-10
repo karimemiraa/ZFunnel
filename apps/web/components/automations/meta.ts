@@ -1,5 +1,6 @@
 import type { WorkflowNode, WorkflowTrigger } from "@zfunnel/db/schema";
 import {
+  CalendarCheckIcon,
   ClockIcon,
   GraduationCapIcon,
   CreditCardIcon,
@@ -43,6 +44,11 @@ export const TRIGGER_META: Record<WorkflowTrigger["type"], { label: string; icon
   purchase: { label: "Makes a purchase", icon: CreditCardIcon, hint: "Checkout or one-click upsell succeeds" },
   tag_added: { label: "Tag is added", icon: TagIcon, hint: "A tag is added to a contact" },
   form_submitted: { label: "Submits a form", icon: ClipboardListIcon, hint: "A survey or form is submitted" },
+  booked: {
+    label: "Books an appointment",
+    icon: CalendarCheckIcon,
+    hint: "A booking is made on one of your calendars",
+  },
   manual: { label: "Added manually", icon: HandIcon, hint: "You add contacts yourself" },
 };
 export const TRIGGER_CHOICES: WorkflowTrigger["type"][] = [
@@ -59,15 +65,20 @@ export type Lookups = {
   tags: string[];
   emails: { id: string; name: string; subject: string; preheader: string }[];
   courses: { id: string; title: string }[];
+  calendars: { id: string; name: string }[];
 };
 
-export function triggerSummary(t: WorkflowTrigger, l: Pick<Lookups, "funnels" | "products">) {
+export function triggerSummary(t: WorkflowTrigger, l: Pick<Lookups, "funnels" | "products" | "calendars">) {
   switch (t.type) {
     case "optin":
     case "form_submitted":
       return t.funnelId ? (l.funnels.find((f) => f.id === t.funnelId)?.name ?? "A deleted funnel") : "Any funnel";
     case "purchase":
       return t.productId ? (l.products.find((p) => p.id === t.productId)?.name ?? "A deleted product") : "Any product";
+    case "booked":
+      return t.calendarId
+        ? (l.calendars.find((c) => c.id === t.calendarId)?.name ?? "A deleted calendar")
+        : "Any calendar";
     case "tag_added":
       return t.tag ? `“${t.tag}”` : "Choose a tag";
     case "manual":

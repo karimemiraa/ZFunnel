@@ -58,7 +58,7 @@ export async function getUsage(organizationId: string): Promise<Record<LimitKey,
         (select count(*) from contacts c where c.workspace_id in (select id from ws))::int as contacts,
         (select count(*) from email_messages m where m.workspace_id in (select id from ws)
            and m.created_at >= date_trunc('month', now()) and coalesce(m.meta->>'test', 'false') <> 'true'
-           and coalesce(m.meta->>'kind', '') <> 'login')::int as "emailsPerMonth",
+           and coalesce(m.meta->>'kind', '') not in ('login', 'booking'))::int as "emailsPerMonth",
         (select count(*) from domains d where d.workspace_id in (select id from ws))::int as domains,
         (select count(*) from member where organization_id = ${organizationId})::int as members`),
   )) as unknown as Record<LimitKey, number>[];

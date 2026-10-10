@@ -127,6 +127,22 @@ export function TriggerPanel({
           </NativeSelect>
         </Field>
       )}
+      {trigger.type === "booked" && (
+        <Field label="Calendar" htmlFor="trigger-calendar">
+          <NativeSelect
+            id="trigger-calendar"
+            value={trigger.calendarId ?? ""}
+            onChange={(e) => onChange({ type: "booked", calendarId: e.target.value || null })}
+          >
+            <option value="">Any calendar</option>
+            {lookups.calendars.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </NativeSelect>
+        </Field>
+      )}
       {trigger.type === "tag_added" && (
         <Field label="Tag" htmlFor="trigger-tag">
           <TagInput

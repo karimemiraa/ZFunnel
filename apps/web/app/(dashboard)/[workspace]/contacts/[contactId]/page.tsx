@@ -2,6 +2,7 @@ import { formatMoney } from "@zfunnel/payments/money";
 import { Badge } from "@zfunnel/ui/badge";
 import {
   ArrowLeftIcon,
+  CalendarIcon,
   CreditCardIcon,
   FilterIcon,
   KanbanIcon,
@@ -33,6 +34,7 @@ const ICONS = {
   email_opened: MailIcon,
   email_clicked: MailIcon,
   unsubscribed: MailIcon,
+  booking: CalendarIcon,
   automation: ZapIcon,
   form: FilterIcon,
 } as const;
@@ -49,6 +51,7 @@ const LABEL: Record<string, (b: string | null) => string> = {
   email_clicked: (b) => `Clicked: ${b}`,
   automation: (b) => `Automation: ${b}`,
   form: (b) => `Submitted ${b}`,
+  booking: (b) => `Booked ${b ?? "an appointment"}`,
   unsubscribed: (b) => `Unsubscribed${b ? ` via “${b}”` : ""}`,
 };
 

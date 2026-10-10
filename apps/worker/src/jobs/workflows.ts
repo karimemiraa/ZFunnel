@@ -37,6 +37,8 @@ export function triggerMatches(trigger: WorkflowTrigger, event: WorkflowEvent) {
       return !trigger.funnelId || trigger.funnelId === d.funnelId;
     case "purchase":
       return !trigger.productId || (d.productIds ?? "").split(",").includes(trigger.productId);
+    case "booked":
+      return !trigger.calendarId || trigger.calendarId === d.calendarId;
     case "tag_added":
       return trigger.tag.toLowerCase() === (d.tag ?? "").toLowerCase();
     case "manual":

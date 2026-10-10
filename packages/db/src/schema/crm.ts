@@ -34,6 +34,7 @@ export type ActivityType =
   | "email_opened"
   | "email_clicked"
   | "unsubscribed"
+  | "booking"
   | "deal_moved"
   | "automation"
   | "form";

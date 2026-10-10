@@ -41,6 +41,9 @@ importers:
       '@zfunnel/queue':
         specifier: workspace:*
         version: link:../../packages/queue
+      '@zfunnel/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       lucide-react:
         specifier: 1.48.0
         version: 1.48.0(react@19.3.0)

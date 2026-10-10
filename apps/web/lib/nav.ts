@@ -92,7 +92,6 @@ export const NAV_MODULES: NavModule[] = [
     segment: "calendars",
     label: "Calendars",
     icon: CalendarIcon,
-    phase: 3,
     description: "Booking pages with availability and calendar sync.",
   },
 ];

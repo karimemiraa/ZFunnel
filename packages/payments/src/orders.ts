@@ -388,7 +388,16 @@ export async function logActivity(
   input: {
     workspaceId: string;
     contactId: string;
-    type: "optin" | "purchase" | "upsell" | "form" | "automation" | "email_sent" | "email_opened" | "email_clicked";
+    type:
+      | "optin"
+      | "purchase"
+      | "upsell"
+      | "form"
+      | "automation"
+      | "email_sent"
+      | "email_opened"
+      | "email_clicked"
+      | "booking";
     body?: string | null;
     data?: Record<string, unknown>;
   },

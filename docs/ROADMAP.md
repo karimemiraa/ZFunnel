@@ -91,6 +91,7 @@ The owner asked to build all remaining phases without stopping, so this plan was
 **Status**
 
 - **3.1 Courses: done.** Covers modules and lessons (video embed + rich text), drip, free previews and up/down reordering. Access comes from linked products (granted inside `markPaymentSucceeded`, so the Stripe webhook path is covered too), the “Give course access” automation step, or manual enrollment and revocation. Students sign in at `{site}/courses` using the customer-center magic link and land back on the page they came from. Progress is tracked per lesson, and owners see students' progress.
+- **3.2 Appointments: done.** Calendars have weekly availability windows per day, duration, buffer, minimum notice, a booking horizon and an IANA timezone. Slot math is DST-safe and unit-tested. The public `/book/{slug}` page shows a month calendar and times in the visitor's timezone. The server re-checks every slot, and a partial unique index makes double booking impossible. Each booking creates or updates the contact, logs activity, sends a confirmation email with an “Add to Google Calendar” link, and fires the “Books an appointment” trigger. Owners can cancel bookings. The e2e test covers the whole flow.
 
 **Deferred (needs external accounts or partner approval):** Google/Outlook calendar sync (OAuth app review), PayPal (separate merchant onboarding), Zapier/Make listings (their review process; our webhooks + API already work with their generic “Webhooks” apps), certificates and video hosting (v1 uses YouTube/Vimeo/Wistia/Bunny URLs).
 

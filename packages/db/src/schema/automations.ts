@@ -8,6 +8,7 @@ export type WorkflowTrigger =
   | { type: "purchase"; productId?: string | null }
   | { type: "tag_added"; tag: string }
   | { type: "form_submitted"; funnelId?: string | null }
+  | { type: "booked"; calendarId?: string | null }
   | { type: "manual" };
 
 /** One step of an automation. Steps form a tree: `next`, or `yes`/`no` for conditions. */

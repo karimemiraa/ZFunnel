@@ -1,6 +1,8 @@
 import {
   and,
+  bookings,
   broadcasts,
+  calendars,
   contacts,
   emailMessages,
   emails,
@@ -97,6 +99,7 @@ export async function processEmail({ messageId }: EmailJob) {
   const mark = (set: Partial<typeof emailMessages.$inferInsert>) =>
     withSystem(db(), (tx) => tx.update(emailMessages).set(set).where(eq(emailMessages.id, m.id)));
   if (m.meta?.kind === "login") return sendLoginLink(m, settings, mark);
+  if (m.meta?.kind === "booking") return sendBookingConfirmation(m, settings, mark);
   if (!email || !settings) {
     await mark({
       status: "failed",
@@ -179,6 +182,64 @@ async function sendLoginLink(
     subject: m.subject,
     html,
     text: `Sign in to your account: ${url}\n\nThis link works once and expires in 30 minutes.`,
+    messageId: m.id,
+  });
+  await mark({ status: "sent", sentAt: new Date(), providerMessageId: r.providerMessageId });
+  return { sent: true };
+}
+
+/** Built-in transactional email: booking confirmation with an "Add to Google Calendar" link. */
+async function sendBookingConfirmation(
+  m: typeof emailMessages.$inferSelect,
+  settings: typeof emailSettings.$inferSelect | undefined,
+  mark: (set: Partial<typeof emailMessages.$inferInsert>) => Promise<unknown>,
+) {
+  const row = await withSystem(db(), async (tx) => {
+    const [b] = m.meta?.bookingId ? await tx.select().from(bookings).where(eq(bookings.id, m.meta.bookingId)) : [];
+    const [c] = b ? await tx.select().from(calendars).where(eq(calendars.id, b.calendarId)) : [];
+    const [ws] = await tx.select({ name: workspaces.name }).from(workspaces).where(eq(workspaces.id, m.workspaceId));
+    return b && c ? { b, c, wsName: ws?.name ?? "" } : null;
+  });
+  if (!row) {
+    await mark({ status: "skipped", error: "Booking not found" });
+    return { skipped: true };
+  }
+  const { b, c, wsName } = row;
+  const fromName = settings?.fromName ?? wsName;
+  const when = b.startAt.toLocaleString("en-US", {
+    timeZone: c.timezone,
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  });
+  const stamp = (d: Date) =>
+    d
+      .toISOString()
+      .replace(/[-:]/g, "")
+      .replace(/\.\d{3}/, "");
+  const gcal = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`${c.name} (${fromName})`)}&dates=${stamp(b.startAt)}/${stamp(b.endAt)}&location=${encodeURIComponent(c.location)}&details=${encodeURIComponent(c.description)}`;
+  const html = `<!doctype html><html><body style="margin:0;background:#f4f4f7;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 12px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:14px">
+<tr><td style="padding:36px 36px 8px;font-size:13px;font-weight:600;color:#059669">BOOKING CONFIRMED</td></tr>
+<tr><td style="padding:0 36px 8px;font-size:22px;font-weight:700;color:#111827">${esc(c.name)}</td></tr>
+<tr><td style="padding:0 36px 4px;font-size:15px;color:#374151">📅 ${esc(when)}</td></tr>
+<tr><td style="padding:0 36px 4px;font-size:15px;color:#374151">⏱ ${c.durationMinutes} minutes</td></tr>
+${c.location ? `<tr><td style="padding:0 36px 4px;font-size:15px;color:#374151">📍 ${esc(c.location)}</td></tr>` : ""}
+<tr><td style="padding:24px 36px 32px"><a href="${esc(gcal)}" style="display:inline-block;background:#4f46e5;color:#fff;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:10px">Add to Google Calendar</a></td></tr>
+<tr><td style="padding:0 36px 32px;font-size:13px;color:#6b7280">Need to change the time? Just reply to this email.</td></tr>
+</table></td></tr></table></body></html>`;
+  const r = await sendEmail({
+    fromName,
+    replyTo: settings?.replyTo,
+    to: m.toEmail,
+    subject: m.subject,
+    html,
+    text: `Booking confirmed: ${c.name}\n${when}\n${c.durationMinutes} minutes${c.location ? `\n${c.location}` : ""}\n\nAdd to Google Calendar: ${gcal}`,
     messageId: m.id,
   });
   await mark({ status: "sent", sentAt: new Date(), providerMessageId: r.providerMessageId });
