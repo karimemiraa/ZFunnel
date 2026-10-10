@@ -28,13 +28,14 @@ export function fromAddress(fromName: string) {
 
 export type SendInput = {
   fromName: string;
-  replyTo: string;
+  replyTo?: string;
   to: string;
   subject: string;
   html: string;
   text: string;
-  unsubscribeUrl: string;
-  unsubscribePostUrl: string;
+  /** Marketing mail only; transactional mail (sign-in links, receipts) has none. */
+  unsubscribeUrl?: string;
+  unsubscribePostUrl?: string;
   messageId: string;
 };
 
@@ -47,9 +48,13 @@ export async function sendEmail(input: SendInput) {
     html: input.html,
     text: input.text,
     headers: {
-      // RFC 8058 one-click unsubscribe (required by Gmail/Yahoo for bulk senders).
-      "List-Unsubscribe": `<${input.unsubscribePostUrl}>, <${input.unsubscribeUrl}>`,
-      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      ...(input.unsubscribeUrl
+        ? {
+            // RFC 8058 one-click unsubscribe (required by Gmail/Yahoo for bulk senders).
+            "List-Unsubscribe": `<${input.unsubscribePostUrl ?? input.unsubscribeUrl}>, <${input.unsubscribeUrl}>`,
+            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+          }
+        : {}),
       "X-ZFunnel-Message": input.messageId,
     },
   });

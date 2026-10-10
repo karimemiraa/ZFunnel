@@ -7,12 +7,13 @@ function secret() {
   return s;
 }
 
-export function signToken(kind: "o" | "c" | "u", messageId: string) {
+/** o = open pixel, c = click, u = unsubscribe, l = customer-center login link. */
+export function signToken(kind: "o" | "c" | "u" | "l", messageId: string) {
   const mac = createHmac("sha256", secret()).update(`${kind}:${messageId}`).digest("base64url").slice(0, 22);
   return `${messageId}.${mac}`;
 }
 
-export function verifyToken(kind: "o" | "c" | "u", token: string): string | null {
+export function verifyToken(kind: "o" | "c" | "u" | "l", token: string): string | null {
   const [id, mac] = token.split(".");
   if (!id || !mac || !/^[0-9a-f-]{36}$/i.test(id)) return null;
   const expected = signToken(kind, id).split(".")[1]!;
@@ -28,4 +29,19 @@ export function trackingUrls(appUrl: string, messageId: string) {
     click: (url: string) => `${base}/e/c/${signToken("c", messageId)}?u=${encodeURIComponent(url)}`,
     unsubscribe: `${base}/e/u/${signToken("u", messageId)}`,
   };
+}
+
+/** Signs an arbitrary value (e.g. a customer session) for one purpose. */
+export function signValue(purpose: string, value: string) {
+  const mac = createHmac("sha256", secret()).update(`${purpose}:${value}`).digest("base64url").slice(0, 32);
+  return `${value}.${mac}`;
+}
+
+export function verifyValue(purpose: string, token: string): string | null {
+  const i = token.lastIndexOf(".");
+  if (i < 1) return null;
+  const value = token.slice(0, i);
+  const a = Buffer.from(token.slice(i + 1));
+  const b = Buffer.from(signValue(purpose, value).slice(i + 1));
+  return a.length === b.length && timingSafeEqual(a, b) ? value : null;
 }

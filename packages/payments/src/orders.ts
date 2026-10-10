@@ -309,6 +309,43 @@ export async function recordSubscription(
   return s!;
 }
 
+/**
+ * Test gateway: records a subscription for every paid recurring item of an order, as
+ * Stripe would. Idempotent (one subscription per order item).
+ */
+export async function recordTestSubscriptions(
+  tx: Tx,
+  input: { workspaceId: string; contactId: string; orderId: string },
+) {
+  const rows = await tx
+    .select({ itemId: orderItems.id, priceId: prices.id, interval: prices.interval, trialDays: prices.trialDays })
+    .from(orderItems)
+    .innerJoin(prices, eq(prices.id, orderItems.priceId))
+    .where(
+      and(
+        eq(orderItems.orderId, input.orderId),
+        eq(orderItems.status, "paid"),
+        sql`${prices.type} in ('recurring', 'payment_plan')`,
+      ),
+    );
+  for (const r of rows) {
+    const end = new Date();
+    if (r.trialDays) end.setDate(end.getDate() + r.trialDays);
+    else if (r.interval === "year") end.setFullYear(end.getFullYear() + 1);
+    else end.setMonth(end.getMonth() + 1);
+    await recordSubscription(tx, {
+      workspaceId: input.workspaceId,
+      contactId: input.contactId,
+      priceId: r.priceId,
+      orderId: input.orderId,
+      provider: "test",
+      externalId: `test_sub_${r.itemId}`,
+      status: r.trialDays ? "trialing" : "active",
+      currentPeriodEnd: end,
+    });
+  }
+}
+
 export function system<T>(fn: (tx: Tx) => Promise<T>) {
   return withSystem(getDb(), fn);
 }

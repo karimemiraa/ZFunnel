@@ -95,6 +95,11 @@ describe.skipIf(!enabled)("stripe requests (stripe-mock)", () => {
     expect(upsellSub.subscription.id).toMatch(/^sub_/);
   });
 
+  it("cancels and resumes a subscription at period end", async () => {
+    const r = await s.setCancelAtPeriodEnd("acct_1", "sub_1", true);
+    expect(r.id).toMatch(/^sub_/);
+  });
+
   it("refunds", async () => {
     const r = await s.refundPayment("acct_1", "pi_1", 500);
     expect(r.id).toMatch(/^re_/);

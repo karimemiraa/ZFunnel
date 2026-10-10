@@ -32,6 +32,9 @@ importers:
       '@zfunnel/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@zfunnel/email':
+        specifier: workspace:*
+        version: link:../../packages/email
       '@zfunnel/payments':
         specifier: workspace:*
         version: link:../../packages/payments

@@ -2,7 +2,7 @@ import "server-only";
 
 import { buildTemplate, starterPage, type StarterStepType } from "@zfunnel/blocks";
 import { and, asc, desc, eq, funnels, funnelSteps, getDb, sql, withWorkspace, type Tx } from "@zfunnel/db";
-import { slugify } from "@zfunnel/shared";
+import { RESERVED_SLUGS, slugify } from "@zfunnel/shared";
 import type { WorkspaceContext } from "./workspaces";
 
 export type StepType = StarterStepType;
@@ -134,7 +134,8 @@ export async function createFunnelWithSteps(
 ) {
   return inWorkspace(ctx, async (tx) => {
     const existing = await tx.select({ slug: funnels.slug }).from(funnels);
-    const slug = uniqueSlug(name, new Set(existing.map((f) => f.slug)));
+    // Reserved words (api, account…) would collide with the public site's own routes.
+    const slug = uniqueSlug(name, new Set([...existing.map((f) => f.slug), ...RESERVED_SLUGS]));
     const [funnel] = await tx.insert(funnels).values({ workspaceId: ctx.workspace.id, name, slug }).returning();
     const spec =
       "template" in source

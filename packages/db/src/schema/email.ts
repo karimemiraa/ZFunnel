@@ -89,7 +89,16 @@ export const emailMessages = pgTable(
     clickedAt: timestamp({ withTimezone: true }),
     openCount: integer().notNull().default(0),
     clickCount: integer().notNull().default(0),
-    meta: jsonb().$type<{ test?: boolean; clicks?: string[]; workflowId?: string; runId?: string }>(),
+    meta: jsonb().$type<{
+      test?: boolean;
+      clicks?: string[];
+      workflowId?: string;
+      runId?: string;
+      /** Built-in transactional emails (no design): customer-center login link. */
+      kind?: "login";
+      siteOrigin?: string;
+      usedAt?: string;
+    }>(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [

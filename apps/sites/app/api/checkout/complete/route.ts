@@ -6,6 +6,7 @@ import {
   getPaymentSetup,
   markPaymentFailed,
   markPaymentSucceeded,
+  recordTestSubscriptions,
   recordSubscription,
   retrievePaymentIntent,
   retrieveSubscription,
@@ -71,6 +72,7 @@ export async function POST(req: Request) {
           brand: r.brand,
           last4: r.last4,
         });
+        await recordTestSubscriptions(tx, { workspaceId: g.ws.id, contactId: order.contactId!, orderId: order.id });
       });
     } else {
       if (setup?.provider !== "stripe") return jsonError("Payments are not configured.", 503);

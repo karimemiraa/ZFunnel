@@ -4,12 +4,15 @@ import { cn } from "@zfunnel/ui/lib/utils";
 import { CreditCardIcon, DollarSignIcon, ReceiptIcon, RepeatIcon, TrendingUpIcon } from "lucide-react";
 import Link from "next/link";
 import { OrderStatus } from "@/components/commerce/order-status";
+import { Button } from "@zfunnel/ui/button";
+import { UserRoundIcon } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { SearchInput } from "@/components/search-input";
 import { StatCard } from "@/components/stat-card";
 import { listOrders, orderStats } from "@/lib/commerce";
 import { requireWorkspace } from "@/lib/context";
 import { timeAgo } from "@/lib/format";
+import { siteOrigin } from "@/lib/urls";
 
 export const metadata = { title: "Orders" };
 
@@ -36,7 +39,17 @@ export default async function OrdersPage({
 
   return (
     <>
-      <PageHeader title="Orders" description="Every purchase across your funnels, including one-click upsells." />
+      <PageHeader
+        title="Orders"
+        description="Every purchase across your funnels, including one-click upsells."
+        actions={
+          <Button variant="outline" asChild>
+            <a href={`${siteOrigin(ctx.workspace.slug)}/account`} target="_blank" rel="noreferrer">
+              <UserRoundIcon /> Customer center
+            </a>
+          </Button>
+        }
+      />
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Total revenue" value={formatMoney(stats.revenue, cur)} icon={DollarSignIcon} />
         <StatCard label="Last 30 days" value={formatMoney(stats.last30, cur)} icon={TrendingUpIcon} />

@@ -12,9 +12,10 @@ import {
   segments,
   sql,
   withSystem,
+  workspaces,
   type Tx,
 } from "@zfunnel/db";
-import { renderEmail, trackingUrls, type EmailDoc } from "@zfunnel/email";
+import { esc, renderEmail, signToken, trackingUrls, type EmailDoc } from "@zfunnel/email";
 import { isHardBounce, sendEmail } from "@zfunnel/email/send";
 import { queue, type BroadcastJob, type EmailJob } from "@zfunnel/queue";
 
@@ -95,6 +96,7 @@ export async function processEmail({ messageId }: EmailJob) {
   const { m, email, settings, contact } = loaded;
   const mark = (set: Partial<typeof emailMessages.$inferInsert>) =>
     withSystem(db(), (tx) => tx.update(emailMessages).set(set).where(eq(emailMessages.id, m.id)));
+  if (m.meta?.kind === "login") return sendLoginLink(m, settings, mark);
   if (!email || !settings) {
     await mark({
       status: "failed",
@@ -144,4 +146,41 @@ export async function processEmail({ messageId }: EmailJob) {
     }
     throw err; // transient: BullMQ retries with backoff
   }
+}
+
+/** Built-in transactional email: the customer-center sign-in link (no tracking, no unsubscribe). */
+async function sendLoginLink(
+  m: typeof emailMessages.$inferSelect,
+  settings: typeof emailSettings.$inferSelect | undefined,
+  mark: (set: Partial<typeof emailMessages.$inferInsert>) => Promise<unknown>,
+) {
+  const origin = m.meta?.siteOrigin;
+  if (!origin || !/^https?:\/\/[^/]+$/.test(origin)) {
+    await mark({ status: "failed", error: "Missing site origin" });
+    return { failed: true };
+  }
+  const [ws] = await withSystem(db(), (tx) =>
+    tx.select({ name: workspaces.name }).from(workspaces).where(eq(workspaces.id, m.workspaceId)),
+  );
+  const fromName = settings?.fromName ?? ws?.name ?? "Customer center";
+  const url = `${origin}/account/verify?t=${signToken("l", m.id)}`;
+  const html = `<!doctype html><html><body style="margin:0;background:#f4f4f7;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 12px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#fff;border-radius:14px">
+<tr><td style="padding:36px 36px 8px;font-size:22px;font-weight:700;color:#111827">Sign in to your account</td></tr>
+<tr><td style="padding:0 36px 24px;font-size:15px;line-height:1.6;color:#4b5563">Click the button below to see your purchases and manage your subscriptions with ${esc(fromName)}. This link works once and expires in 30 minutes.</td></tr>
+<tr><td style="padding:0 36px 32px"><a href="${esc(url)}" style="display:inline-block;background:#4f46e5;color:#fff;text-decoration:none;font-weight:600;padding:13px 26px;border-radius:10px">Sign in</a></td></tr>
+<tr><td style="padding:0 36px 32px;font-size:12px;color:#9ca3af">If you didn't ask for this, you can ignore this email.</td></tr>
+</table></td></tr></table></body></html>`;
+  const r = await sendEmail({
+    fromName,
+    replyTo: settings?.replyTo,
+    to: m.toEmail,
+    subject: m.subject,
+    html,
+    text: `Sign in to your account: ${url}\n\nThis link works once and expires in 30 minutes.`,
+    messageId: m.id,
+  });
+  await mark({ status: "sent", sentAt: new Date(), providerMessageId: r.providerMessageId });
+  return { sent: true };
 }

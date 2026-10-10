@@ -245,6 +245,11 @@ export async function retrieveSubscription(accountId: string, id: string) {
   );
 }
 
+/** Customer center: cancel at the end of the paid period, or undo that. */
+export async function setCancelAtPeriodEnd(accountId: string, subscriptionId: string, cancel: boolean) {
+  return stripe().subscriptions.update(subscriptionId, { cancel_at_period_end: cancel }, { stripeAccount: accountId });
+}
+
 export async function refundPayment(accountId: string, paymentIntentId: string, amount?: number) {
   return stripe().refunds.create({ payment_intent: paymentIntentId, amount }, { stripeAccount: accountId });
 }

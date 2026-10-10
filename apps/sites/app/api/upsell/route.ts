@@ -12,6 +12,7 @@ import {
   markPaymentFailed,
   markPaymentSucceeded,
   recordSubscription,
+  recordTestSubscriptions,
   releaseStep,
   SESSION_COOKIE,
   system,
@@ -91,7 +92,14 @@ export async function POST(req: Request) {
   };
 
   if (setup.provider === "test") {
-    await system((tx) => markPaymentSucceeded(tx, paymentId, { test: true }));
+    await system(async (tx) => {
+      await markPaymentSucceeded(tx, paymentId, { test: true });
+      await recordTestSubscriptions(tx, {
+        workspaceId: g.ws.id,
+        contactId: session.contactId!,
+        orderId: session.orderId!,
+      });
+    });
     await system((tx) =>
       logActivity(tx, { workspaceId: g.ws.id, contactId: session.contactId!, type: "upsell", body: offer.productName }),
     );

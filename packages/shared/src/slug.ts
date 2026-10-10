@@ -19,6 +19,7 @@ export const RESERVED_SLUGS = new Set([
   "login",
   "billing",
   "dashboard",
+  "account",
 ]);
 
 /** Turns a free-text name into a DNS-safe subdomain label (max 48 chars). */

@@ -15,6 +15,7 @@
     "@puckeditor/core": "0.23.0",
     "@zfunnel/blocks": "workspace:*",
     "@zfunnel/db": "workspace:*",
+    "@zfunnel/email": "workspace:*",
     "@zfunnel/payments": "workspace:*",
     "@zfunnel/queue": "workspace:*",
     "next": "16.3.6",
