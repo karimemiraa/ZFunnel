@@ -11,6 +11,7 @@ export const QUEUES = {
   broadcast: "broadcast",
   workflowEvents: "workflow-events",
   workflowRuns: "workflow-runs",
+  webhooks: "webhooks",
 } as const;
 
 export type SystemJob = { type: "ping"; sentAt: string };
@@ -24,6 +25,7 @@ export type WorkflowEvent = {
   data?: Record<string, string | undefined>;
 };
 export type WorkflowRunJob = { runId: string };
+export type WebhookJob = { deliveryId: string };
 
 type Payloads = {
   system: SystemJob;
@@ -31,6 +33,7 @@ type Payloads = {
   broadcast: BroadcastJob;
   "workflow-events": WorkflowEvent;
   "workflow-runs": WorkflowRunJob;
+  webhooks: WebhookJob;
 };
 export type QueueName = keyof Payloads;
 

@@ -60,3 +60,4 @@ pnpm dev                        # dashboard :3000 · public sites :3001 · worke
 | [docs/ROADMAP.md](docs/ROADMAP.md)             | Phase-by-phase plan with acceptance tests and status                                       |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)       | Step-by-step production deployment (Oracle VPS, DNS, Stripe, backups)                      |
 | [docs/DECISIONS.md](docs/DECISIONS.md)         | Architecture decision log                                                                  |
+| [docs/API.md](docs/API.md)                     | Public REST API and webhooks                                                               |

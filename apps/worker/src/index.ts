@@ -1,6 +1,7 @@
 import { Worker, type Processor } from "bullmq";
 import { QUEUES, redis, type SystemJob } from "@zfunnel/queue";
 import { processBroadcast, processEmail } from "./jobs/email";
+import { fanOutWebhooks, processWebhook } from "./jobs/webhooks";
 import { processWorkflowEvent, processWorkflowRun } from "./jobs/workflows";
 
 const connection = redis();
@@ -29,7 +30,17 @@ const workers = [
     concurrency: 10,
     limiter: { max: 10, duration: 1000 },
   }),
-  start(QUEUES.workflowEvents, (job) => processWorkflowEvent(job.data as never, job.id ?? `${Date.now()}`)),
+  start(QUEUES.workflowEvents, async (job) => {
+    const id = job.id ?? `${Date.now()}`;
+    // Outgoing webhooks are a side channel: failing to queue them must not block automations.
+    const hooks = await fanOutWebhooks(job.data as never, id).catch(
+      (err) => (console.error("[webhooks] fan-out", err), 0),
+    );
+    return { ...(await processWorkflowEvent(job.data as never, id)), webhooks: hooks };
+  }),
+  start(QUEUES.webhooks, (job) => processWebhook(job.data as never, job.attemptsMade, job.opts.attempts ?? 1), {
+    concurrency: 10,
+  }),
   start(QUEUES.workflowRuns, (job) => processWorkflowRun(job.data as never), { concurrency: 10 }),
 ];
 

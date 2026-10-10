@@ -218,6 +218,20 @@
       "when": 1791641498000,
       "tag": "0030_blog_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1791641880508,
+      "tag": "0031_developers",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1791641881706,
+      "tag": "0032_developers_rls",
+      "breakpoints": true
     }
   ]
 }
