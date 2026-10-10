@@ -29,6 +29,8 @@ export const WEBHOOK_EVENTS = [
   "order.paid",
   "form.submitted",
   "booking.created",
+  "webinar.registered",
+  "webinar.attended",
 ] as const;
 export type WebhookEvent = (typeof WEBHOOK_EVENTS)[number];
 

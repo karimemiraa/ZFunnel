@@ -95,7 +95,8 @@ export const emailMessages = pgTable(
       workflowId?: string;
       runId?: string;
       /** Built-in transactional emails (no design): customer-center login link. */
-      kind?: "login" | "booking" | "chat_reply";
+      kind?: "login" | "booking" | "chat_reply" | "webinar_confirm" | "webinar_reminder";
+      registrationId?: string;
       conversationId?: string;
       bookingId?: string;
       siteOrigin?: string;

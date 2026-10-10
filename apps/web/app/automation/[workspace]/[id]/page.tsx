@@ -7,6 +7,7 @@ import { allTags } from "@/lib/crm";
 import { listCalendars } from "@/lib/calendars";
 import { listCourses } from "@/lib/courses";
 import { listFunnels } from "@/lib/funnels";
+import { listWebinars } from "@/lib/webinars";
 import { requireUser } from "@/lib/session";
 import { getWorkspaceForUser } from "@/lib/workspaces";
 
@@ -25,13 +26,14 @@ export default async function AutomationPage({
   const wf = await getWorkflow(ctx, id);
   if (!wf) notFound();
   const activityTab = tab === "activity";
-  const [funnels, products, tags, emails, courseList, calendarList, runs] = await Promise.all([
+  const [funnels, products, tags, emails, courseList, calendarList, webinarList, runs] = await Promise.all([
     listFunnels(ctx),
     listProducts(ctx),
     allTags(ctx),
     listAutomationEmails(ctx),
     listCourses(ctx),
     listCalendars(ctx),
+    listWebinars(ctx),
     activityTab ? listRuns(ctx, wf.id) : Promise.resolve([]),
   ]);
   return (
@@ -54,6 +56,7 @@ export default async function AutomationPage({
         emails,
         courses: courseList.map((c) => ({ id: c.c.id, title: c.c.title })),
         calendars: calendarList.map((c) => ({ id: c.c.id, name: c.c.name })),
+        webinars: webinarList.map((w) => ({ id: w.w.id, title: w.w.title })),
       }}
       activity={activityTab ? <RunList runs={runs} workspaceSlug={workspace} /> : null}
     />

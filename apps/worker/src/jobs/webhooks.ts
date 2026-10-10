@@ -20,6 +20,8 @@ const EVENT_MAP: Partial<Record<WorkflowEvent["type"], WebhookEvent>> = {
   purchase: "order.paid",
   form_submitted: "form.submitted",
   booked: "booking.created",
+  webinar_registered: "webinar.registered",
+  webinar_attended: "webinar.attended",
 };
 
 /** Header value receivers verify: t=<unix>,v1=<hex HMAC-SHA256 of "t.body">. */

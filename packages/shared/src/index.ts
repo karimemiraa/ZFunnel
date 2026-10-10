@@ -5,3 +5,4 @@ export * from "./csv";
 export * from "./plans";
 export * from "./slots";
 export * from "./money";
+export * from "./webinar";

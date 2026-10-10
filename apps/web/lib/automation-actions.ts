@@ -40,6 +40,7 @@ const triggerSchema: z.ZodType<WorkflowTrigger> = z.union([
   z.object({ type: z.literal("tag_added"), tag: z.string().trim().min(1, "Choose a tag").max(40) }),
   z.object({ type: z.literal("form_submitted"), funnelId: uuid.nullish() }),
   z.object({ type: z.literal("booked"), calendarId: uuid.nullish() }),
+  z.object({ type: z.enum(["webinar_registered", "webinar_attended"]), webinarId: uuid.nullish() }),
   z.object({ type: z.literal("manual") }),
 ]);
 

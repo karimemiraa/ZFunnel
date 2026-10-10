@@ -104,7 +104,9 @@ export function CalendarSettings({
   const router = useRouter();
   const [v, setV] = useState(calendar);
   const [pending, start] = useTransition();
-  const timezones = typeof Intl.supportedValuesOf === "function" ? Intl.supportedValuesOf("timeZone") : [v.timezone];
+  const supported = typeof Intl.supportedValuesOf === "function" ? Intl.supportedValuesOf("timeZone") : [];
+  // The list can omit aliases such as "UTC"; always offer the saved value.
+  const timezones = supported.includes(v.timezone) ? supported : [v.timezone, ...supported];
   const num = (k: keyof Cal) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setV({ ...v, [k]: Math.max(0, Number(e.target.value) || 0) });
   const setDay = (d: Weekday, wins: { start: string; end: string }[]) =>

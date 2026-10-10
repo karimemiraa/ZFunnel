@@ -21,7 +21,15 @@ export type BroadcastJob = { broadcastId: string };
 export type WorkflowEvent = {
   workspaceId: string;
   contactId: string;
-  type: "optin" | "purchase" | "tag_added" | "form_submitted" | "booked" | "manual";
+  type:
+    | "optin"
+    | "purchase"
+    | "tag_added"
+    | "form_submitted"
+    | "booked"
+    | "webinar_registered"
+    | "webinar_attended"
+    | "manual";
   /** Matching hints: funnel/step ids, tag name, product/price ids… */
   data?: Record<string, string | undefined>;
   /**

@@ -144,6 +144,22 @@ export function TriggerPanel({
           </NativeSelect>
         </Field>
       )}
+      {(trigger.type === "webinar_registered" || trigger.type === "webinar_attended") && (
+        <Field label="Webinar" htmlFor="trigger-webinar">
+          <NativeSelect
+            id="trigger-webinar"
+            value={trigger.webinarId ?? ""}
+            onChange={(e) => onChange({ type: trigger.type, webinarId: e.target.value || null })}
+          >
+            <option value="">Any webinar</option>
+            {lookups.webinars.map((w) => (
+              <option key={w.id} value={w.id}>
+                {w.title}
+              </option>
+            ))}
+          </NativeSelect>
+        </Field>
+      )}
       {trigger.type === "tag_added" && (
         <Field label="Tag" htmlFor="trigger-tag">
           <TagInput

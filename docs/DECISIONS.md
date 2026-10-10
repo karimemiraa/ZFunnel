@@ -176,3 +176,11 @@ Format: **ID — Title** · Status (Proposed / Accepted / Superseded) · Date. S
 **Why.** Browser pixels lose a large share of conversions to ad blockers and iOS privacy features. Sending from the server recovers them. Deterministic ids let a browser pixel that sends the same `event_id` (for example, the order id) deduplicate against ours. Google Ads' own API needs OAuth plus a developer token approved by Google. GA4 conversions can be imported into Google Ads, so GA4 covers it.
 
 **Consequences.** 4xx answers fail immediately (bad token or pixel), while 5xx and network errors retry 5 times with backoff. The latest 25 deliveries show in Settings → Tracking. `?fbclid` and `?ttclid` on any landing page are kept in first-party cookies (90 and 30 days). The API base URLs can be overridden by environment variables for testing only.
+
+### ADR-022 — Webinars: simulated live from a hosted video, no media server · **Accepted** · 2026-10-10
+
+**Decision.** A webinar plays a video hosted elsewhere (YouTube, Vimeo or an https .mp4/.webm). Evergreen sessions are computed from the schedule in the webinar's timezone and are never stored. Only registrations are stored, each with its exact `session_at` and a secret watch token. During the session the room plays from `now − session_at` without controls, so it behaves like a live broadcast. After the session, a replay with controls is available for `replay_hours`. A one-time "live" webinar embeds the real stream and never seeks. Reminder emails are BullMQ jobs delayed until 24 hours and 1 hour before the session. The worker skips a reminder whose session already started.
+
+**Why.** There is no SFU, TURN server or recording pipeline to run on a VPS shared with other apps (Phase 5 addendum). Video hosts already handle bandwidth and adaptive streaming. Computing sessions on the fly means schedule edits apply at once and no sessions table needs cleanup.
+
+**Consequences.** If Redis is flushed, pending reminders are lost; the confirmation email always carries the watch link. Viewers can see YouTube/Vimeo branding unless the owner uses an .mp4. There is no interactive chat in the room yet; the site chat widget still works on the page. Attendance counts the first join during the live window or the replay window, and only the first one triggers `webinar_attended`.

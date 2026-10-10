@@ -33,13 +33,15 @@ curl -X POST https://app.example.com/api/v1/contacts \
 
 Add an https endpoint under **Settings → Developers** and pick events:
 
-| Event              | When                                                |
-| ------------------ | --------------------------------------------------- |
-| `contact.opted_in` | An opt-in form or survey with an email is submitted |
-| `contact.tagged`   | A tag is added (dashboard, API or a survey)         |
-| `order.paid`       | A checkout or one-click upsell is paid              |
-| `form.submitted`   | A form, survey or quiz is submitted                 |
-| `booking.created`  | An appointment is booked                            |
+| Event                | When                                                |
+| -------------------- | --------------------------------------------------- |
+| `contact.opted_in`   | An opt-in form or survey with an email is submitted |
+| `contact.tagged`     | A tag is added (dashboard, API or a survey)         |
+| `order.paid`         | A checkout or one-click upsell is paid              |
+| `form.submitted`     | A form, survey or quiz is submitted                 |
+| `booking.created`    | An appointment is booked                            |
+| `webinar.registered` | Someone registers for a webinar session             |
+| `webinar.attended`   | A registrant joins the session while it is on       |
 
 Each delivery is a `POST` with this JSON body:
 

@@ -14,6 +14,8 @@ import {
   TagsIcon,
   WebhookIcon,
   ClipboardListIcon,
+  MonitorPlayIcon,
+  PresentationIcon,
 } from "lucide-react";
 
 export const NODE_META: Record<WorkflowNode["type"], { label: string; icon: LucideIcon; color: string; hint: string }> =
@@ -56,6 +58,16 @@ export const TRIGGER_META: Record<WorkflowTrigger["type"], { label: string; icon
     icon: CalendarCheckIcon,
     hint: "A booking is made on one of your calendars",
   },
+  webinar_registered: {
+    label: "Registers for a webinar",
+    icon: PresentationIcon,
+    hint: "Someone signs up for a webinar session",
+  },
+  webinar_attended: {
+    label: "Attends a webinar",
+    icon: MonitorPlayIcon,
+    hint: "A registrant joins the session while it's on",
+  },
   manual: { label: "Added manually", icon: HandIcon, hint: "You add contacts yourself" },
 };
 export const TRIGGER_CHOICES = [
@@ -63,6 +75,8 @@ export const TRIGGER_CHOICES = [
   "form_submitted",
   "purchase",
   "booked",
+  "webinar_registered",
+  "webinar_attended",
   "tag_added",
   "manual",
 ] as const satisfies readonly WorkflowTrigger["type"][];
@@ -76,9 +90,13 @@ export type Lookups = {
   emails: { id: string; name: string; subject: string; preheader: string }[];
   courses: { id: string; title: string }[];
   calendars: { id: string; name: string }[];
+  webinars: { id: string; title: string }[];
 };
 
-export function triggerSummary(t: WorkflowTrigger, l: Pick<Lookups, "funnels" | "products" | "calendars">) {
+export function triggerSummary(
+  t: WorkflowTrigger,
+  l: Pick<Lookups, "funnels" | "products" | "calendars" | "webinars">,
+) {
   switch (t.type) {
     case "optin":
     case "form_submitted":
@@ -89,6 +107,9 @@ export function triggerSummary(t: WorkflowTrigger, l: Pick<Lookups, "funnels" | 
       return t.calendarId
         ? (l.calendars.find((c) => c.id === t.calendarId)?.name ?? "A deleted calendar")
         : "Any calendar";
+    case "webinar_registered":
+    case "webinar_attended":
+      return t.webinarId ? (l.webinars.find((w) => w.id === t.webinarId)?.title ?? "A deleted webinar") : "Any webinar";
     case "tag_added":
       return t.tag ? `“${t.tag}”` : "Choose a tag";
     case "manual":

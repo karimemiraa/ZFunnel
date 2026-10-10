@@ -2,7 +2,7 @@
 
 An all-in-one funnel platform: drag-and-drop pages, sales funnels, checkout with order bumps and one-click upsells, CRM, email, automations, courses, appointments, analytics and AI. The goal is full ClickFunnels 2.0 parity and more.
 
-> **Status: Phases 0–2 are built.** That covers the editor, funnels, checkout with bumps and one-click upsells, custom domains, analytics, CRM and pipelines, email broadcasts, visual automations, surveys and quizzes, A/B split tests, the customer center, the AI copywriter and SaaS billing. Phase 3 (courses, appointments, websites/blog, SMS, API) is next. See [docs/ROADMAP.md](docs/ROADMAP.md).
+> **Status: Phases 0–5 are built.** Phases 0–2: the editor, funnels, checkout with bumps and one-click upsells, custom domains, analytics, CRM and pipelines, email broadcasts, visual automations, surveys and quizzes, A/B split tests, the customer center, the AI copywriter and SaaS billing. Phase 3: courses, appointments, blog, API and webhooks, SMS, and AI funnel copy. Phase 4: funnel sharing, affiliates, community, store, site chat inbox and white-label. Phase 5: webinars, the AI conversion coach, server-side ad conversions and multi-currency. Next: deployment to the VPS and native Arabic. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Quick start
 

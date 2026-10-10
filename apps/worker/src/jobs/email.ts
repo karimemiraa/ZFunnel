@@ -5,6 +5,8 @@ import {
   calendars,
   contacts,
   conversationMessages,
+  webinarRegistrations,
+  webinars,
   desc,
   emailMessages,
   emails,
@@ -103,6 +105,8 @@ export async function processEmail({ messageId }: EmailJob) {
   if (m.meta?.kind === "login") return sendLoginLink(m, settings, mark);
   if (m.meta?.kind === "booking") return sendBookingConfirmation(m, settings, mark);
   if (m.meta?.kind === "chat_reply") return sendChatReply(m, settings, mark);
+  if (m.meta?.kind === "webinar_confirm" || m.meta?.kind === "webinar_reminder")
+    return sendWebinarEmail(m, settings, mark);
   if (!email || !settings) {
     await mark({
       status: "failed",
@@ -313,5 +317,67 @@ ${lines}
     messageId: m.id,
   });
   await mark({ status: "sent", sentAt: new Date(), providerMessageId: r.providerMessageId });
+  return { sent: true };
+}
+
+/** Built-in transactional email: webinar confirmation and reminders, with the personal watch link. */
+async function sendWebinarEmail(
+  m: typeof emailMessages.$inferSelect,
+  settings: typeof emailSettings.$inferSelect | undefined,
+  mark: (set: Partial<typeof emailMessages.$inferInsert>) => Promise<unknown>,
+) {
+  const origin = m.meta?.siteOrigin;
+  const row = await withSystem(db(), async (tx) => {
+    const [r] = m.meta?.registrationId
+      ? await tx.select().from(webinarRegistrations).where(eq(webinarRegistrations.id, m.meta.registrationId))
+      : [];
+    const [w] = r ? await tx.select().from(webinars).where(eq(webinars.id, r.webinarId)) : [];
+    const [ws] = await tx.select(brandSelect).from(workspaces).where(eq(workspaces.id, m.workspaceId));
+    return r && w ? { r, w, ws } : null;
+  });
+  if (!row || !origin || !/^https?:\/\/[^/]+$/.test(origin)) {
+    await mark({ status: "skipped", error: "Registration not found" });
+    return { skipped: true };
+  }
+  const { r, w, ws } = row;
+  // A reminder for a session that already started is pointless (e.g. a delayed job after downtime).
+  if (m.meta?.kind === "webinar_reminder" && r.sessionAt.getTime() < Date.now()) {
+    await mark({ status: "skipped", error: "Session already started" });
+    return { skipped: true };
+  }
+  const fromName = settings?.fromName ?? ws?.name ?? "";
+  const url = `${origin}/webinar/watch/${r.token}`;
+  const when = r.sessionAt.toLocaleString("en-US", {
+    timeZone: w.timezone,
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  });
+  const confirm = m.meta?.kind === "webinar_confirm";
+  const heading = confirm ? "You're registered!" : "Starting soon";
+  const html = `<!doctype html><html><body style="margin:0;background:#f4f4f7;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 12px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:14px">
+${logoRow(ws)}
+<tr><td style="padding:32px 36px 8px;font-size:13px;font-weight:600;color:${brandColor(ws)}">${heading.toUpperCase()}</td></tr>
+<tr><td style="padding:0 36px 8px;font-size:22px;font-weight:700;color:#111827">${esc(w.title)}</td></tr>
+<tr><td style="padding:0 36px 4px;font-size:15px;color:#374151">📅 ${esc(when)}</td></tr>
+<tr><td style="padding:0 36px 4px;font-size:15px;color:#374151">⏱ ${w.durationMinutes} minutes</td></tr>
+<tr><td style="padding:24px 36px 32px"><a href="${esc(url)}" style="display:inline-block;background:${brandColor(ws)};color:#fff;text-decoration:none;font-weight:600;padding:13px 26px;border-radius:10px">${confirm ? "Open my webinar room" : "Join the webinar"}</a></td></tr>
+<tr><td style="padding:0 36px 32px;font-size:13px;color:#6b7280">This link is personal. It opens your room with a countdown until the session starts.</td></tr>
+</table></td></tr></table></body></html>`;
+  const r2 = await sendEmail({
+    fromName,
+    replyTo: settings?.replyTo,
+    to: m.toEmail,
+    subject: m.subject,
+    html,
+    text: `${heading} ${w.title}\n${when}\n\nJoin here: ${url}`,
+    messageId: m.id,
+  });
+  await mark({ status: "sent", sentAt: new Date(), providerMessageId: r2.providerMessageId });
   return { sent: true };
 }

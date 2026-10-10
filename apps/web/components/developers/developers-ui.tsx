@@ -22,6 +22,8 @@ const EVENTS = [
   { id: "order.paid", label: "Order paid" },
   { id: "form.submitted", label: "Form submitted" },
   { id: "booking.created", label: "Booking created" },
+  { id: "webinar.registered", label: "Webinar registration" },
+  { id: "webinar.attended", label: "Webinar attended" },
 ] as const;
 
 function Secret({ value, label }: { value: string; label: string }) {

@@ -17,6 +17,7 @@ import {
   FilterIcon,
   HandshakeIcon,
   InboxIcon,
+  PresentationIcon,
 } from "lucide-react";
 
 export type NavModule = {
@@ -115,6 +116,12 @@ export const NAV_MODULES: NavModule[] = [
     label: "Courses",
     icon: BookOpenIcon,
     description: "Courses and memberships with drip content and progress tracking.",
+  },
+  {
+    segment: "webinars",
+    label: "Webinars",
+    icon: PresentationIcon,
+    description: "Automated and live webinars with reminders, replays and offers.",
   },
   {
     segment: "calendars",
