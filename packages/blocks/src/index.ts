@@ -4,3 +4,4 @@ export * from "./theme";
 export { safeUrl } from "./components/content";
 export { block, columns, page, section, starterPage, type StarterStepType } from "./starters";
 export { buildTemplate, TEMPLATES, type FunnelTemplate } from "./templates";
+export * from "./survey";

@@ -8,3 +8,4 @@ export * from "./analytics";
 export * from "./crm";
 export * from "./email";
 export * from "./automations";
+export * from "./forms";

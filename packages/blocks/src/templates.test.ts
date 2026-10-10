@@ -5,14 +5,14 @@ import { buildTemplate, TEMPLATES } from "./templates";
 function walk(nodes: { type: string; props: Record<string, unknown> }[], seen: string[]) {
   for (const n of nodes) {
     seen.push(n.type);
-    for (const v of Object.values(n.props)) if (Array.isArray(v) && v[0]?.type) walk(v as never, seen);
+    for (const v of Object.values(n.props)) if (Array.isArray(v) && v[0]?.type && v[0]?.props) walk(v as never, seen);
   }
 }
 
 describe("templates", () => {
-  it("has 10 templates with unique ids", () => {
-    expect(TEMPLATES).toHaveLength(10);
-    expect(new Set(TEMPLATES.map((t) => t.id)).size).toBe(10);
+  it("has 11 templates with unique ids", () => {
+    expect(TEMPLATES).toHaveLength(11);
+    expect(new Set(TEMPLATES.map((t) => t.id)).size).toBe(TEMPLATES.length);
   });
   it.each(TEMPLATES.map((t) => t.id))("%s builds valid pages using only known blocks", (id) => {
     const steps = buildTemplate(id)!;

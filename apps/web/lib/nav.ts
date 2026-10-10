@@ -2,6 +2,7 @@ import {
   BarChart3Icon,
   BookOpenIcon,
   CalendarIcon,
+  ClipboardListIcon,
   ContactIcon,
   type LucideIcon,
   KanbanIcon,
@@ -55,6 +56,12 @@ export const NAV_MODULES: NavModule[] = [
     label: "Contacts",
     icon: ContactIcon,
     description: "Your CRM: contacts, tags, segments and pipelines.",
+  },
+  {
+    segment: "forms",
+    label: "Forms",
+    icon: ClipboardListIcon,
+    description: "Surveys, quizzes and forms: every response, summarized.",
   },
   {
     segment: "pipelines",

@@ -38,7 +38,13 @@ export const TRIGGER_META: Record<WorkflowTrigger["type"], { label: string; icon
   form_submitted: { label: "Submits a form", icon: ClipboardListIcon, hint: "A survey or form is submitted" },
   manual: { label: "Added manually", icon: HandIcon, hint: "You add contacts yourself" },
 };
-export const TRIGGER_CHOICES: WorkflowTrigger["type"][] = ["optin", "purchase", "tag_added", "manual"];
+export const TRIGGER_CHOICES: WorkflowTrigger["type"][] = [
+  "optin",
+  "form_submitted",
+  "purchase",
+  "tag_added",
+  "manual",
+];
 
 export type Lookups = {
   funnels: { id: string; name: string }[];

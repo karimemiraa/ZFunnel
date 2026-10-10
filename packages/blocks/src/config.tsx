@@ -46,7 +46,14 @@ import {
   type StatsProps,
   type TestimonialsProps,
 } from "./components/marketing";
-import { Countdown, OptInForm, type CountdownProps, type OptInFormProps } from "./components/interactive";
+import {
+  Countdown,
+  OptInForm,
+  Survey,
+  type CountdownProps,
+  type OptInFormProps,
+  type SurveyProps,
+} from "./components/interactive";
 import { OrderForm, UpsellOffer, type OrderFormProps, type UpsellOfferProps } from "./components/checkout";
 import { DEFAULT_THEME, FONTS, RADII, THEME_PRESETS, themeVars, type PageTheme } from "./theme";
 
@@ -72,6 +79,7 @@ export type Components = {
   ProgressBar: ProgressBarProps;
   Countdown: CountdownProps;
   OptInForm: OptInFormProps;
+  Survey: SurveyProps;
   CustomHtml: CustomHtmlProps;
   OrderForm: OrderFormProps;
   UpsellOffer: UpsellOfferProps;
@@ -101,7 +109,10 @@ export const config: Config<{
     layout: { title: "Layout", components: ["Section", "Columns", "Spacer", "Divider"] },
     content: { title: "Content", components: ["Heading", "Text", "Badge", "Button", "Image", "Video", "Checklist"] },
     checkout: { title: "Checkout", components: ["OrderForm", "UpsellOffer"] },
-    conversion: { title: "Conversion", components: ["OptInForm", "Countdown", "Pricing", "Guarantee", "ProgressBar"] },
+    conversion: {
+      title: "Conversion",
+      components: ["OptInForm", "Survey", "Countdown", "Pricing", "Guarantee", "ProgressBar"],
+    },
     proof: { title: "Social proof", components: ["Testimonials", "Stats", "LogoBar", "Features", "Faq"] },
     advanced: { title: "Advanced", components: ["CustomHtml"], defaultExpanded: false },
   },
@@ -169,6 +180,7 @@ export const config: Config<{
     ProgressBar,
     Countdown,
     OptInForm,
+    Survey,
     CustomHtml,
     OrderForm,
     UpsellOffer,

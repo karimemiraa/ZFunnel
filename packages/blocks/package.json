@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./fonts.css": "./src/fonts.css",
-    "./styles.css": "./src/styles.css"
+    "./styles.css": "./src/styles.css",
+    "./survey": "./src/survey.ts"
   },
   "scripts": {
     "lint": "eslint .",

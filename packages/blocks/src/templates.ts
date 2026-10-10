@@ -30,6 +30,74 @@ const thanks = (name: string, headline: string, body: string) => (t: Theme) =>
 
 export const TEMPLATES: FunnelTemplate[] = [
   {
+    id: "quiz",
+    name: "Quiz funnel",
+    category: "Leads",
+    description: "A fun, one-question-at-a-time quiz that scores leads and tags them by result.",
+    theme: { preset: "Rose", headingFont: "jakarta", bodyFont: "inter", buttonRadius: "full" },
+    steps: [
+      {
+        name: "Quiz",
+        type: "optin",
+        build: (t) =>
+          page(
+            "Quiz",
+            [
+              section({ background: "gradient", padding: "lg", width: "narrow" }, [
+                block("Badge", { text: "60-second quiz", icon: "star" }),
+                block("Heading", { text: "What's holding your business back?", level: "h1", size: "xl" }),
+                text("<p>Answer 3 quick questions and get a personalized plan for your next 90 days.</p>"),
+                block("Survey", {
+                  formName: "Growth quiz",
+                  quiz: true,
+                  tag: "quiz-taker",
+                  buttonLabel: "Show my result",
+                  questions: [
+                    {
+                      label: "How do you get most of your customers today?",
+                      type: "single_choice",
+                      required: true,
+                      options: "Word of mouth | 1\nSocial media | 2\nPaid ads | 3\nA sales funnel | 4",
+                      saveTo: "channel",
+                    },
+                    {
+                      label: "How many leads do you get per week?",
+                      type: "single_choice",
+                      required: true,
+                      options: "Fewer than 10 | 1\n10–50 | 2\n50–200 | 3\nMore than 200 | 4",
+                      saveTo: "",
+                    },
+                    {
+                      label: "What would you like to fix first?",
+                      type: "single_choice",
+                      required: true,
+                      options: "Getting more traffic | 1\nConverting visitors | 2\nSelling more to customers | 3",
+                      saveTo: "goal",
+                    },
+                  ],
+                  outcomes: [
+                    { minScore: 0, title: "The Foundation Builder", tag: "result-foundation", redirect: "" },
+                    { minScore: 6, title: "The Momentum Maker", tag: "result-momentum", redirect: "" },
+                    { minScore: 9, title: "The Scale Seeker", tag: "result-scale", redirect: "" },
+                  ],
+                }),
+              ]),
+            ],
+            t,
+          ),
+      },
+      {
+        name: "Your plan",
+        type: "thankyou",
+        build: thanks(
+          "Your plan",
+          "Your personalized plan is on its way!",
+          "We've emailed your result and a step-by-step plan. Here's a quick video to get you started.",
+        ),
+      },
+    ],
+  },
+  {
     id: "lead-magnet",
     name: "Lead magnet",
     category: "Leads",

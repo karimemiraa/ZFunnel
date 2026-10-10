@@ -95,12 +95,12 @@ export function TriggerPanel({
           ))}
         </NativeSelect>
       </Field>
-      {trigger.type === "optin" && (
+      {(trigger.type === "optin" || trigger.type === "form_submitted") && (
         <Field label="Funnel" htmlFor="trigger-funnel">
           <NativeSelect
             id="trigger-funnel"
             value={trigger.funnelId ?? ""}
-            onChange={(e) => onChange({ type: "optin", funnelId: e.target.value || null })}
+            onChange={(e) => onChange({ type: trigger.type, funnelId: e.target.value || null } as WorkflowTrigger)}
           >
             <option value="">Any funnel</option>
             {lookups.funnels.map((f) => (
