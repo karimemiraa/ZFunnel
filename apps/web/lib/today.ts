@@ -76,7 +76,7 @@ export type AttentionItem =
   | { kind: "stripe" };
 
 export type ActivityItem =
-  | { kind: "order"; at: Date; number: number; amount: number; currency: string; who: string }
+  | { kind: "order"; at: Date; id: string; number: number; amount: number; currency: string; who: string }
   | { kind: "lead"; at: Date; id: string; who: string }
   | { kind: "booking"; at: Date; calendarId: string; who: string; startAt: Date };
 
@@ -135,7 +135,7 @@ export async function todayData(ctx: WorkspaceContext, now = new Date()) {
         ({ key, w }) => sql`count(*) filter (where ${inWindow(contacts.createdAt, w)})::int as ${sql.raw(`"${key}"`)}`,
       );
       const [leads] = (await tx.execute(
-        sql`select ${sql.join(leadCols, sql`, `)} from ${contacts} where ${contacts.createdAt} >= ${ts(earliest)}`,
+        sql`select ${sql.join(leadCols, sql`, `)} from ${contacts} where ${contacts.deletedAt} is null and ${contacts.createdAt} >= ${ts(earliest)}`,
       )) as unknown as Record<string, number>[];
       const convCols = all.map(
         ({ key, w }) =>
@@ -161,7 +161,7 @@ export async function todayData(ctx: WorkspaceContext, now = new Date()) {
           (select count(*)::int from ${funnels} where ${funnels.archivedAt} is null) as funnels,
           (select count(*)::int from ${products} where ${products.archivedAt} is null) as products,
           (select count(*)::int from ${domains} where ${domains.status} = 'active') as domains,
-          (select count(*)::int from ${contacts}) as contacts
+          (select count(*)::int from ${contacts} where ${contacts.deletedAt} is null) as contacts
       `)) as unknown as Record<string, number>[];
       const unanswered = (await tx.execute(sql`
         select c.id, count(*) over ()::int as total from ${conversations} c
@@ -181,6 +181,7 @@ export async function todayData(ctx: WorkspaceContext, now = new Date()) {
         .where(
           and(
             isNull(funnels.archivedAt),
+            isNull(funnelSteps.deletedAt),
             sql`(${funnelSteps.publishedAt} is null or ${funnelSteps.draftUpdatedAt} > ${funnelSteps.publishedAt})`,
           ),
         )
@@ -215,6 +216,7 @@ export async function todayData(ctx: WorkspaceContext, now = new Date()) {
         await tx
           .select({
             at: orders.paidAt,
+            id: orders.id,
             number: orders.number,
             amount: orders.total,
             currency: orders.currency,
@@ -229,6 +231,7 @@ export async function todayData(ctx: WorkspaceContext, now = new Date()) {
         await tx
           .select({ at: contacts.createdAt, id: contacts.id, name: contacts.name, email: contacts.email })
           .from(contacts)
+          .where(isNull(contacts.deletedAt))
           .orderBy(desc(contacts.createdAt))
           .limit(6),
         await tx
@@ -247,6 +250,7 @@ export async function todayData(ctx: WorkspaceContext, now = new Date()) {
         ...o.map((r) => ({
           kind: "order" as const,
           at: r.at!,
+          id: r.id,
           number: r.number,
           amount: r.amount,
           currency: r.currency,

@@ -1,6 +1,8 @@
 import { cn } from "@zfunnel/ui/lib/utils";
-import { ActivityIcon, ArrowLeftIcon, ListIcon, WorkflowIcon } from "lucide-react";
+import { ActivityIcon, ListIcon, WorkflowIcon } from "lucide-react";
 import Link from "next/link";
+import { Breadcrumbs } from "@/components/breadcrumbs";
+import { navText } from "@/lib/nav";
 import { notFound } from "next/navigation";
 import { AddStepDialog } from "@/components/funnels/add-step-dialog";
 import { FunnelLinks, FunnelStatsStrip } from "@/components/records/funnel-links";
@@ -81,12 +83,13 @@ export default async function FunnelPage({
     <>
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <Link
-            href={`/${ws}/funnels`}
-            className="mb-1 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeftIcon className="size-3.5 rtl:-scale-x-100" /> {t("funnels.title")}
-          </Link>
+          <Breadcrumbs
+            items={[
+              { label: navText(t, "", "label"), href: `/${ws}` },
+              { label: navText(t, "funnels", "label"), href: `/${ws}/funnels` },
+              { label: funnel.name },
+            ]}
+          />
           <h1 className="truncate text-2xl font-semibold tracking-tight">{funnel.name}</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">

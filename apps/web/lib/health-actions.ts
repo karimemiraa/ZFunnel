@@ -1,6 +1,6 @@
 "use server";
 
-import { asc, eq, funnelSteps } from "@zfunnel/db";
+import { and, asc, eq, funnelSteps, isNull } from "@zfunnel/db";
 import { revalidatePath } from "next/cache";
 import { saveDraft } from "./funnel-actions";
 import { applySeoFix, nextStepFor, type PageLike } from "./funnel-health";
@@ -17,7 +17,10 @@ async function load(workspaceSlug: string, stepId: string) {
   const ctx = await getWorkspaceForUser(user.id, workspaceSlug);
   if (!ctx || !/^[0-9a-f-]{36}$/i.test(stepId)) return { t, ctx: null, step: null };
   const step = await inWorkspace(ctx, async (tx) => {
-    const [s] = await tx.select().from(funnelSteps).where(eq(funnelSteps.id, stepId));
+    const [s] = await tx
+      .select()
+      .from(funnelSteps)
+      .where(and(eq(funnelSteps.id, stepId), isNull(funnelSteps.deletedAt)));
     return s ?? null;
   });
   return { t, ctx, step };
@@ -43,7 +46,7 @@ export async function linkStepToNext(workspaceSlug: string, stepId: string): Pro
     const steps = await tx
       .select({ id: funnelSteps.id })
       .from(funnelSteps)
-      .where(eq(funnelSteps.funnelId, step.funnelId))
+      .where(and(eq(funnelSteps.funnelId, step.funnelId), isNull(funnelSteps.deletedAt)))
       .orderBy(asc(funnelSteps.position));
     const linked = step.nextStepId && steps.some((s) => s.id === step.nextStepId);
     const next = nextStepFor(steps, stepId);

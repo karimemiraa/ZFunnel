@@ -1,6 +1,7 @@
 import { Badge } from "@zfunnel/ui/badge";
-import { ArrowLeftIcon } from "lucide-react";
 import Link from "next/link";
+import { Breadcrumbs } from "@/components/breadcrumbs";
+import { navText } from "@/lib/nav";
 import { notFound } from "next/navigation";
 import { ContactProfile, NoteForm } from "@/components/crm/contact-profile";
 import { EnrollMenu } from "@/components/automations/enroll-menu";
@@ -30,12 +31,13 @@ export default async function ContactPage({ params }: { params: Promise<{ worksp
 
   return (
     <>
-      <Link
-        href={`/${ws}/contacts`}
-        className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeftIcon className="size-3.5 rtl:-scale-x-100" /> {t("contacts.pageTitle")}
-      </Link>
+      <Breadcrumbs
+        items={[
+          { label: navText(t, "", "label"), href: `/${ws}` },
+          { label: navText(t, "contacts", "label"), href: `/${ws}/contacts` },
+          { label: c.name ?? c.email },
+        ]}
+      />
       <div className="mb-8 flex flex-wrap items-center gap-4">
         <span className="flex size-14 items-center justify-center rounded-full bg-primary/10 text-lg font-semibold text-primary">
           {(c.name ?? c.email).slice(0, 2).toUpperCase()}

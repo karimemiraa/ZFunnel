@@ -1,6 +1,8 @@
 import { Badge } from "@zfunnel/ui/badge";
-import { ArrowLeftIcon, ExternalLinkIcon, FilterIcon, HandshakeIcon, PackageIcon, UserIcon } from "lucide-react";
+import { ExternalLinkIcon, FilterIcon, HandshakeIcon, PackageIcon, UserIcon } from "lucide-react";
 import Link from "next/link";
+import { Breadcrumbs } from "@/components/breadcrumbs";
+import { navText } from "@/lib/nav";
 import { notFound } from "next/navigation";
 import { OrderStatus } from "@/components/commerce/order-status";
 import { Section } from "@/components/records/section";
@@ -34,12 +36,13 @@ export default async function OrderPage({ params }: Params) {
 
   return (
     <>
-      <Link
-        href={`/${ws}/orders`}
-        className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeftIcon className="size-3.5 rtl:-scale-x-100" /> {t("orders.title")}
-      </Link>
+      <Breadcrumbs
+        items={[
+          { label: navText(t, "", "label"), href: `/${ws}` },
+          { label: navText(t, "orders", "label"), href: `/${ws}/orders` },
+          { label: t("records.order.title", { number: String(o.number) }) },
+        ]}
+      />
       <div className="mb-8 flex flex-wrap items-center gap-4">
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-semibold tracking-tight">

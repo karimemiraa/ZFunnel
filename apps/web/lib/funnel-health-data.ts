@@ -1,6 +1,19 @@
 import "server-only";
 
-import { asc, domains, eq, funnels, funnelSteps, inArray, mediaFiles, sql, stepOffers, workflows } from "@zfunnel/db";
+import {
+  and,
+  asc,
+  domains,
+  eq,
+  funnels,
+  funnelSteps,
+  inArray,
+  isNull,
+  mediaFiles,
+  sql,
+  stepOffers,
+  workflows,
+} from "@zfunnel/db";
 import { inWorkspace } from "./funnels";
 import { blocksOf, checkFunnel, healthScore, type HealthInput, type PageLike } from "./funnel-health";
 import type { WorkspaceContext } from "./workspaces";
@@ -16,7 +29,7 @@ export async function getFunnelHealth(ctx: WorkspaceContext, funnelId: string) {
     const steps = await tx
       .select()
       .from(funnelSteps)
-      .where(eq(funnelSteps.funnelId, funnelId))
+      .where(and(eq(funnelSteps.funnelId, funnelId), isNull(funnelSteps.deletedAt)))
       .orderBy(asc(funnelSteps.position));
     const ids = steps.map((s) => s.id);
     const [offers, domainRows, automations] = await Promise.all([
@@ -28,7 +41,10 @@ export async function getFunnelHealth(ctx: WorkspaceContext, funnelId: string) {
             .groupBy(stepOffers.stepId, stepOffers.role)
         : Promise.resolve([]),
       tx.select({ id: domains.id }).from(domains).where(eq(domains.status, "active")).limit(1),
-      tx.select({ trigger: workflows.trigger }).from(workflows).where(eq(workflows.status, "active")),
+      tx
+        .select({ trigger: workflows.trigger })
+        .from(workflows)
+        .where(and(eq(workflows.status, "active"), isNull(workflows.deletedAt))),
     ]);
     const mediaIds = [
       ...new Set(steps.flatMap((s) => [...JSON.stringify(s.draft ?? {}).matchAll(MEDIA)].map((m) => m[1]!))),

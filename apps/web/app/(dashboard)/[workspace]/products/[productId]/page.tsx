@@ -1,7 +1,9 @@
 import { Badge } from "@zfunnel/ui/badge";
 import { Button } from "@zfunnel/ui/button";
-import { ArrowLeftIcon, GraduationCapIcon, PackageIcon, PencilIcon, ReceiptIcon, ShoppingCartIcon } from "lucide-react";
+import { GraduationCapIcon, PackageIcon, PencilIcon, ReceiptIcon, ShoppingCartIcon } from "lucide-react";
 import Link from "next/link";
+import { Breadcrumbs } from "@/components/breadcrumbs";
+import { navText } from "@/lib/nav";
 import { notFound } from "next/navigation";
 import { OrderStatus } from "@/components/commerce/order-status";
 import { ProductActions } from "@/components/commerce/product-actions";
@@ -38,12 +40,13 @@ export default async function ProductPage({ params }: Params) {
 
   return (
     <>
-      <Link
-        href={`/${ws}/products`}
-        className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeftIcon className="size-3.5 rtl:-scale-x-100" /> {t("products.title")}
-      </Link>
+      <Breadcrumbs
+        items={[
+          { label: navText(t, "", "label"), href: `/${ws}` },
+          { label: navText(t, "products", "label"), href: `/${ws}/products` },
+          { label: p.name },
+        ]}
+      />
       <div className="mb-8 flex flex-wrap items-center gap-4">
         {p.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element -- user-provided URL

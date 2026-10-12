@@ -197,7 +197,7 @@ export default async function TodayPage({ params }: { params: Promise<{ workspac
                     r.kind === "order"
                       ? ([
                           ShoppingBagIcon,
-                          `/${ws}/orders?q=${encodeURIComponent(`#${r.number}`)}`,
+                          `/${ws}/orders/${r.id}`,
                           t("today.recent.order", { number: String(r.number) }),
                           f.money(r.amount, r.currency),
                         ] as const)

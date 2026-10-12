@@ -160,7 +160,7 @@ export async function searchWorkspace(workspaceSlug: string, query: string): Pro
       .select({ id: funnelSteps.id, name: funnelSteps.name, funnelId: funnels.id, funnel: funnels.name })
       .from(funnelSteps)
       .innerJoin(funnels, eq(funnels.id, funnelSteps.funnelId))
-      .where(and(isNull(funnels.archivedAt), ilike(funnelSteps.name, pattern)))
+      .where(and(isNull(funnels.archivedAt), isNull(funnelSteps.deletedAt), ilike(funnelSteps.name, pattern)))
       .limit(LIMIT);
     for (const s of steps)
       hits.push({
@@ -174,7 +174,7 @@ export async function searchWorkspace(workspaceSlug: string, query: string): Pro
     const cs = await tx
       .select({ id: contacts.id, name: contacts.name, email: contacts.email })
       .from(contacts)
-      .where(or(ilike(contacts.email, pattern), ilike(contacts.name, pattern)))
+      .where(and(isNull(contacts.deletedAt), or(ilike(contacts.email, pattern), ilike(contacts.name, pattern))))
       .orderBy(desc(contacts.createdAt))
       .limit(LIMIT);
     for (const c of cs)
@@ -203,7 +203,7 @@ export async function searchWorkspace(workspaceSlug: string, query: string): Pro
         id: o.id,
         title: String(o.number),
         subtitle: o.name || o.email || undefined,
-        href: `${base}/orders?q=${o.number}`,
+        href: `${base}/orders/${o.id}`,
       });
 
     const ps = await tx
@@ -211,7 +211,7 @@ export async function searchWorkspace(workspaceSlug: string, query: string): Pro
       .from(products)
       .where(and(isNull(products.archivedAt), ilike(products.name, pattern)))
       .limit(LIMIT);
-    for (const p of ps) hits.push({ kind: "product", id: p.id, title: p.name, href: `${base}/products` });
+    for (const p of ps) hits.push({ kind: "product", id: p.id, title: p.name, href: `${base}/products/${p.id}` });
 
     const crs = await tx
       .select({ id: courses.id, title: courses.title })

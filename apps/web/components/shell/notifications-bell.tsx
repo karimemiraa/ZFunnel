@@ -54,6 +54,7 @@ export function notificationHref(ws: string, n: ShellNotification) {
   switch (n.type) {
     case "order":
     case "payment_failed":
+      if (n.entityId) return `${base}/orders/${n.entityId}`;
       return n.data.number ? `${base}/orders?q=${encodeURIComponent(str(n.data.number))}` : `${base}/orders`;
     case "lead":
       return n.entityId ? `${base}/contacts/${n.entityId}` : `${base}/contacts`;
