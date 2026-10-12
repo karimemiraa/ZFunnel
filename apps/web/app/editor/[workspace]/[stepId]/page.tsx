@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { PageEditor } from "@/components/editor/page-editor";
 import { getEditorOffers } from "@/lib/commerce";
 import { getFunnel, getStepWithDraft } from "@/lib/funnels";
+import { currentAdmin } from "@/lib/admin";
 import { aiConfigured } from "@/lib/ai";
 import { getT } from "@/lib/i18n";
 import { getVariant } from "@/lib/split";
@@ -34,6 +35,8 @@ export default async function EditorPage({
     variantId ? getVariant(ctx, variantId) : Promise.resolve(null),
   ]);
   if (variantId && variant?.stepId !== stepId) notFound();
+  // Owner decision (Phase 8): the AI writer is for platform admins only; others never see it.
+  const aiWriter = aiConfigured() && !!(await currentAdmin());
 
   return (
     <PageEditor
@@ -46,6 +49,7 @@ export default async function EditorPage({
       savedAt={(variant?.draftUpdatedAt ?? row.step.draftUpdatedAt).toISOString()}
       variant={variant ? { id: variant.id, name: variant.name } : undefined}
       aiEnabled={aiConfigured()}
+      aiWriter={aiWriter}
       offers={offers}
       siteLocale={ctx.workspace.siteLocale}
     />

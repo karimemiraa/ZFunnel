@@ -87,6 +87,16 @@ describe("Arabic templates", () => {
     }
   });
 
+  it.each(TEMPLATES.map((t) => t.id))("%s uses a chosen Arabic font pairing on every step", (id) => {
+    for (const s of buildTemplate(id, "ar")!) {
+      const p = s.page.root.props as { arabicHeadingFont: string; arabicBodyFont: string };
+      expect(p.arabicHeadingFont).not.toBe("auto");
+      expect(p.arabicBodyFont).not.toBe("auto");
+    }
+    const en = buildTemplate(id)![0]!.page.root.props as { arabicHeadingFont: string };
+    expect(en.arabicHeadingFont).toBe("auto");
+  });
+
   it("does not leak the Arabic build language into later English builds", () => {
     buildTemplate("quiz", "ar");
     const en = JSON.stringify(buildTemplate("lead-magnet"));

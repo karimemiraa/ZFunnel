@@ -1,7 +1,7 @@
 import type { PageData } from "./config";
 import type { Locale } from "@zfunnel/i18n";
 import { block, columns, page, section, starterPage, withLang, type StarterStepType } from "./starters";
-import { TEMPLATES_AR } from "./templates-ar";
+import { AR_TEMPLATE_FONTS, TEMPLATES_AR } from "./templates-ar";
 import type { PageTheme } from "./theme";
 
 type Theme = Partial<PageTheme & { preset: string }>;
@@ -551,14 +551,16 @@ export function buildTemplate(id: string, lang: Locale = "en") {
   const t = TEMPLATES.find((x) => x.id === id);
   if (!t) return null;
   const ar = lang === "ar" ? TEMPLATES_AR[id] : undefined;
-  if (ar)
+  if (ar) {
+    const theme = { ...t.theme, ...AR_TEMPLATE_FONTS[id] };
     return withLang("ar", () =>
       ar.steps.map((s) => ({
         name: s.name,
         type: s.type,
-        page: s.build ? s.build(t.theme) : starterPage(s.type, s.name, t.theme, "ar"),
+        page: s.build ? s.build(theme) : starterPage(s.type, s.name, theme, "ar"),
       })),
     );
+  }
   return t.steps.map((s) => ({
     name: s.name,
     type: s.type,

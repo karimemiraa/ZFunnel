@@ -1,7 +1,7 @@
 import type { Config, Data } from "@puckeditor/core";
 import type { Locale } from "@zfunnel/i18n";
 import { AR_DEFAULTS } from "./defaults-ar";
-import { colorField } from "./fields";
+import { colorField, fontField, type FontOption } from "./fields";
 import {
   Columns,
   Divider,
@@ -57,7 +57,19 @@ import {
   type SurveyProps,
 } from "./components/interactive";
 import { OrderForm, UpsellOffer, type OrderFormProps, type UpsellOfferProps } from "./components/checkout";
-import { DEFAULT_THEME, FONTS, RADII, THEME_PRESETS, themeVars, type PageTheme } from "./theme";
+import {
+  ARABIC_FONTS,
+  DEFAULT_THEME,
+  FONTS,
+  fontStack,
+  RADII,
+  THEME_PRESETS,
+  themeVars,
+  type ArabicFontChoice,
+  type FontKey,
+  type PageTheme,
+} from "./theme";
+import { getRuntime } from "./runtime";
 
 export type Components = {
   Section: SectionProps;
@@ -96,7 +108,28 @@ export type RootProps = PageTheme & {
 
 export type PageData = Data<Components, RootProps>;
 
-const fontOptions = Object.entries(FONTS).map(([value, f]) => ({ label: f.label, value }));
+/** Latin font options; on Arabic sites each previews with its Arabic pair, as the page will render it. */
+const latinFontOptions = (lang: Locale): FontOption[] =>
+  Object.entries(FONTS).map(([value, f]) => ({
+    value,
+    label: f.label,
+    hint: `+ ${ARABIC_FONTS[f.arabic].label}`,
+    family: fontStack(value, "auto", lang),
+  }));
+const arabicFontOptions: FontOption[] = [
+  { value: "auto", label: "Auto (paired with the Latin font)", family: ARABIC_FONTS.noto.family },
+  ...Object.entries(ARABIC_FONTS).map(([value, f]) => ({ value, label: f.label, family: f.family })),
+];
+const fontFields = (lang: Locale) => {
+  const latin = latinFontOptions(lang);
+  const sampleLang = lang === "ar" ? "ar" : "en";
+  return {
+    headingFont: fontField<FontKey>("Heading font", latin, sampleLang),
+    bodyFont: fontField<FontKey>("Body font", latin, sampleLang),
+    arabicHeadingFont: fontField<ArabicFontChoice>("Arabic heading font", arabicFontOptions, "ar"),
+    arabicBodyFont: fontField<ArabicFontChoice>("Arabic body font", arabicFontOptions, "ar"),
+  };
+};
 const radiusOptions = Object.keys(RADII).map((value) => ({
   label: value === "full" ? "Pill" : value.toUpperCase(),
   value,
@@ -131,8 +164,7 @@ export const config: Config<{
       primary: colorField("Brand color"),
       background: colorField("Page background"),
       text: colorField("Text color"),
-      headingFont: { type: "select", label: "Heading font", options: fontOptions },
-      bodyFont: { type: "select", label: "Body font", options: fontOptions },
+      ...fontFields("en"),
       radius: { type: "select", label: "Corner radius", options: radiusOptions },
       buttonRadius: { type: "select", label: "Button shape", options: radiusOptions },
     },
@@ -146,11 +178,11 @@ export const config: Config<{
         return { ...data, props: { ...data.props, preset: "" } };
       return data;
     },
-    render: ({ children, ...props }) => (
+    render: ({ children, puck, ...props }) => (
       <div
         className="zf-page flex min-h-full w-full flex-col antialiased"
         style={{
-          ...themeVars(props as Partial<PageTheme>),
+          ...themeVars(props as Partial<PageTheme>, getRuntime(puck?.metadata).lang),
           background: "var(--zf-bg)",
           color: "var(--zf-fg)",
           fontFamily: "var(--zf-body-font)",
@@ -203,8 +235,10 @@ export function configFor(lang: Locale = "en"): typeof config {
       AR_DEFAULTS[name] ? { ...c, defaultProps: { ...c.defaultProps, ...AR_DEFAULTS[name] } } : c,
     ]),
   ) as typeof config.components;
-  arConfig = { ...config, components };
-  return arConfig;
+  const root = { ...config.root, fields: { ...config.root!.fields, ...fontFields("ar") } } as typeof config.root;
+  const built: typeof config = { ...config, root, components };
+  arConfig = built;
+  return built;
 }
 let arConfig: typeof config | null = null;
 

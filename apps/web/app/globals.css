@@ -5,3 +5,18 @@
 @source "../components";
 @source "../../../packages/ui/src";
 @source "../../../packages/blocks/src";
+
+/* Arabic dashboard UI uses IBM Plex Sans Arabic (8.4). Its faces are registered in blocks/fonts.css;
+   the browser downloads only the Arabic subset, and Latin text stays in Inter. */
+html:lang(ar) body {
+  font-family:
+    "Inter Variable",
+    "IBM Plex Sans Arabic",
+    "Noto Sans Arabic Variable",
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+}

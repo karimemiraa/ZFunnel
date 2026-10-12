@@ -1,40 +1,65 @@
 import type { CSSProperties } from "react";
 
+const SANS = "ui-sans-serif, system-ui, sans-serif";
+const SERIF = "ui-serif, Georgia, serif";
+
+/**
+ * Arabic typefaces (OFL-1.1, self-hosted through Fontsource, registered in fonts.css).
+ * Every @font-face has a unicode-range, so the browser downloads a face only when the page uses it.
+ */
+export const ARABIC_FONTS = {
+  noto: { label: "Noto Sans Arabic", family: "'Noto Sans Arabic Variable'", kind: "sans" },
+  cairo: { label: "Cairo", family: "'Cairo Variable'", kind: "sans" },
+  tajawal: { label: "Tajawal", family: "'Tajawal'", kind: "sans" },
+  plex: { label: "IBM Plex Sans Arabic", family: "'IBM Plex Sans Arabic'", kind: "sans" },
+  almarai: { label: "Almarai", family: "'Almarai'", kind: "sans" },
+  readex: { label: "Readex Pro", family: "'Readex Pro Variable'", kind: "sans" },
+  kufi: { label: "Noto Kufi Arabic", family: "'Noto Kufi Arabic Variable'", kind: "sans" },
+  amiri: { label: "Amiri (serif)", family: "'Amiri'", kind: "serif" },
+  messiri: { label: "El Messiri (display)", family: "'El Messiri Variable'", kind: "display" },
+} as const;
+export type ArabicFontKey = keyof typeof ARABIC_FONTS;
+/** "auto" follows the Latin font's pair. */
+export type ArabicFontChoice = ArabicFontKey | "auto";
+
+/** Latin theme fonts, each paired with an Arabic typeface. */
 export const FONTS = {
-  inter: {
-    label: "Inter",
-    stack: "'Inter Variable', 'Noto Sans Arabic Variable', ui-sans-serif, system-ui, sans-serif",
-  },
-  jakarta: {
-    label: "Plus Jakarta Sans",
-    stack: "'Plus Jakarta Sans Variable', 'Noto Sans Arabic Variable', ui-sans-serif, system-ui, sans-serif",
-  },
-  dmsans: {
-    label: "DM Sans",
-    stack: "'DM Sans Variable', 'Noto Sans Arabic Variable', ui-sans-serif, system-ui, sans-serif",
-  },
-  manrope: {
-    label: "Manrope",
-    stack: "'Manrope Variable', 'Noto Sans Arabic Variable', ui-sans-serif, system-ui, sans-serif",
-  },
-  outfit: {
-    label: "Outfit",
-    stack: "'Outfit Variable', 'Noto Sans Arabic Variable', ui-sans-serif, system-ui, sans-serif",
-  },
-  grotesk: {
-    label: "Space Grotesk",
-    stack: "'Space Grotesk Variable', 'Noto Sans Arabic Variable', ui-sans-serif, system-ui, sans-serif",
-  },
+  inter: { label: "Inter", family: "'Inter Variable'", fallback: SANS, arabic: "plex" },
+  jakarta: { label: "Plus Jakarta Sans", family: "'Plus Jakarta Sans Variable'", fallback: SANS, arabic: "cairo" },
+  dmsans: { label: "DM Sans", family: "'DM Sans Variable'", fallback: SANS, arabic: "tajawal" },
+  manrope: { label: "Manrope", family: "'Manrope Variable'", fallback: SANS, arabic: "almarai" },
+  outfit: { label: "Outfit", family: "'Outfit Variable'", fallback: SANS, arabic: "readex" },
+  grotesk: { label: "Space Grotesk", family: "'Space Grotesk Variable'", fallback: SANS, arabic: "kufi" },
   playfair: {
     label: "Playfair Display (serif)",
-    stack: "'Playfair Display Variable', 'Noto Sans Arabic Variable', ui-serif, Georgia, serif",
+    family: "'Playfair Display Variable'",
+    fallback: SERIF,
+    arabic: "amiri",
   },
-  fraunces: {
-    label: "Fraunces (serif)",
-    stack: "'Fraunces Variable', 'Noto Sans Arabic Variable', ui-serif, Georgia, serif",
-  },
-} as const;
+  fraunces: { label: "Fraunces (serif)", family: "'Fraunces Variable'", fallback: SERIF, arabic: "messiri" },
+} as const satisfies Record<string, { label: string; family: string; fallback: string; arabic: ArabicFontKey }>;
 export type FontKey = keyof typeof FONTS;
+
+/** The Arabic typeface for a Latin font and a choice ("auto" or unknown → the font's pair). */
+export function arabicFontFor(latin: string, choice?: string | null): ArabicFontKey {
+  if (choice && choice !== "auto" && choice in ARABIC_FONTS) return choice as ArabicFontKey;
+  return (FONTS[latin as FontKey] ?? FONTS.inter).arabic;
+}
+
+/**
+ * The CSS font stack for a Latin font plus its Arabic typeface.
+ * - Arabic sites put the Arabic face first, so digits and punctuation inside Arabic text match it and
+ *   the Latin font's files are not downloaded at all.
+ * - Other sites keep the Latin font first; Arabic text, if any, falls through to the Arabic face.
+ * Noto Sans Arabic stays last as a safety net.
+ */
+export function fontStack(latin: string, choice?: string | null, lang?: string): string {
+  const l = FONTS[latin as FontKey] ?? FONTS.inter;
+  const a = ARABIC_FONTS[arabicFontFor(latin, choice)].family;
+  const families: string[] = lang === "ar" ? [a, l.family] : [l.family, a];
+  if (a !== ARABIC_FONTS.noto.family) families.push(ARABIC_FONTS.noto.family);
+  return `${families.join(", ")}, ${l.fallback}`;
+}
 
 export const RADII = { none: "0px", sm: "6px", md: "12px", lg: "20px", full: "9999px" } as const;
 export type RadiusKey = keyof typeof RADII;
@@ -45,6 +70,9 @@ export type PageTheme = {
   text: string;
   headingFont: FontKey;
   bodyFont: FontKey;
+  /** Arabic typeface for headings and body text; "auto" uses the Latin font's pair. */
+  arabicHeadingFont: ArabicFontChoice;
+  arabicBodyFont: ArabicFontChoice;
   radius: RadiusKey;
   buttonRadius: RadiusKey;
 };
@@ -55,6 +83,8 @@ export const DEFAULT_THEME: PageTheme = {
   text: "#0f172a",
   headingFont: "jakarta",
   bodyFont: "inter",
+  arabicHeadingFont: "auto",
+  arabicBodyFont: "auto",
   radius: "md",
   buttonRadius: "md",
 };
@@ -96,8 +126,8 @@ export function isDark(hex: string) {
   return luminance(hex) < 0.3;
 }
 
-/** CSS custom properties consumed by every block. */
-export function themeVars(input: Partial<PageTheme> | undefined): CSSProperties {
+/** CSS custom properties consumed by every block. `lang` is the site language. */
+export function themeVars(input: Partial<PageTheme> | undefined, lang?: string): CSSProperties {
   const t = { ...DEFAULT_THEME, ...input };
   return {
     "--zf-primary": t.primary,
@@ -105,8 +135,8 @@ export function themeVars(input: Partial<PageTheme> | undefined): CSSProperties 
     "--zf-bg": t.background,
     "--zf-fg": t.text,
     "--zf-text": t.text,
-    "--zf-heading-font": FONTS[t.headingFont]?.stack ?? FONTS.inter.stack,
-    "--zf-body-font": FONTS[t.bodyFont]?.stack ?? FONTS.inter.stack,
+    "--zf-heading-font": fontStack(t.headingFont, t.arabicHeadingFont, lang),
+    "--zf-body-font": fontStack(t.bodyFont, t.arabicBodyFont, lang),
     "--zf-radius": RADII[t.radius] ?? RADII.md,
     "--zf-btn-radius": RADII[t.buttonRadius] ?? RADII.md,
     colorScheme: isDark(t.background) ? "dark" : "light",

@@ -48,3 +48,9 @@ ZFunnel's Arabic is written, not translated: Modern Standard Arabic in a warm, d
 - After adding a namespace file, run `python3 packages/i18n/gen-index.py`.
 - The dashboard follows the user's language (`zf_lang` cookie, else the browser).
 - Public pages, checkout and customer emails follow the workspace's **site language** (Settings → General).
+
+## Typography
+
+- Funnel pages: each Latin theme font has an Arabic pair, and owners can pick another Arabic font per page in the editor (ADR-028). Templates in Arabic set their own pairing; prefer a display or bold face for headings (Cairo, El Messiri, Readex Pro, Amiri for a classic serif look) and a calm text face for body copy (Tajawal, IBM Plex Sans Arabic, Almarai).
+- Dashboard: IBM Plex Sans Arabic.
+- The AI writer in the editor writes Arabic natively with the voice above; it never translates.

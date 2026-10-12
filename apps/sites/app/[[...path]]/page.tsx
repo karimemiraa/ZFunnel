@@ -30,6 +30,8 @@ export async function generateMetadata(props: Params): Promise<Metadata> {
   const title = root.title || r.page.step.name;
   return {
     title,
+    // The workspace logo doubles as the favicon (checked by the funnel health check).
+    icons: r.ws.logoUrl ? { icon: r.ws.logoUrl } : undefined,
     description: root.seoDescription || undefined,
     openGraph: {
       title,

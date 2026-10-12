@@ -1,4 +1,9 @@
-/* Self-hosted fonts (OFL-1.1). Each @font-face is only downloaded when a page uses it. */
+/*
+ * Self-hosted fonts (OFL-1.1). Every @font-face has a unicode-range and is only downloaded when a page
+ * renders text in that family and range, so unused fonts cost a few hundred bytes of CSS, not a download.
+ * Static (non-variable) Arabic families import only the weights blocks use (400/500/700/800) and only
+ * their Arabic and Latin subsets.
+ */
 @import "@fontsource-variable/inter";
 @import "@fontsource-variable/plus-jakarta-sans";
 @import "@fontsource-variable/dm-sans";
@@ -7,4 +12,31 @@
 @import "@fontsource-variable/space-grotesk";
 @import "@fontsource-variable/playfair-display";
 @import "@fontsource-variable/fraunces";
+
+/* Arabic (ARABIC_FONTS in theme.ts) */
 @import "@fontsource-variable/noto-sans-arabic";
+@import "@fontsource-variable/cairo";
+@import "@fontsource-variable/readex-pro";
+@import "@fontsource-variable/noto-kufi-arabic";
+@import "@fontsource-variable/el-messiri";
+@import "@fontsource/tajawal/arabic-400.css";
+@import "@fontsource/tajawal/arabic-500.css";
+@import "@fontsource/tajawal/arabic-700.css";
+@import "@fontsource/tajawal/arabic-800.css";
+@import "@fontsource/tajawal/latin-400.css";
+@import "@fontsource/tajawal/latin-700.css";
+@import "@fontsource/ibm-plex-sans-arabic/arabic-400.css";
+@import "@fontsource/ibm-plex-sans-arabic/arabic-500.css";
+@import "@fontsource/ibm-plex-sans-arabic/arabic-600.css";
+@import "@fontsource/ibm-plex-sans-arabic/arabic-700.css";
+@import "@fontsource/ibm-plex-sans-arabic/latin-400.css";
+@import "@fontsource/ibm-plex-sans-arabic/latin-700.css";
+@import "@fontsource/almarai/arabic-400.css";
+@import "@fontsource/almarai/arabic-700.css";
+@import "@fontsource/almarai/arabic-800.css";
+@import "@fontsource/almarai/latin-400.css";
+@import "@fontsource/almarai/latin-700.css";
+@import "@fontsource/amiri/arabic-400.css";
+@import "@fontsource/amiri/arabic-700.css";
+@import "@fontsource/amiri/latin-400.css";
+@import "@fontsource/amiri/latin-700.css";

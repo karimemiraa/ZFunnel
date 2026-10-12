@@ -1,11 +1,13 @@
 import { cn } from "@zfunnel/ui/lib/utils";
-import { ArrowLeftIcon, ListIcon, WorkflowIcon } from "lucide-react";
+import { ActivityIcon, ArrowLeftIcon, ListIcon, WorkflowIcon } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AddStepDialog } from "@/components/funnels/add-step-dialog";
 import { FunnelActionsBar } from "@/components/funnels/funnel-actions-bar";
 import { ShareFunnel } from "@/components/funnels/share-funnel";
 import { FunnelMap } from "@/components/funnels/funnel-map";
+import { HealthPanel } from "@/components/funnels/health-panel";
+import { getFunnelHealth } from "@/lib/funnel-health-data";
 import { StepList } from "@/components/funnels/step-list";
 import { StepOffers } from "@/components/funnels/step-offers";
 import { SplitTest } from "@/components/funnels/split-test";
@@ -48,6 +50,8 @@ export default async function FunnelPage({
   const base = `/${ws}/funnels/${funnel.id}`;
   const selected = steps.find((s) => s.id === stepParam) ?? steps[0];
   const isMap = view === "map";
+  const isHealth = view === "health";
+  const health = isHealth ? await getFunnelHealth(ctx, funnel.id) : null;
   const sells = selected && ["checkout", "upsell", "downsell"].includes(selected.type);
   const [offers, productList] = sells
     ? await Promise.all([getStepOfferList(ctx, selected.id), listProducts(ctx)])
@@ -98,8 +102,9 @@ export default async function FunnelPage({
 
       <div className="mb-6 inline-flex rounded-lg bg-muted p-1 text-sm">
         {[
-          { href: base, label: t("funnels.tabSteps"), icon: ListIcon, active: !isMap },
+          { href: base, label: t("funnels.tabSteps"), icon: ListIcon, active: !isMap && !isHealth },
           { href: `${base}?view=map`, label: t("funnels.tabMap"), icon: WorkflowIcon, active: isMap },
+          { href: `${base}?view=health`, label: t("health.tab"), icon: ActivityIcon, active: isHealth },
         ].map((tab) => (
           <Link
             key={tab.href}
@@ -114,7 +119,9 @@ export default async function FunnelPage({
         ))}
       </div>
 
-      {isMap ? (
+      {isHealth && health ? (
+        <HealthPanel workspaceSlug={ws} base={base} {...health} />
+      ) : isMap ? (
         <>
           <FunnelMap
             workspaceSlug={ws}
