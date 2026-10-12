@@ -1,6 +1,6 @@
 import "server-only";
 
-import { asc, eq, funnelSteps } from "@zfunnel/db";
+import { and, asc, eq, funnelSteps, isNull } from "@zfunnel/db";
 import { sanitizeRichText } from "@zfunnel/email";
 import { complete } from "./ai";
 import { applyCopy, collectCopy } from "./copy-slots";
@@ -22,7 +22,11 @@ Rules:
  */
 export async function writeFunnelCopy(ctx: WorkspaceContext, funnelId: string, brief: string) {
   const steps = await inWorkspace(ctx, (tx) =>
-    tx.select().from(funnelSteps).where(eq(funnelSteps.funnelId, funnelId)).orderBy(asc(funnelSteps.position)),
+    tx
+      .select()
+      .from(funnelSteps)
+      .where(and(eq(funnelSteps.funnelId, funnelId), isNull(funnelSteps.deletedAt)))
+      .orderBy(asc(funnelSteps.position)),
   );
   const slots = steps.flatMap((s, i) =>
     collectCopy(s.draft as { content?: unknown }).map((c) => ({ ...c, id: `${i}|${c.id}`, step: s.name })),

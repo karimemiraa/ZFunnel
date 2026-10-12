@@ -1,6 +1,18 @@
 import "server-only";
 
-import { contacts, desc, emails, eq, inArray, sql, workflowRunLogs, workflowRuns, workflows } from "@zfunnel/db";
+import {
+  and,
+  contacts,
+  desc,
+  emails,
+  eq,
+  inArray,
+  isNull,
+  sql,
+  workflowRunLogs,
+  workflowRuns,
+  workflows,
+} from "@zfunnel/db";
 import { inWorkspace } from "./funnels";
 import type { WorkspaceContext } from "./workspaces";
 
@@ -16,13 +28,19 @@ export async function listWorkflows(ctx: WorkspaceContext) {
         total: sql<number>`(select count(*)::int from workflow_runs r where r.workflow_id = "workflows"."id")`,
       })
       .from(workflows)
+      .where(isNull(workflows.deletedAt))
       .orderBy(desc(workflows.updatedAt)),
   );
 }
 
 export async function getWorkflow(ctx: WorkspaceContext, id: string) {
   if (!isUuid(id)) return null;
-  const [w] = await inWorkspace(ctx, (tx) => tx.select().from(workflows).where(eq(workflows.id, id)));
+  const [w] = await inWorkspace(ctx, (tx) =>
+    tx
+      .select()
+      .from(workflows)
+      .where(and(eq(workflows.id, id), isNull(workflows.deletedAt))),
+  );
   return w ?? null;
 }
 
@@ -42,7 +60,7 @@ export async function listRuns(ctx: WorkspaceContext, workflowId: string, limit 
     const runs = await tx
       .select({ r: workflowRuns, email: contacts.email, name: contacts.name })
       .from(workflowRuns)
-      .innerJoin(contacts, eq(contacts.id, workflowRuns.contactId))
+      .innerJoin(contacts, and(eq(contacts.id, workflowRuns.contactId), isNull(contacts.deletedAt)))
       .where(eq(workflowRuns.workflowId, workflowId))
       .orderBy(desc(workflowRuns.startedAt))
       .limit(limit);

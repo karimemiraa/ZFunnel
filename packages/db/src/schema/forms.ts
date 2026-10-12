@@ -22,6 +22,8 @@ export const formSubmissions = pgTable(
     answers: jsonb().$type<FormAnswer[]>().notNull(),
     score: integer(),
     outcome: text(),
+    /** Soft delete (ADR-029): set on every response when a form is deleted from the Forms list. */
+    deletedAt: timestamp({ withTimezone: true }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("form_submissions_form_idx").on(t.workspaceId, t.stepId, t.blockId, t.createdAt)],

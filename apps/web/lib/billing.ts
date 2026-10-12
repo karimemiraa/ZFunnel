@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq, getDb, orgBilling, sql, withSystem, type OrgBilling } from "@zfunnel/db";
+import { eq, getDb, type OrgBilling, orgBilling, sql, withSystem } from "@zfunnel/db";
 import { FEATURE_LABELS, PLANS, TRIAL_DAYS, type FeatureKey, type LimitKey, type Plan } from "@zfunnel/shared";
 import { getT } from "./i18n";
 
@@ -48,7 +48,7 @@ export async function getUsage(organizationId: string): Promise<Record<LimitKey,
       select
         (select count(*) from ws)::int as workspaces,
         (select count(*) from funnels f where f.workspace_id in (select id from ws) and f.archived_at is null)::int as funnels,
-        (select count(*) from contacts c where c.workspace_id in (select id from ws))::int as contacts,
+        (select count(*) from contacts c where c.workspace_id in (select id from ws) and c.deleted_at is null)::int as contacts,
         (select count(*) from email_messages m where m.workspace_id in (select id from ws)
            and m.created_at >= date_trunc('month', now()) and coalesce(m.meta->>'test', 'false') <> 'true'
            and coalesce(m.meta->>'kind', '') not in ('login', 'booking'))::int as "emailsPerMonth",

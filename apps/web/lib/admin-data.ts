@@ -7,8 +7,8 @@ import {
   ilike,
   inArray,
   or,
-  orgBilling,
   organizationSuspensions,
+  orgBilling,
   platformAuditLog,
   schema,
   sql,
@@ -137,7 +137,7 @@ export async function getOrganizationDetail(id: string) {
       with ws as (select id from workspaces where organization_id = ${id})
       select
         (select count(*) from funnels f where f.workspace_id in (select id from ws) and f.archived_at is null)::int as funnels,
-        (select count(*) from contacts c where c.workspace_id in (select id from ws))::int as contacts,
+        (select count(*) from contacts c where c.workspace_id in (select id from ws) and c.deleted_at is null)::int as contacts,
         (select count(*) from orders o where o.workspace_id in (select id from ws))::int as orders`)) as unknown as {
       funnels: number;
       contacts: number;

@@ -11,6 +11,7 @@ import {
   courses,
   desc,
   eq,
+  isNull,
   sql,
 } from "@zfunnel/db";
 import { inWorkspace } from "./funnels";
@@ -61,7 +62,7 @@ export async function listStudents(ctx: WorkspaceContext, courseId: string, less
           where p.contact_id = ${courseEnrollments.contactId} and l.course_id = ${courseId})`,
       })
       .from(courseEnrollments)
-      .innerJoin(contacts, eq(contacts.id, courseEnrollments.contactId))
+      .innerJoin(contacts, and(eq(contacts.id, courseEnrollments.contactId), isNull(contacts.deletedAt)))
       .where(and(eq(courseEnrollments.courseId, courseId)))
       .orderBy(desc(courseEnrollments.createdAt))
       .limit(500),

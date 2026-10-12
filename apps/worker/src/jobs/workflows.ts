@@ -9,15 +9,16 @@ import {
   emails,
   eq,
   getDb,
+  isNull,
   ruleCondition,
   smsSettings,
   sql,
+  type Tx,
   withSystem,
+  type WorkflowNode,
   workflowRunLogs,
   workflowRuns,
   workflows,
-  type Tx,
-  type WorkflowNode,
   type WorkflowTrigger,
 } from "@zfunnel/db";
 import { openSecret, personalize } from "@zfunnel/email";
@@ -57,7 +58,16 @@ export async function processWorkflowEvent(event: WorkflowEvent, eventId: string
     const list = await tx
       .select()
       .from(workflows)
-      .where(and(eq(workflows.workspaceId, event.workspaceId), eq(workflows.status, "active")));
+      .where(
+        and(eq(workflows.workspaceId, event.workspaceId), eq(workflows.status, "active"), isNull(workflows.deletedAt)),
+      );
+    if (!list.length) return [];
+    // A soft-deleted contact (ADR-029) is never enrolled.
+    const [live] = await tx
+      .select({ id: contacts.id })
+      .from(contacts)
+      .where(and(eq(contacts.id, event.contactId), isNull(contacts.deletedAt)));
+    if (!live) return [];
     const ids: string[] = [];
     for (const wf of list) {
       const matches = event.type === "manual" ? event.data?.workflowId === wf.id : triggerMatches(wf.trigger, event);
@@ -211,6 +221,13 @@ export async function processWorkflowRun({ runId }: WorkflowRunJob) {
           .where(eq(workflowRuns.id, run.id));
         return { done: true as const };
       };
+      // Soft-deleted automation or contact (ADR-029): hold the run where it is. Restoring either re-queues it.
+      if (wf?.deletedAt) return { done: true as const };
+      const [holder] = await tx
+        .select({ deletedAt: contacts.deletedAt })
+        .from(contacts)
+        .where(eq(contacts.id, run.contactId));
+      if (holder?.deletedAt) return { done: true as const };
       if (!wf || wf.status !== "active") return finish("cancelled", "Automation was paused or deleted");
       const node = run.currentNodeId ? wf.graph.nodes[run.currentNodeId] : undefined;
       if (!node) return finish("completed");

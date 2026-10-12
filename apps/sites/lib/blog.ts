@@ -37,6 +37,7 @@ export async function sitePaths(workspaceId: string) {
           eq(funnels.workspaceId, workspaceId),
           isNull(funnels.archivedAt),
           isNotNull(funnelSteps.publishedVersionId),
+          isNull(funnelSteps.deletedAt),
         ),
       );
     const blog = await tx

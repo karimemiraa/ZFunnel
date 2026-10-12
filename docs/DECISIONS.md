@@ -296,3 +296,28 @@ Format: **ID — Title** · Status (Proposed / Accepted / Superseded) · Date. S
 **Why.** Arabic marketers expect a choice of modern Arabic typefaces, and a Latin font with a random system Arabic fallback looks broken. Self-hosting keeps pages fast and private, and `unicode-range` keeps the cost of offering many fonts near zero.
 
 **Consequences.** `fonts.css` grows by about 30 KB of uncompressed CSS (around 4 KB gzipped) on the dashboard and published sites. Existing pages keep rendering as before on English sites; on Arabic sites existing pages switch from Noto Sans Arabic to their font's pair. Owners can pick "Noto Sans Arabic" to get the old look back.
+
+### ADR-029 — Undo on deletes: soft delete, a 10-second toast, purge after 30 days · **Accepted** · 2026-10-12
+
+**Decision.**
+
+- **Soft delete, not a delayed hard delete.** A delete sets a timestamp and the row disappears everywhere at once. The toast's **Undo** clears it. A client-side "wait 10 seconds, then delete" was rejected: closing the tab inside the window would lose the delete or the undo, and the server could not tell which.
+- **Which column.**
+  - `contacts`, `funnel_steps`, `workflows` (automations) and `form_submissions` get a new nullable `deleted_at` (migration 0055).
+  - `funnels` and `products` reuse their existing `archived_at`. It already hid them everywhere (dashboard lists, the public renderer, the store, checkout offers, plan usage), so "delete" for these two _is_ archive. Product delete no longer removes step offers: checkout and the editor already skip archived products, so undo brings the offers back intact.
+  - A **form** is a block inside a step, not a row. Deleting a form soft-deletes all of its responses (`form_submissions.deleted_at`), which removes it from the Forms list. The block stays on its page until it is removed in the editor; the "Used in" panel says so.
+- **Filtering.** Every read of those tables filters the marker: dashboard lists and detail pages, the public API, CSV exports, plan-usage counts, the admin console, the public renderer (`apps/sites`: page resolution, next/decline links, sitemap, customer login and session) and the worker (broadcast audiences, email sends, automation enrollment, webhooks, ad conversions). A step delete re-points the steps that led to it, stores which ones in `funnel_steps.deleted_links`, and undo puts them back only if nobody changed them since.
+- **Re-appearing contacts.** Contacts are unique per workspace email. Any upsert by email (opt-in, form, booking, checkout, affiliate sign-up, the API, CSV import, a new deal, manual enrollment, "Add contact") revives a soft-deleted contact instead of failing.
+- **Automations.** A deleted automation enrolls no one. Its waiting runs, and the runs of a deleted contact, are held where they are, not cancelled. Restoring either re-queues them.
+- **Purge.** A worker job on a new `maintenance` queue runs every 6 hours (BullMQ job scheduler) and hard-deletes contacts, steps, automations and form responses soft-deleted more than **30 days** ago. Archived funnels and products are **never** purged, because orders and reports point at them.
+- **Who can delete.** Contacts and funnels need an owner or admin, as before. Every delete and restore is in the audit log.
+- **Emails (broadcasts)** are still deleted for good, after the "Used in" panel. Orders are financial records and are never deleted from the dashboard.
+
+**Why.** Soft delete makes undo exact and survives navigation, refreshes and a second tab. Reusing `archived_at` for funnels and products avoids a second, competing "hidden" state on the two tables with the most read paths (checkout, renderer, store). Thirty days covers "I deleted the wrong list last week" and stays inside the GDPR one-month erasure window.
+
+**Consequences.**
+
+- A soft-deleted contact still blocks its email for 30 days, which is why upserts revive it rather than insert a duplicate.
+- New code that reads these tables must filter `deleted_at` (or `archived_at`). Grep for the column before adding a query.
+- A soft-deleted step keeps its slug, so a new step can't take that slug until the purge.
+- Restoring a funnel or contacts checks the plan limits again; restoring the homepage funnel makes it the homepage again.

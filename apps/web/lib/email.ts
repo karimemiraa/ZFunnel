@@ -77,6 +77,7 @@ export async function audienceCount(
       .where(
         and(
           isNull(contacts.unsubscribedAt),
+          isNull(contacts.deletedAt),
           seg ? segmentCondition(seg.match, seg.rules) : undefined,
           audience.tag ? segmentCondition("all", [{ field: "tag", op: "has", value: audience.tag }]) : undefined,
         ),

@@ -9,6 +9,7 @@ import {
   emailMessages,
   eq,
   inArray,
+  isNull,
   orderItems,
   orders,
   prices,
@@ -47,7 +48,7 @@ export async function currentCustomer(workspaceId: string) {
     tx
       .select()
       .from(contacts)
-      .where(and(eq(contacts.id, contactId), eq(contacts.workspaceId, workspaceId))),
+      .where(and(eq(contacts.id, contactId), eq(contacts.workspaceId, workspaceId), isNull(contacts.deletedAt))),
   );
   return c ?? null;
 }

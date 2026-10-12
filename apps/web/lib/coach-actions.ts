@@ -1,6 +1,6 @@
 "use server";
 
-import { asc, eq, funnelInsights, funnels, funnelSteps, inArray, pageVersions } from "@zfunnel/db";
+import { and, asc, eq, funnelInsights, funnels, funnelSteps, inArray, isNull, pageVersions } from "@zfunnel/db";
 import { revalidatePath } from "next/cache";
 import { aiConfigured, complete, takeAiQuota } from "./ai";
 import { funnelAnalytics, RANGES, type RangeKey } from "./analytics";
@@ -33,7 +33,7 @@ export async function runCoach(workspaceSlug: string, funnelId: string, range: s
     const steps = await tx
       .select()
       .from(funnelSteps)
-      .where(eq(funnelSteps.funnelId, f.id))
+      .where(and(eq(funnelSteps.funnelId, f.id), isNull(funnelSteps.deletedAt)))
       .orderBy(asc(funnelSteps.position));
     const versionIds = steps.flatMap((s) => (s.publishedVersionId ? [s.publishedVersionId] : []));
     const versions = versionIds.length

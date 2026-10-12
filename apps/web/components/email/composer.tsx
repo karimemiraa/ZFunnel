@@ -21,6 +21,7 @@ import Link from "next/link";
 import { aiRewrite } from "@/lib/ai-actions";
 import { useFmt } from "@/lib/use-fmt";
 import { useEffect, useRef, useState, useTransition } from "react";
+import { DeleteDialog } from "@/components/records/delete-dialog";
 import { cancelSchedule, deleteBroadcast, saveBroadcastDraft, sendBroadcast, sendTestEmail } from "@/lib/email-actions";
 
 type Props = {
@@ -247,16 +248,19 @@ export function Composer(p: Props) {
         ) : null}
 
         {p.status !== "sending" && (
-          <form
-            action={deleteBroadcast.bind(null, p.workspaceSlug, p.broadcastId)}
-            onSubmit={(e) => {
-              if (!confirm(t("email.composer.confirmDelete"))) e.preventDefault();
-            }}
-          >
-            <Button type="submit" variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive">
-              <Trash2Icon /> {t("email.composer.deleteBroadcast")}
-            </Button>
-          </form>
+          <DeleteDialog
+            workspaceSlug={p.workspaceSlug}
+            usedInKind="email"
+            id={p.emailId}
+            name={v.name || t("email.composer.deleteBroadcast")}
+            undoable={false}
+            onConfirm={() => deleteBroadcast(p.workspaceSlug, p.broadcastId)}
+            trigger={
+              <Button type="button" variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive">
+                <Trash2Icon /> {t("email.composer.deleteBroadcast")}
+              </Button>
+            }
+          />
         )}
       </div>
 

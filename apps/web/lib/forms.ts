@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, contacts, desc, eq, formSubmissions, funnels, funnelSteps, sql } from "@zfunnel/db";
+import { and, contacts, desc, eq, formSubmissions, funnels, funnelSteps, isNull, sql } from "@zfunnel/db";
 import { inWorkspace } from "./funnels";
 import type { WorkspaceContext } from "./workspaces";
 
@@ -20,6 +20,7 @@ export async function listForms(ctx: WorkspaceContext) {
       .from(formSubmissions)
       .leftJoin(funnels, eq(funnels.id, formSubmissions.funnelId))
       .leftJoin(funnelSteps, eq(funnelSteps.id, formSubmissions.stepId))
+      .where(isNull(formSubmissions.deletedAt))
       .groupBy(formSubmissions.stepId, formSubmissions.blockId)
       .orderBy(sql`max(${formSubmissions.createdAt}) desc`),
   );
@@ -32,7 +33,13 @@ export async function getFormResponses(ctx: WorkspaceContext, stepId: string, bl
       .select({ s: formSubmissions, email: contacts.email, name: contacts.name })
       .from(formSubmissions)
       .leftJoin(contacts, eq(contacts.id, formSubmissions.contactId))
-      .where(and(eq(formSubmissions.stepId, stepId), eq(formSubmissions.blockId, blockId)))
+      .where(
+        and(
+          eq(formSubmissions.stepId, stepId),
+          eq(formSubmissions.blockId, blockId),
+          isNull(formSubmissions.deletedAt),
+        ),
+      )
       .orderBy(desc(formSubmissions.createdAt))
       .limit(limit),
   );

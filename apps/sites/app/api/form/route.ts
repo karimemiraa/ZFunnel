@@ -93,6 +93,7 @@ export async function POST(req: Request) {
         .onConflictDoUpdate({
           target: [contacts.workspaceId, contacts.email],
           set: {
+            deletedAt: null,
             name: sql`coalesce(${contacts.name}, excluded.name)`,
             phone: sql`coalesce(excluded.phone, ${contacts.phone})`,
             tags: sql`(select array(select distinct unnest(${contacts.tags} || excluded.tags)))`,

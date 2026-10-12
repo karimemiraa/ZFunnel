@@ -3,6 +3,7 @@ import { ActivityIcon, ArrowLeftIcon, ListIcon, WorkflowIcon } from "lucide-reac
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AddStepDialog } from "@/components/funnels/add-step-dialog";
+import { FunnelLinks, FunnelStatsStrip } from "@/components/records/funnel-links";
 import { FunnelActionsBar } from "@/components/funnels/funnel-actions-bar";
 import { ShareFunnel } from "@/components/funnels/share-funnel";
 import { FunnelMap } from "@/components/funnels/funnel-map";
@@ -99,6 +100,8 @@ export default async function FunnelPage({
           />
         </div>
       </div>
+
+      <FunnelStatsStrip ctx={ctx} funnelId={funnel.id} base={base} selectedId={isMap ? undefined : selected?.id} />
 
       <div className="mb-6 inline-flex rounded-lg bg-muted p-1 text-sm">
         {[
@@ -205,6 +208,7 @@ export default async function FunnelPage({
           </section>
         </div>
       )}
+      <FunnelLinks ctx={ctx} funnelId={funnel.id} />
     </>
   );
 }

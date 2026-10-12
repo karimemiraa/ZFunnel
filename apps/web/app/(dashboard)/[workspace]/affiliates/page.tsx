@@ -1,4 +1,4 @@
-import { affiliates, affiliateSettings, contacts, desc, eq, sql } from "@zfunnel/db";
+import { affiliates, affiliateSettings, and, contacts, desc, eq, isNull, sql } from "@zfunnel/db";
 import { AffiliateRowActions, ProgramSettings } from "@/components/affiliates/affiliate-ui";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
@@ -32,7 +32,7 @@ export default async function AffiliatesPage({ params }: { params: Promise<{ wor
         >`(select c.currency from commissions c where c.affiliate_id = "affiliates"."id" limit 1)`,
       })
       .from(affiliates)
-      .innerJoin(contacts, eq(contacts.id, affiliates.contactId))
+      .innerJoin(contacts, and(eq(contacts.id, affiliates.contactId), isNull(contacts.deletedAt)))
       .orderBy(desc(affiliates.createdAt));
     return { settings, rows };
   });

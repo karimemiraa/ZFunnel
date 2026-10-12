@@ -10,50 +10,46 @@ import {
   eq,
   funnels,
   inArray,
+  isNull,
   opportunities,
   orderItems,
   orders,
   pipelines,
   pipelineStages,
   schema,
-  segmentCondition,
   segments,
   sql,
 } from "@zfunnel/db";
 import { inWorkspace } from "./funnels";
+import type { ListFilters } from "./list-filters";
+import { contactOrderCount, contactSpent, contactWhere } from "./list-queries";
 import type { WorkspaceContext } from "./workspaces";
 
+/** One page of the contacts list with the filter bar's filters (and an optional saved segment). */
 export async function listContactsFiltered(
   ctx: WorkspaceContext,
-  opts: { q?: string; tag?: string; segmentId?: string; limit?: number },
+  opts: { filters: ListFilters; segmentId?: string; ids?: string[]; limit?: number; offset?: number },
 ) {
   return inWorkspace(ctx, async (tx) => {
-    const [segment] =
-      opts.segmentId && /^[0-9a-f-]{36}$/i.test(opts.segmentId)
-        ? await tx.select().from(segments).where(eq(segments.id, opts.segmentId))
-        : [];
     const where = and(
-      segment ? segmentCondition(segment.match, segment.rules) : undefined,
-      opts.tag ? segmentCondition("all", [{ field: "tag", op: "has", value: opts.tag }]) : undefined,
-      opts.q
-        ? segmentCondition("any", [
-            { field: "email", op: "contains", value: opts.q },
-            { field: "name", op: "contains", value: opts.q },
-          ])
+      await contactWhere(tx, opts.filters, opts.segmentId),
+      opts.ids
+        ? inArray(contacts.id, opts.ids.length ? opts.ids : ["00000000-0000-0000-0000-000000000000"])
         : undefined,
     );
     const [rows, [count]] = await Promise.all([
       tx
         .select({
           contact: contacts,
-          orderCount: sql<number>`(select count(*)::int from orders o where o.contact_id = "contacts"."id" and o.status in ('paid','partially_refunded'))`,
-          spent: sql<number>`(select coalesce(sum(o.total),0)::int from orders o where o.contact_id = "contacts"."id" and o.status in ('paid','partially_refunded'))`,
+          orderCount: contactOrderCount,
+          spent: contactSpent,
           funnelName: sql<string | null>`(select f.name from funnels f where f.id = ${contacts.sourceFunnelId})`,
         })
         .from(contacts)
         .where(where)
-        .orderBy(desc(contacts.createdAt))
-        .limit(opts.limit ?? 200),
+        .orderBy(desc(contacts.createdAt), desc(contacts.id))
+        .limit(opts.limit ?? 50)
+        .offset(opts.offset ?? 0),
       tx
         .select({ n: sql<number>`count(*)::int` })
         .from(contacts)
@@ -63,10 +59,27 @@ export async function listContactsFiltered(
   });
 }
 
+/** Ids of every contact matching the filters ("select all" in bulk actions), capped. */
+export async function matchingContactIds(
+  ctx: WorkspaceContext,
+  filters: ListFilters,
+  segmentId?: string,
+  cap = 10_000,
+) {
+  return inWorkspace(ctx, async (tx) => {
+    const rows = await tx
+      .select({ id: contacts.id })
+      .from(contacts)
+      .where(await contactWhere(tx, filters, segmentId))
+      .limit(cap);
+    return rows.map((r) => r.id);
+  });
+}
+
 export async function allTags(ctx: WorkspaceContext) {
   const rows = await inWorkspace(ctx, (tx) =>
     tx.execute(
-      sql`select tag, count(*)::int as n from contacts, unnest(tags) as tag group by tag order by n desc, tag limit 100`,
+      sql`select tag, count(*)::int as n from contacts, unnest(tags) as tag where deleted_at is null group by tag order by n desc, tag limit 100`,
     ),
   );
   return rows as unknown as { tag: string; n: number }[];
@@ -75,7 +88,10 @@ export async function allTags(ctx: WorkspaceContext) {
 export async function getContactDetail(ctx: WorkspaceContext, contactId: string) {
   if (!/^[0-9a-f-]{36}$/i.test(contactId)) return null;
   return inWorkspace(ctx, async (tx) => {
-    const [c] = await tx.select().from(contacts).where(eq(contacts.id, contactId));
+    const [c] = await tx
+      .select()
+      .from(contacts)
+      .where(and(eq(contacts.id, contactId), isNull(contacts.deletedAt)));
     if (!c) return null;
     const [activity, contactOrders, fields, deals, sourceFunnel] = await Promise.all([
       tx

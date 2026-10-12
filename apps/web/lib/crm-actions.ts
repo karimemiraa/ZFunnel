@@ -8,6 +8,8 @@ import {
   contacts,
   eq,
   inArray,
+  isNotNull,
+  isNull,
   opportunities,
   pipelines,
   pipelineStages,
@@ -20,12 +22,11 @@ import { enqueueMany } from "@zfunnel/queue";
 import { revalidatePath } from "next/cache";
 import { enforce } from "./billing";
 import { ruleSchema } from "./rule-schema";
-import { redirect } from "next/navigation";
 import { z } from "zod";
 import { inWorkspace } from "./funnels";
 import { getT, localizeMessage } from "./i18n";
 import { requireUser } from "./session";
-import { canManage, getWorkspaceForUser, recordAudit } from "./workspaces";
+import { getWorkspaceForUser, recordAudit } from "./workspaces";
 
 type Result = { ok: true; message?: string; id?: string } | { ok: false; error: string };
 
@@ -89,7 +90,12 @@ export async function createContact(
         phone: parsed.data.phone || null,
         tags,
       })
-      .onConflictDoNothing()
+      // A soft-deleted contact with this email is brought back (ADR-029); a live one is a conflict.
+      .onConflictDoUpdate({
+        target: [contacts.workspaceId, contacts.email],
+        set: { deletedAt: null, name: parsed.data.name || null, phone: parsed.data.phone || null, tags },
+        setWhere: isNotNull(contacts.deletedAt),
+      })
       .returning({ id: contacts.id });
     return c?.id ?? null;
   });
@@ -191,21 +197,14 @@ export async function addNote(workspaceSlug: string, contactId: string, body: st
   if (!text || !uuid.safeParse(contactId).success)
     return { ok: false, error: (await getT())("contacts.err.noteEmpty") };
   await inWorkspace(ctx, async (tx) => {
-    const [c] = await tx.select({ id: contacts.id }).from(contacts).where(eq(contacts.id, contactId));
+    const [c] = await tx
+      .select({ id: contacts.id })
+      .from(contacts)
+      .where(and(eq(contacts.id, contactId), isNull(contacts.deletedAt)));
     if (c) await activity(tx, ctx.workspace.id, contactId, "note", text, user.id);
   });
   revalidatePath(`/${workspaceSlug}/contacts/${contactId}`);
   return { ok: true };
-}
-
-/** GDPR erasure: deletes the contact and their timeline. Orders stay (accounting) but lose the link. */
-export async function deleteContact(workspaceSlug: string, contactId: string) {
-  const { user, ctx } = await ctxFor(workspaceSlug);
-  if (!canManage(ctx.membership.role)) throw new Error("Only owners and admins can delete contacts.");
-  await inWorkspace(ctx, (tx) => tx.delete(contacts).where(eq(contacts.id, contactId)));
-  await recordAudit(ctx, user.id, { action: "contact.deleted", entityType: "contact", entityId: contactId });
-  revalidatePath(`/${workspaceSlug}/contacts`);
-  redirect(`/${workspaceSlug}/contacts`);
 }
 
 export async function importContacts(workspaceSlug: string, csvText: string, tag?: string): Promise<Result> {
@@ -254,6 +253,7 @@ export async function importContacts(workspaceSlug: string, csvText: string, tag
         .onConflictDoUpdate({
           target: [contacts.workspaceId, contacts.email],
           set: {
+            deletedAt: null,
             name: sql`coalesce(${contacts.name}, excluded.name)`,
             phone: sql`coalesce(${contacts.phone}, excluded.phone)`,
             tags: sql`(select array(select distinct unnest(${contacts.tags} || excluded.tags)))`,
@@ -441,7 +441,10 @@ export async function createDeal(workspaceSlug: string, input: z.input<typeof de
       const [c] = await tx
         .insert(contacts)
         .values({ workspaceId: ctx.workspace.id, email: d.data.contactEmail })
-        .onConflictDoUpdate({ target: [contacts.workspaceId, contacts.email], set: { updatedAt: new Date() } })
+        .onConflictDoUpdate({
+          target: [contacts.workspaceId, contacts.email],
+          set: { deletedAt: null, updatedAt: new Date() },
+        })
         .returning({ id: contacts.id });
       contactId = c!.id;
     }

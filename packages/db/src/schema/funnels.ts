@@ -68,6 +68,10 @@ export const funnelSteps = pgTable(
     draftUpdatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     publishedVersionId: uuid(),
     publishedAt: timestamp({ withTimezone: true }),
+    /** Soft delete (ADR-029). The public site stops serving the step at once. */
+    deletedAt: timestamp({ withTimezone: true }),
+    /** Steps whose next/decline link was re-pointed when this step was deleted, so undo can put them back. */
+    deletedLinks: jsonb().$type<{ next: string[]; decline: string[] }>(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [

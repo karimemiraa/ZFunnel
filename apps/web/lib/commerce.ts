@@ -21,6 +21,8 @@ import {
 } from "@zfunnel/db";
 import { getStepOffers, toRuntimeOffers } from "@zfunnel/payments";
 import { inWorkspace } from "./funnels";
+import type { ListFilters } from "./list-filters";
+import { orderWhere } from "./list-queries";
 import type { WorkspaceContext } from "./workspaces";
 
 export async function listProducts(ctx: WorkspaceContext) {
@@ -77,27 +79,28 @@ export async function getPaymentAccount(ctx: WorkspaceContext) {
   });
 }
 
-export async function listOrders(ctx: WorkspaceContext, opts: { q?: string; status?: string; limit?: number } = {}) {
+/** One page of the orders list with the filter bar's filters. */
+export async function listOrders(
+  ctx: WorkspaceContext,
+  opts: { filters?: ListFilters; limit?: number; offset?: number } = {},
+) {
   return inWorkspace(ctx, async (tx) => {
-    const filters = [];
-    if (opts.status && opts.status !== "all") filters.push(eq(orders.status, opts.status as never));
-    if (opts.q) {
-      const n = Number(opts.q.replace("#", ""));
-      filters.push(
-        or(
-          ilike(contacts.email, `%${opts.q}%`),
-          ilike(contacts.name, `%${opts.q}%`),
-          Number.isInteger(n) && n > 0 ? eq(orders.number, n) : sql`false`,
-        ),
-      );
-    }
-    const rows = await tx
-      .select({ order: orders, email: contacts.email, name: contacts.name })
-      .from(orders)
-      .leftJoin(contacts, eq(contacts.id, orders.contactId))
-      .where(filters.length ? and(...filters) : undefined)
-      .orderBy(desc(orders.createdAt))
-      .limit(opts.limit ?? 100);
+    const where = orderWhere(opts.filters ?? {});
+    const [rows, [count]] = await Promise.all([
+      tx
+        .select({ order: orders, email: contacts.email, name: contacts.name })
+        .from(orders)
+        .leftJoin(contacts, eq(contacts.id, orders.contactId))
+        .where(where)
+        .orderBy(desc(orders.createdAt), desc(orders.id))
+        .limit(opts.limit ?? 50)
+        .offset(opts.offset ?? 0),
+      tx
+        .select({ n: sql<number>`count(*)::int` })
+        .from(orders)
+        .leftJoin(contacts, eq(contacts.id, orders.contactId))
+        .where(where),
+    ]);
     const items = rows.length
       ? await tx
           .select()
@@ -110,12 +113,26 @@ export async function listOrders(ctx: WorkspaceContext, opts: { q?: string; stat
           )
           .orderBy(asc(orderItems.createdAt))
       : [];
-    return rows.map((r) => ({
+    const list = rows.map((r) => ({
       ...r.order,
       email: r.email,
       name: r.name,
       items: items.filter((i) => i.orderId === r.order.id),
     }));
+    return Object.assign(list, { total: count?.n ?? 0 });
+  });
+}
+
+/** Ids of every order matching the filters ("select all" in bulk actions), capped. */
+export async function matchingOrderIds(ctx: WorkspaceContext, filters: ListFilters, cap = 10_000) {
+  return inWorkspace(ctx, async (tx) => {
+    const rows = await tx
+      .select({ id: orders.id })
+      .from(orders)
+      .leftJoin(contacts, eq(contacts.id, orders.contactId))
+      .where(orderWhere(filters))
+      .limit(cap);
+    return rows.map((r) => r.id);
   });
 }
 export type OrderRow = Awaited<ReturnType<typeof listOrders>>[number];
@@ -144,7 +161,10 @@ export async function orderStats(ctx: WorkspaceContext) {
 
 export async function listContacts(ctx: WorkspaceContext, opts: { q?: string; limit?: number } = {}) {
   return inWorkspace(ctx, async (tx) => {
-    const where = opts.q ? or(ilike(contacts.email, `%${opts.q}%`), ilike(contacts.name, `%${opts.q}%`)) : undefined;
+    const where = and(
+      isNull(contacts.deletedAt),
+      opts.q ? or(ilike(contacts.email, `%${opts.q}%`), ilike(contacts.name, `%${opts.q}%`)) : undefined,
+    );
     return tx
       .select({
         contact: contacts,

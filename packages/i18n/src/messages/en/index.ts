@@ -41,6 +41,7 @@ import { palette } from "./palette";
 import { payments } from "./payments";
 import { pipelines } from "./pipelines";
 import { products } from "./products";
+import { records } from "./records";
 import { settings } from "./settings";
 import { shell } from "./shell";
 import { site } from "./site";
@@ -100,6 +101,7 @@ export const en = {
   payments,
   pipelines,
   products,
+  records,
   settings,
   shell,
   site,

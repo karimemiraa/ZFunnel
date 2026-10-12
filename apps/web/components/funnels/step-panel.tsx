@@ -31,7 +31,8 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState, useTransition } from "react";
-import { deleteStep, duplicateStep, publishStep, unpublishStep, updateStep } from "@/lib/funnel-actions";
+import { DeleteDialog } from "@/components/records/delete-dialog";
+import { duplicateStep, publishStep, unpublishStep, updateStep } from "@/lib/funnel-actions";
 import type { StepType } from "@/lib/funnels";
 import { STEP_TYPES, StepTypeBadge, stepLabelKey } from "./step-type";
 import { UtmQrDialog } from "./utm-qr-dialog";
@@ -69,6 +70,7 @@ export function StepPanel({
   const [state, action, saving] = useActionState(updateStep.bind(null, workspaceSlug, step.id), null);
   const [type, setType] = useState(step.type);
   const [utmOpen, setUtmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (state?.success) toast.success(t("funnels.step.settingsSaved"));
@@ -165,17 +167,7 @@ export function StepPanel({
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                variant="destructive"
-                onClick={() => {
-                  if (confirm(t("funnels.step.confirmDelete", { name: step.name })))
-                    run(
-                      () => deleteStep(workspaceSlug, step.id),
-                      t("funnels.step.deleted"),
-                      () => router.replace(base),
-                    );
-                }}
-              >
+              <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(true)}>
                 <Trash2Icon /> {t("funnels.step.delete")}
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -186,6 +178,16 @@ export function StepPanel({
             url={liveUrl}
             stepSlug={step.slug}
             stepName={step.name}
+          />
+          <DeleteDialog
+            workspaceSlug={workspaceSlug}
+            kind="step"
+            usedInKind="step"
+            id={step.id}
+            name={step.name}
+            open={deleting}
+            onOpenChange={setDeleting}
+            after={() => router.replace(base)}
           />
         </div>
       </div>

@@ -12,6 +12,7 @@ import { mediaFiles } from "./schema/media";
 import { notifications } from "./schema/notifications";
 import { notify } from "./notify";
 import { auditLogs, workspaces } from "./schema/tenancy";
+import { savedViews } from "./schema/views";
 import { withOrganization, withSystem, withWorkspace } from "./tenant";
 
 // Needs a database owned by a NON-superuser role (superusers bypass RLS).
@@ -179,6 +180,19 @@ describe.skipIf(!url)("row-level security", () => {
         .returning(),
     );
     expect(marked).toHaveLength(0);
+  it("isolates saved list views", async () => {
+    const ctxA = { organizationId: orgA, workspaceId: wsA };
+    const ctxB = { organizationId: orgB, workspaceId: wsB };
+    const view = { resource: "contacts" as const, name: "VIPs", filters: { tags: ["vip"] } };
+    await withWorkspace(db, ctxB, (tx) => tx.insert(savedViews).values({ workspaceId: wsB, ...view }));
+    expect(await withWorkspace(db, ctxA, (tx) => tx.select().from(savedViews))).toHaveLength(0);
+    const [own] = await withWorkspace(db, ctxB, (tx) => tx.select().from(savedViews));
+    expect(own?.filters).toEqual({ tags: ["vip"] });
+    await expect(
+      withWorkspace(db, ctxA, (tx) => tx.insert(savedViews).values({ workspaceId: wsB, ...view })),
+    ).rejects.toThrow();
+    const deleted = await withWorkspace(db, ctxA, (tx) => tx.delete(savedViews).returning());
+    expect(deleted).toHaveLength(0);
   });
 
   it("isolates organization billing", async () => {

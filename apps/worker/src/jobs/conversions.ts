@@ -3,6 +3,7 @@ import {
   and,
   contacts,
   conversionDeliveries,
+  type ConversionPlatform,
   eq,
   getDb,
   orderItems,
@@ -10,7 +11,6 @@ import {
   prices,
   trackingSettings,
   withSystem,
-  type ConversionPlatform,
 } from "@zfunnel/db";
 import { openSecret } from "@zfunnel/email";
 import { queue, type ConversionContext, type ConversionJob, type WorkflowEvent } from "@zfunnel/queue";
@@ -172,7 +172,7 @@ export async function fanOutConversions(event: WorkflowEvent, jobId: string) {
   if (!platforms.length) return 0;
 
   const [contact] = await withSystem(db(), (tx) => tx.select().from(contacts).where(eq(contacts.id, event.contactId)));
-  if (!contact) return 0;
+  if (!contact || contact.deletedAt) return 0;
   const purchase = event.type === "purchase" ? await purchaseValue(event) : null;
   if (event.type === "purchase" && (!purchase || purchase.value <= 0)) return 0;
   const input: ConversionInput = {

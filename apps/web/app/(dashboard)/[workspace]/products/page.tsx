@@ -2,6 +2,7 @@ import { Badge } from "@zfunnel/ui/badge";
 import { Button } from "@zfunnel/ui/button";
 import { EmptyState } from "@zfunnel/ui/empty-state";
 import { PackageIcon, PencilIcon, PlusIcon } from "lucide-react";
+import Link from "next/link";
 import { ProductActions } from "@/components/commerce/product-actions";
 import { ProductDialog } from "@/components/commerce/product-dialog";
 import { PageHeader } from "@/components/page-header";
@@ -90,7 +91,9 @@ export default async function ProductsPage({ params }: { params: Promise<{ works
                           </span>
                         )}
                         <div className="min-w-0">
-                          <div className="truncate font-medium">{p.name}</div>
+                          <Link href={`/${ws}/products/${p.id}`} className="block truncate font-medium hover:underline">
+                            {p.name}
+                          </Link>
                           <div className="truncate text-xs text-muted-foreground sm:hidden">
                             {price ? priceText(t, f, price) : t("products.noPrice")}
                           </div>

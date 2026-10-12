@@ -2,7 +2,14 @@ import { EmptyState } from "@zfunnel/ui/empty-state";
 import { cn } from "@zfunnel/ui/lib/utils";
 import { CreditCardIcon, DollarSignIcon, ReceiptIcon, RepeatIcon, TrendingUpIcon } from "lucide-react";
 import Link from "next/link";
-import { OrderStatus } from "@/components/commerce/order-status";
+import { OrdersTable } from "@/components/commerce/orders-table";
+import { FilterBar } from "@/components/records/filter-bar";
+import { ListPager, PAGE_SIZE, pageOf } from "@/components/records/list-pager";
+import { listWorkflows } from "@/lib/automations";
+import { allTags } from "@/lib/crm";
+import { listFunnels } from "@/lib/funnels";
+import { filtersFromParams, filtersToQuery, hasFilters } from "@/lib/list-filters";
+import { listViews } from "@/lib/records";
 import { Button } from "@zfunnel/ui/button";
 import { UserRoundIcon } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
@@ -24,11 +31,21 @@ export default async function OrdersPage({
   searchParams,
 }: {
   params: Promise<{ workspace: string }>;
-  searchParams: Promise<{ q?: string; status?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const ctx = await requireWorkspace(params);
-  const { q, status = "all" } = await searchParams;
-  const [orders, stats] = await Promise.all([listOrders(ctx, { q, status }), orderStats(ctx)]);
+  const sp = await searchParams;
+  const filters = filtersFromParams("orders", sp);
+  const status = filters.status ?? "all";
+  const page = pageOf(sp.page);
+  const [orders, stats, tags, funnels, views, workflows] = await Promise.all([
+    listOrders(ctx, { filters, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE }),
+    orderStats(ctx),
+    allTags(ctx),
+    listFunnels(ctx),
+    listViews(ctx, "orders"),
+    listWorkflows(ctx),
+  ]);
   const ws = ctx.workspace.slug;
   const cur = stats.currency;
   const t = await getT();
@@ -81,7 +98,7 @@ export default async function OrdersPage({
           {FILTERS.map((key) => (
             <Link
               key={key}
-              href={`/${ws}/orders?status=${key}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
+              href={`/${ws}/orders?${filtersToQuery({ ...filters, status: key === "all" ? undefined : key })}`}
               className={cn(
                 "rounded-md px-3 py-1.5 font-medium transition-all",
                 status === key ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground",
@@ -93,79 +110,67 @@ export default async function OrdersPage({
         </div>
         <SearchInput placeholder={t("orders.searchPlaceholder")} />
       </div>
+      <FilterBar
+        workspaceSlug={ws}
+        resource="orders"
+        filters={filters}
+        tags={tags.map((x) => x.tag)}
+        funnels={funnels.map((x) => ({ id: x.id, name: x.name }))}
+        views={views}
+        currency={cur}
+      />
       {orders.length === 0 ? (
         <EmptyState
           icon={<CreditCardIcon />}
-          title={q || status !== "all" ? t("orders.noMatching") : t("orders.noOrders")}
+          title={hasFilters(filters) ? t("orders.noMatching") : t("orders.noOrders")}
           description={t("orders.emptyDescription")}
         />
       ) : (
-        <div className="overflow-hidden rounded-xl border bg-card">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50 text-start text-xs font-medium tracking-wide text-muted-foreground uppercase">
-              <tr>
-                <th className="px-4 py-3">{t("orders.colOrder")}</th>
-                <th className="px-4 py-3">{t("orders.colCustomer")}</th>
-                <th className="px-4 py-3 max-lg:hidden">{t("orders.colItems")}</th>
-                <th className="px-4 py-3 max-sm:hidden">{t("orders.colStatus")}</th>
-                <th className="px-4 py-3 text-end">{t("orders.colTotal")}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {orders.map((o) => (
-                <tr key={o.id} className="align-top hover:bg-muted/30">
-                  <td className="px-4 py-3">
-                    <div className="font-medium">#{o.number}</div>
-                    <div className="text-xs text-muted-foreground">{f.timeAgo(o.createdAt)}</div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="max-w-[16rem] truncate font-medium">{o.name ?? "—"}</div>
-                    <div className="max-w-[16rem] truncate text-xs text-muted-foreground">{o.email}</div>
-                    {o.shipping && (
-                      <div
-                        className="mt-1 max-w-[16rem] truncate text-xs text-muted-foreground"
-                        title={[
-                          o.shipping.name,
-                          o.shipping.line1,
-                          o.shipping.line2,
-                          `${o.shipping.postalCode} ${o.shipping.city}`,
-                          o.shipping.region,
-                          o.shipping.country,
-                        ]
-                          .filter(Boolean)
-                          .join(", ")}
-                      >
-                        {t("orders.shipTo", { city: o.shipping.city, country: o.shipping.country })}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 max-lg:hidden">
-                    <ul className="space-y-0.5">
-                      {o.items.map((i) => (
-                        <li
-                          key={i.id}
-                          className={cn(
-                            "flex items-center gap-1.5 text-xs",
-                            i.status === "failed" && "text-muted-foreground line-through",
-                          )}
-                        >
-                          <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase">
-                            {t(`orders.roles.${i.role}`)}
-                          </span>
-                          {i.productName}
-                        </li>
-                      ))}
-                    </ul>
-                  </td>
-                  <td className="px-4 py-3 max-sm:hidden">
-                    <OrderStatus status={o.status} test={o.test} />
-                  </td>
-                  <td className="px-4 py-3 text-end font-semibold tabular-nums">{formatMoney(o.total, o.currency)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <OrdersTable
+            workspaceSlug={ws}
+            total={orders.total}
+            filters={filters}
+            workflows={workflows.filter((w) => w.w.status === "active").map((w) => ({ id: w.w.id, name: w.w.name }))}
+            rows={orders.map((o) => ({
+              id: o.id,
+              number: o.number,
+              when: f.timeAgo(o.createdAt),
+              name: o.name,
+              email: o.email,
+              shipping: o.shipping
+                ? {
+                    full: [
+                      o.shipping.name,
+                      o.shipping.line1,
+                      o.shipping.line2,
+                      `${o.shipping.postalCode} ${o.shipping.city}`,
+                      o.shipping.region,
+                      o.shipping.country,
+                    ]
+                      .filter(Boolean)
+                      .join(", "),
+                    short: t("orders.shipTo", { city: o.shipping.city, country: o.shipping.country }),
+                  }
+                : null,
+              items: o.items.map((i) => ({
+                id: i.id,
+                role: i.role,
+                name: i.productName,
+                failed: i.status === "failed",
+              })),
+              status: o.status,
+              test: o.test,
+              total: formatMoney(o.total, o.currency),
+            }))}
+          />
+          <ListPager
+            base={`/${ws}/orders`}
+            params={Object.fromEntries(new URLSearchParams(filtersToQuery(filters)))}
+            page={page}
+            pages={Math.ceil(orders.total / PAGE_SIZE)}
+          />
+        </>
       )}
     </>
   );

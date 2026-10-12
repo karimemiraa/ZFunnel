@@ -1,4 +1,4 @@
-import { contactActivities, contacts, desc, eq } from "@zfunnel/db";
+import { and, contactActivities, contacts, desc, eq, isNull } from "@zfunnel/db";
 import { apiError, authenticate, inApi } from "@/lib/api-auth";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -7,7 +7,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) return apiError(404, "Contact not found.");
   const r = await inApi(a, async (tx) => {
-    const [c] = await tx.select().from(contacts).where(eq(contacts.id, id));
+    const [c] = await tx
+      .select()
+      .from(contacts)
+      .where(and(eq(contacts.id, id), isNull(contacts.deletedAt)));
     if (!c) return null;
     const activity = await tx
       .select()

@@ -1,8 +1,8 @@
-import { Badge } from "@zfunnel/ui/badge";
 import { Button } from "@zfunnel/ui/button";
 import { EmptyState } from "@zfunnel/ui/empty-state";
 import { DownloadIcon, FilterIcon, PlusIcon } from "lucide-react";
 import Link from "next/link";
+import { FunnelGrid } from "@/components/funnels/funnel-grid";
 import { NewFunnelDialog } from "@/components/funnels/new-funnel-dialog";
 import { aiConfigured } from "@/lib/ai";
 import { PageHeader } from "@/components/page-header";
@@ -60,42 +60,16 @@ export default async function FunnelsPage({ params }: { params: Promise<{ worksp
           }
         />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {funnels.map((fn) => {
-            const live = fn.publishedCount > 0;
-            return (
-              <Link
-                key={fn.id}
-                href={`/${ws}/funnels/${fn.id}`}
-                className="group overflow-hidden rounded-xl border bg-card transition-all hover:border-brand-orange/50 hover:shadow-lg hover:shadow-brand-navy/5"
-              >
-                <div className="relative h-40 overflow-hidden border-b bg-muted/60">
-                  {fn.firstStepId ? (
-                    <iframe
-                      src={`/preview/${ws}/${fn.firstStepId}?thumb=1`}
-                      title={t("funnels.previewOf", { name: fn.name })}
-                      loading="lazy"
-                      tabIndex={-1}
-                      className="pointer-events-none absolute top-0 left-0 h-[640px] w-[1280px] origin-top-left scale-[0.3] border-0 transition-transform duration-500 group-hover:scale-[0.31]"
-                    />
-                  ) : null}
-                  <div className="absolute inset-0 bg-gradient-to-b from-background/0 to-background/10" />
-                </div>
-                <div className="flex items-start justify-between gap-3 p-4">
-                  <div className="min-w-0">
-                    <h3 className="truncate font-semibold">{fn.name}</h3>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {t("funnels.cardMeta", { count: fn.stepCount, ago: f.timeAgo(fn.updatedAt) })}
-                    </p>
-                  </div>
-                  <Badge variant={live ? "success" : "secondary"}>
-                    {live ? t("funnels.status.live") : t("funnels.status.draft")}
-                  </Badge>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+        <FunnelGrid
+          workspaceSlug={ws}
+          funnels={funnels.map((fn) => ({
+            id: fn.id,
+            name: fn.name,
+            meta: t("funnels.cardMeta", { count: fn.stepCount, ago: f.timeAgo(fn.updatedAt) }),
+            live: fn.publishedCount > 0,
+            firstStepId: fn.firstStepId,
+          }))}
+        />
       )}
     </>
   );

@@ -2,7 +2,21 @@ import { getTranslator, type MessageKey } from "@zfunnel/i18n";
 import "server-only";
 
 import { buildTemplate, starterPage, type PageData, type StarterStepType } from "@zfunnel/blocks";
-import { and, asc, desc, eq, funnels, funnelSteps, getDb, sql, withWorkspace, type Tx } from "@zfunnel/db";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  funnels,
+  funnelSteps,
+  getDb,
+  inArray,
+  isNull,
+  sql,
+  stepOffers,
+  type Tx,
+  withWorkspace,
+} from "@zfunnel/db";
 import { RESERVED_SLUGS, slugify } from "@zfunnel/shared";
 import type { WorkspaceContext } from "./workspaces";
 
@@ -68,11 +82,11 @@ export async function listFunnels(ctx: WorkspaceContext) {
         name: funnels.name,
         slug: funnels.slug,
         updatedAt: funnels.updatedAt,
-        stepCount: sql<number>`(select count(*)::int from funnel_steps s where s.funnel_id = "funnels"."id")`,
-        publishedCount: sql<number>`(select count(*)::int from funnel_steps s where s.funnel_id = "funnels"."id" and s.published_version_id is not null)`,
+        stepCount: sql<number>`(select count(*)::int from funnel_steps s where s.funnel_id = "funnels"."id" and s.deleted_at is null)`,
+        publishedCount: sql<number>`(select count(*)::int from funnel_steps s where s.funnel_id = "funnels"."id" and s.deleted_at is null and s.published_version_id is not null)`,
         firstStepId: sql<
           string | null
-        >`(select s.id from funnel_steps s where s.funnel_id = "funnels"."id" order by s.position limit 1)`,
+        >`(select s.id from funnel_steps s where s.funnel_id = "funnels"."id" and s.deleted_at is null order by s.position limit 1)`,
       })
       .from(funnels)
       .where(sql`${funnels.archivedAt} is null`)
@@ -101,7 +115,7 @@ export async function getFunnel(ctx: WorkspaceContext, funnelId: string) {
         publishedVersionId: funnelSteps.publishedVersionId,
       })
       .from(funnelSteps)
-      .where(eq(funnelSteps.funnelId, funnelId))
+      .where(and(eq(funnelSteps.funnelId, funnelId), isNull(funnelSteps.deletedAt)))
       .orderBy(asc(funnelSteps.position));
     return { funnel, steps };
   });
@@ -116,7 +130,7 @@ export async function getStepWithDraft(ctx: WorkspaceContext, stepId: string) {
       .select({ step: funnelSteps, funnel: funnels })
       .from(funnelSteps)
       .innerJoin(funnels, eq(funnels.id, funnelSteps.funnelId))
-      .where(and(eq(funnelSteps.id, stepId), sql`${funnels.archivedAt} is null`));
+      .where(and(eq(funnelSteps.id, stepId), isNull(funnelSteps.deletedAt), sql`${funnels.archivedAt} is null`));
     return row ?? null;
   });
 }
@@ -228,4 +242,31 @@ export async function copySteps(
       })
       .where(eq(funnelSteps.id, idMap.get(s.id)!));
   return idMap;
+}
+
+/** Copies the step offers of each `from` step onto its `to` step (duplicating inside one workspace). */
+export async function copyOffers(tx: Tx, workspaceId: string, pairs: [from: string, to: string][]) {
+  if (!pairs.length) return;
+  const rows = await tx
+    .select()
+    .from(stepOffers)
+    .where(
+      inArray(
+        stepOffers.stepId,
+        pairs.map(([from]) => from),
+      ),
+    );
+  const to = new Map(pairs);
+  if (rows.length)
+    await tx.insert(stepOffers).values(
+      rows.map((o) => ({
+        workspaceId,
+        stepId: to.get(o.stepId)!,
+        priceId: o.priceId,
+        role: o.role,
+        position: o.position,
+        headline: o.headline,
+        description: o.description,
+      })),
+    );
 }
