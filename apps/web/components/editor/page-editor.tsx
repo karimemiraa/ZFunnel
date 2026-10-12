@@ -37,6 +37,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { publishStep, publishVariant, saveDraft, saveVariantDraft } from "@/lib/funnel-actions";
 import { STEP_COLORS } from "../funnels/step-type";
 import { AiAssist, PAGE_AI_TARGETS } from "./ai-assist";
+import { AI_FIELD_TYPES, AiWriterContext } from "./ai-field";
 import type { StepType } from "@/lib/funnels";
 
 const usePuck = createUsePuck<typeof config>();
@@ -57,6 +58,8 @@ type Props = {
   /** Editing a split-test variant instead of the step's own page. */
   variant?: { id: string; name: string };
   aiEnabled: boolean;
+  /** AI writer on each text field (8.5j): platform admins only, and only when AI is configured. */
+  aiWriter?: boolean;
 };
 
 const AUTOSAVE_MS = 1200;
@@ -293,28 +296,44 @@ export function PageEditor(props: Props) {
     () => ({ props, saveState, onPublish, publishing }),
     [props, saveState, onPublish, publishing],
   );
-  const overrides = useMemo(() => ({ header: HeaderFromContext, iframe: CanvasDirection }), []);
+  const overrides = useMemo(
+    () => ({
+      header: HeaderFromContext,
+      iframe: CanvasDirection,
+      ...(props.aiWriter ? { fieldTypes: AI_FIELD_TYPES as never } : {}),
+    }),
+    [props.aiWriter],
+  );
+  const writer = useMemo(
+    () => ({
+      workspaceSlug: props.workspaceSlug,
+      context: `${props.step.type} page in a funnel called “${props.funnel.name}”`,
+    }),
+    [props.workspaceSlug, props.step.type, props.funnel.name],
+  );
 
   return (
     <ChromeContext.Provider value={chrome}>
-      <div className="zf-editor h-dvh">
-        <Puck
-          config={configFor(props.siteLocale)}
-          data={props.initialData}
-          metadata={metadata}
-          onChange={onChange}
-          onPublish={onPublish}
-          overrides={overrides}
-          iframe={{ enabled: true, waitForStyles: true }}
-          viewports={[
-            { width: 1280, height: "auto", label: t("editor.desktop"), icon: "Monitor" },
-            { width: 820, height: "auto", label: t("editor.tablet"), icon: "Tablet" },
-            { width: 390, height: "auto", label: t("editor.mobile"), icon: "Smartphone" },
-          ]}
-          height="100dvh"
-        />
-        <Toaster />
-      </div>
+      <AiWriterContext.Provider value={props.aiWriter ? writer : null}>
+        <div className="zf-editor h-dvh">
+          <Puck
+            config={configFor(props.siteLocale)}
+            data={props.initialData}
+            metadata={metadata}
+            onChange={onChange}
+            onPublish={onPublish}
+            overrides={overrides}
+            iframe={{ enabled: true, waitForStyles: true }}
+            viewports={[
+              { width: 1280, height: "auto", label: t("editor.desktop"), icon: "Monitor" },
+              { width: 820, height: "auto", label: t("editor.tablet"), icon: "Tablet" },
+              { width: 390, height: "auto", label: t("editor.mobile"), icon: "Smartphone" },
+            ]}
+            height="100dvh"
+          />
+          <Toaster />
+        </div>
+      </AiWriterContext.Provider>
     </ChromeContext.Provider>
   );
 }

@@ -23,6 +23,24 @@ const thanks = (name: string, headline: string, body: string) => (t: Theme) =>
     t,
   );
 
+/**
+ * Arabic typefaces per template (8.4): a display or bold face for headings and a calm, highly
+ * legible text face for body copy, chosen to match each template's Latin mood.
+ */
+export const AR_TEMPLATE_FONTS: Record<string, Pick<PageTheme, "arabicHeadingFont" | "arabicBodyFont">> = {
+  quiz: { arabicHeadingFont: "cairo", arabicBodyFont: "tajawal" },
+  "lead-magnet": { arabicHeadingFont: "cairo", arabicBodyFont: "plex" },
+  webinar: { arabicHeadingFont: "readex", arabicBodyFont: "plex" },
+  book: { arabicHeadingFont: "amiri", arabicBodyFont: "plex" },
+  tripwire: { arabicHeadingFont: "almarai", arabicBodyFont: "tajawal" },
+  "product-launch": { arabicHeadingFont: "messiri", arabicBodyFont: "tajawal" },
+  vsl: { arabicHeadingFont: "cairo", arabicBodyFont: "almarai" },
+  application: { arabicHeadingFont: "amiri", arabicBodyFont: "plex" },
+  "saas-trial": { arabicHeadingFont: "kufi", arabicBodyFont: "plex" },
+  course: { arabicHeadingFont: "messiri", arabicBodyFont: "tajawal" },
+  ecommerce: { arabicHeadingFont: "readex", arabicBodyFont: "tajawal" },
+};
+
 /** Built inside withLang("ar"), so blocks without explicit text use the Arabic defaults. */
 export const TEMPLATES_AR: Record<string, ArabicTemplate> = {
   quiz: {

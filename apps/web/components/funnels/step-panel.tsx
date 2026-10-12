@@ -24,6 +24,7 @@ import {
   Loader2Icon,
   MoreHorizontalIcon,
   PencilIcon,
+  QrCodeIcon,
   RocketIcon,
   Trash2Icon,
 } from "lucide-react";
@@ -33,6 +34,7 @@ import { useActionState, useEffect, useState, useTransition } from "react";
 import { deleteStep, duplicateStep, publishStep, unpublishStep, updateStep } from "@/lib/funnel-actions";
 import type { StepType } from "@/lib/funnels";
 import { STEP_TYPES, StepTypeBadge, stepLabelKey } from "./step-type";
+import { UtmQrDialog } from "./utm-qr-dialog";
 
 type Step = {
   id: string;
@@ -66,6 +68,7 @@ export function StepPanel({
   const [busy, start] = useTransition();
   const [state, action, saving] = useActionState(updateStep.bind(null, workspaceSlug, step.id), null);
   const [type, setType] = useState(step.type);
+  const [utmOpen, setUtmOpen] = useState(false);
 
   useEffect(() => {
     if (state?.success) toast.success(t("funnels.step.settingsSaved"));
@@ -151,6 +154,9 @@ export function StepPanel({
               >
                 <CopyPlusIcon /> {t("funnels.step.duplicate")}
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setUtmOpen(true)}>
+                <QrCodeIcon /> {t("utm.menu")}
+              </DropdownMenuItem>
               {step.status !== "draft" && (
                 <DropdownMenuItem
                   onClick={() => run(() => unpublishStep(workspaceSlug, step.id), t("funnels.step.unpublished"))}
@@ -174,6 +180,13 @@ export function StepPanel({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <UtmQrDialog
+            open={utmOpen}
+            onOpenChange={setUtmOpen}
+            url={liveUrl}
+            stepSlug={step.slug}
+            stepName={step.name}
+          />
         </div>
       </div>
 

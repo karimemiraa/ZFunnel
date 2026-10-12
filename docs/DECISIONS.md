@@ -241,3 +241,17 @@ Format: **ID — Title** · Status (Proposed / Accepted / Superseded) · Date. S
 - If imports grow (many users, or big sites), move them to a BullMQ job and the bytes to S3/R2. The `media_files` id URLs can stay stable behind the same route.
 - Layout fidelity is approximate. Popups, multi-step forms, products and prices aren't imported (`docs/IMPORT.md`).
 - The contacts CSV import now matches ClickFunnels classic and 2.0 headers, including first + last name and the created date (`mapContactColumns` in `@zfunnel/shared`).
+
+### ADR-026 — Arabic typography: paired self-hosted fonts, Arabic-first stacks on Arabic sites · **Accepted** · 2026-10-12
+
+**Decision.**
+
+- **Fonts.** Eight OFL Arabic families (Cairo, Tajawal, IBM Plex Sans Arabic, Almarai, Readex Pro, Noto Kufi Arabic, Amiri, El Messiri) are npm dependencies of `@zfunnel/blocks` through Fontsource, pinned exactly. No font CDN: visitor IPs never reach Google, and published pages have no third-party request. Variable packages are imported whole; static ones import only the weights blocks use and only their Arabic and Latin subsets.
+- **Lazy by design.** Every `@font-face` has a `unicode-range`, so registering a family costs a few hundred bytes of CSS and the browser downloads a face only when text on the page uses it.
+- **Pairing.** Each Latin theme font names an Arabic pair (`FONTS[*].arabic`). The theme has `arabicHeadingFont` and `arabicBodyFont`, `"auto"` by default (use the pair). `fontStack(latin, choice, lang)` builds the CSS stack; the root block reads the site language from the Puck runtime.
+- **Order.** On Arabic sites (`siteLocale = "ar"`) the Arabic face comes first, so digits, punctuation and Latin words inside Arabic text use the Arabic typeface's own matching Latin glyphs, and the Latin font isn't downloaded. On other sites the Latin face comes first and Arabic text falls through to the pair. Noto Sans Arabic stays last as a safety net.
+- **Dashboard.** Arabic UI (`html:lang(ar)`) uses Inter with IBM Plex Sans Arabic for Arabic glyphs.
+
+**Why.** Arabic marketers expect a choice of modern Arabic typefaces, and a Latin font with a random system Arabic fallback looks broken. Self-hosting keeps pages fast and private, and `unicode-range` keeps the cost of offering many fonts near zero.
+
+**Consequences.** `fonts.css` grows by about 30 KB of uncompressed CSS (around 4 KB gzipped) on the dashboard and published sites. Existing pages keep rendering as before on English sites; on Arabic sites existing pages switch from Noto Sans Arabic to their font's pair. Owners can pick "Noto Sans Arabic" to get the old look back.

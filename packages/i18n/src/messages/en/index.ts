@@ -4,6 +4,7 @@ import { admin } from "./admin";
 import { affiliate } from "./affiliate";
 import { affiliatesAdmin } from "./affiliatesAdmin";
 import { ai } from "./ai";
+import { aiWriter } from "./aiWriter";
 import { analytics } from "./analytics";
 import { auth } from "./auth";
 import { automations } from "./automations";
@@ -29,6 +30,7 @@ import { errors } from "./errors";
 import { forms } from "./forms";
 import { formsAdmin } from "./formsAdmin";
 import { funnels } from "./funnels";
+import { health } from "./health";
 import { importer } from "./importer";
 import { inbox } from "./inbox";
 import { nav } from "./nav";
@@ -45,6 +47,7 @@ import { store } from "./store";
 import { team } from "./team";
 import { templates } from "./templates";
 import { tracking } from "./tracking";
+import { utm } from "./utm";
 import { webinar } from "./webinar";
 import { webinarsAdmin } from "./webinarsAdmin";
 import { workspace } from "./workspace";
@@ -56,6 +59,7 @@ export const en = {
   affiliate,
   affiliatesAdmin,
   ai,
+  aiWriter,
   analytics,
   auth,
   automations,
@@ -81,6 +85,7 @@ export const en = {
   forms,
   formsAdmin,
   funnels,
+  health,
   importer,
   inbox,
   nav,
@@ -97,6 +102,7 @@ export const en = {
   team,
   templates,
   tracking,
+  utm,
   webinar,
   webinarsAdmin,
   workspace,
