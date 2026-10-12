@@ -292,6 +292,49 @@ Live & evergreen webinars (LiveKit) · AI conversion coach (analyses funnel stat
 
 ---
 
+## Phase 8 — Navigation, UX and power tools (L)
+
+### Phase 8 plan (2026-10-12) — awaiting sign-off
+
+**Problem.**
+
+- The sidebar is one flat list of 17 sections in no particular order.
+- Related things don't link to each other. A contact doesn't link to their orders or the funnel they came from, and a product doesn't show which funnels sell it.
+- Users have no fast way to jump anywhere or create anything.
+- Funnel pages offer only one Arabic font (Noto Sans Arabic).
+- Several "power" tools that serious marketers expect are missing.
+
+**Success criteria.**
+
+1. Any screen is at most 2 clicks away, or one shortcut (⌘K).
+2. Every record links to its related records (see 8.2).
+3. Arabic sites can pick from 6+ quality Arabic typefaces, paired automatically with Latin fonts.
+4. The new tools below work in English and Arabic, are tested, and don't slow the dashboard down.
+
+**Scope.**
+
+| #   | Item                          | Scope                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| --- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 8.1 | Navigation                    | The sidebar is grouped into **Sell** (Funnels, Store/Products, Orders), **Marketing** (Email, Automations, Forms, Blog, Webinars, Affiliates), **Customers** (Contacts, Pipelines, Inbox, Calendars), **Learn & community** (Courses, Community) and **Insights** (Analytics). Groups can be collapsed, users can pin favorites, and there are live badges (unread inbox, new orders). Plus a collapsible icon-only sidebar, breadcrumbs on every deep page, a top bar with a global "+ Create" menu, and a mobile bottom bar.                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| 8.2 | Linked records                | Every record links to its related records. **Contacts:** a timeline of orders, forms, emails, bookings, courses and tags, with links to each. **Orders:** the contact, product, funnel step and affiliate. **Products:** the funnels, order bumps and courses that sell or deliver them, with revenue. **Funnels:** a per-step stats strip, plus links to their products, forms and automations. A "Used in" panel shows before deleting anything.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| 8.3 | Command palette (⌘K / Ctrl K) | Search across funnels, pages, contacts, orders, products, courses and settings. Quick actions such as "new funnel", "new product", "go to inbox" and "switch workspace". Recent items. Works in Arabic.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| 8.4 | Arabic typography             | Add OFL-licensed Arabic fonts, self-hosted: Cairo, Tajawal, IBM Plex Sans Arabic, Almarai, Readex Pro, Noto Kufi Arabic, Amiri (serif) and El Messiri (display). Each theme font gets an Arabic pair. The editor font picker shows previews in Arabic. The dashboard uses IBM Plex Sans Arabic for Arabic UI.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| 8.5 | Power tools                   | (a) **Today** home: revenue, leads and conversion versus last period, a "needs attention" list (failed payments, unanswered chats, broken links, unpublished drafts) and next steps. (b) **Funnel health check**: broken links, missing SEO, slow or oversized images, a checkout without a product, mobile issues, with one-click fixes where possible. (c) **Bulk actions** on contacts, orders and funnels: tag, export, delete, add to automation. (d) **Saved views and filters** on contacts and orders. (e) **UTM link builder and QR codes** for any page. (f) **Duplicate anything**: funnel, page, product, email, automation. (g) **Undo** on deletes, a 10-second toast with soft delete. (h) **Keyboard shortcuts** with a "?" help sheet. (i) **Global notifications center**: new order, new lead, chat, failed payment. (j) **AI writer** in the editor: rewrite or shorten any text, in English or Arabic, written natively. (k) **Revenue goals** with progress on the home screen. |
+
+**Not included (proposed for later).**
+
+- A native mobile app.
+- Real-time multi-user editing.
+- A marketplace for third-party templates.
+
+**Open questions for the owner.**
+
+1. Do the sidebar groups above match how you think about the product? Should Store and Courses be top-level for your customers?
+2. Is 8.5 the right priority order? If you only want some of it now, which items first?
+3. Should the AI writer (8.5j) use the existing AI key, and therefore cost you per use? Or should it be a Pro-plan feature?
+
+---
+
 ## Working agreement
 
 1. Every phase starts with a short phase PRD addendum and needs sign-off.
