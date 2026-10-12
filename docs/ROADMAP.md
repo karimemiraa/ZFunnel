@@ -333,6 +333,8 @@ Live & evergreen webinars (LiveKit) · AI conversion coach (analyses funnel stat
 2. Build all of the scope.
 3. For now the AI writer is available only to platform admins (`PLATFORM_ADMIN_EMAILS`).
 
+**Status: 8.5a and 8.5k (2026-10-12).** Built. The workspace home is now a **Today** screen. It shows KPI tiles for revenue, orders, new leads and funnel conversion over today, 7 days or 30 days, each compared with the previous period. It is multi-currency aware: one main currency, with other currencies listed separately and never added in. Below the tiles are a 30-day revenue chart and a monthly **revenue goal** card with progress, an even-pace marker, an on track / ahead / behind status and a projected month-end. The **Needs attention** list covers failed payments, past-due subscriptions, chats waiting more than 4 hours, abandoned checkouts, unpublished drafts, live webinars starting within 7 days with no registrants, domains that failed verification, and Stripe not connected. Each item links to its record. The home also shows recent orders, leads and bookings, the top funnels by revenue, and up to three next-step suggestions. The onboarding checklist stays until it is complete or hidden. Goals are set in a dialog on the home page or under Settings → General, either for every month or for one month. They are stored in the new `revenue_goals` table, which has RLS (ADR-026). The home runs four aggregate queries in parallel. **Limits:** day boundaries are UTC. Courses have no start date, so only webinars are checked for "starting soon with no registrants". Revenue counts paid orders, including test-mode orders.
+
 ---
 
 ## Working agreement

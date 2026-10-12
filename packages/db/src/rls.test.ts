@@ -7,6 +7,7 @@ import { orgBilling } from "./schema/billing";
 import { contacts } from "./schema/contacts";
 import { organizationSuspensions, platformAuditLog } from "./schema/platform";
 import { funnels, funnelSteps, pageVersions } from "./schema/funnels";
+import { revenueGoals } from "./schema/goals";
 import { mediaFiles } from "./schema/media";
 import { auditLogs, workspaces } from "./schema/tenancy";
 import { withOrganization, withSystem, withWorkspace } from "./tenant";
@@ -134,6 +135,21 @@ describe.skipIf(!url)("row-level security", () => {
     expect(own?.data).toEqual(Buffer.from([1, 2, 3]));
     await expect(
       withWorkspace(db, ctxA, (tx) => tx.insert(mediaFiles).values({ workspaceId: wsB, ...file, sha256: "x" })),
+    ).rejects.toThrow();
+  });
+
+  it("isolates revenue goals", async () => {
+    const ctxA = { organizationId: orgA, workspaceId: wsA };
+    const ctxB = { organizationId: orgB, workspaceId: wsB };
+    await withWorkspace(db, ctxB, (tx) =>
+      tx.insert(revenueGoals).values({ workspaceId: wsB, month: "", amount: 500000, currency: "usd" }),
+    );
+    expect(await withWorkspace(db, ctxA, (tx) => tx.select().from(revenueGoals))).toHaveLength(0);
+    expect(await withWorkspace(db, ctxB, (tx) => tx.select().from(revenueGoals))).toHaveLength(1);
+    await expect(
+      withWorkspace(db, ctxA, (tx) =>
+        tx.insert(revenueGoals).values({ workspaceId: wsB, month: "2026-10", amount: 1, currency: "usd" }),
+      ),
     ).rejects.toThrow();
   });
 

@@ -46,6 +46,7 @@ import { sms } from "./sms";
 import { store } from "./store";
 import { team } from "./team";
 import { templates } from "./templates";
+import { today } from "./today";
 import { tracking } from "./tracking";
 import { webinar } from "./webinar";
 import { webinarsAdmin } from "./webinarsAdmin";
@@ -98,6 +99,7 @@ export const ar: Shape<typeof en> = {
   store,
   team,
   templates,
+  today,
   tracking,
   webinar,
   webinarsAdmin,

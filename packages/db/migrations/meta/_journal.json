@@ -386,6 +386,20 @@
       "when": 1791663781784,
       "tag": "0054_media_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1791841626271,
+      "tag": "0055_revenue_goals",
+      "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1791841627693,
+      "tag": "0056_revenue_goals_rls",
+      "breakpoints": true
     }
   ]
 }

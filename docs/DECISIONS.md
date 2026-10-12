@@ -241,3 +241,18 @@ Format: **ID — Title** · Status (Proposed / Accepted / Superseded) · Date. S
 - If imports grow (many users, or big sites), move them to a BullMQ job and the bytes to S3/R2. The `media_files` id URLs can stay stable behind the same route.
 - Layout fidelity is approximate. Popups, multi-step forms, products and prices aren't imported (`docs/IMPORT.md`).
 - The contacts CSV import now matches ClickFunnels classic and 2.0 headers, including first + last name and the created date (`mapContactColumns` in `@zfunnel/shared`).
+
+### ADR-026 — Today home and revenue goals: live aggregates, a small goals table · **Accepted** · 2026-10-12
+
+**Context.** Phase 8.5a/8.5k add a "Today" workspace home (KPIs versus the previous period, needs attention, recent activity, top funnels, next steps) and monthly revenue goals with a pace indicator.
+
+**Decision.**
+
+- **No rollup tables.** The home runs four `withWorkspace` transactions in parallel (orders, leads + conversion, attention + onboarding state, recent activity). Each computes every window (today, 7d, 30d and the period before each) in one pass with `count/sum … filter (where …)`, using the existing `(workspace_id, created_at)` indexes.
+- **Revenue comes from orders**, not analytics events: paid orders, net of refunds, by `paid_at`. It is shown in one main currency (the goal's, else the one with most revenue in 30 days). Other currencies are listed beside it and never converted or added.
+- **Periods** are UTC days. "Today" is compared with the same hours yesterday; 7d and 30d are rolling windows compared with the window just before. The math lives in `apps/web/lib/today-math.ts` with unit tests.
+- **Goals live in a new `revenue_goals` table** (`workspace_id`, `month`, `amount`, `currency`, unique on workspace + month, FORCE RLS). `month = ''` is the default for every month; `'YYYY-MM'` overrides one month. A table rather than a workspace column, because per-month overrides were requested and a column would need JSON.
+- **Pace** is a straight-line run rate. "On track" is within 5% of the even-pace line, "ahead" is 10% above it, and at least one hour of the month counts as elapsed, so an early sale doesn't project absurd numbers.
+- Hiding the onboarding checklist is a per-browser cookie, not stored data.
+
+**Consequences.** Query cost grows with a workspace's 60-day orders, contacts and events. If large workspaces make the home slow, add daily rollups behind the same `todayData` function. Day boundaries are UTC until workspaces have a time zone setting.

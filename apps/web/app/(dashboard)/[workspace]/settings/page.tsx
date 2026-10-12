@@ -7,13 +7,15 @@ import { ROOT_DOMAIN } from "@/lib/env";
 import { canManage } from "@/lib/workspaces";
 import { SiteLanguageForm } from "@/components/site-language-form";
 import { getT } from "@/lib/i18n";
+import { GoalSettings } from "@/components/today/goal-settings";
 
 export async function generateMetadata() {
   return { title: (await getT())("settings.title") };
 }
 
 export default async function GeneralSettingsPage({ params }: { params: Promise<{ workspace: string }> }) {
-  const { workspace, membership } = await requireWorkspace(params);
+  const ctx = await requireWorkspace(params);
+  const { workspace, membership } = ctx;
   const editable = canManage(membership.role);
   const billing = await getBillingState(membership.organizationId);
   const t = await getT();
@@ -35,6 +37,15 @@ export default async function GeneralSettingsPage({ params }: { params: Promise<
         </CardHeader>
         <CardContent>
           <SiteLanguageForm slug={workspace.slug} current={workspace.siteLocale} disabled={!editable} />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("today.goal.title")}</CardTitle>
+          <CardDescription>{t("today.goal.settingsHint")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <GoalSettings ctx={ctx} editable={editable} />
         </CardContent>
       </Card>
       <Card>
