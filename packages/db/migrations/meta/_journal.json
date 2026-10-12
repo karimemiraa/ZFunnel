@@ -400,6 +400,20 @@
       "when": 1791841627693,
       "tag": "0056_revenue_goals_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1791842991225,
+      "tag": "0057_mean_selene",
+      "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1791842992619,
+      "tag": "0058_notifications_rls",
+      "breakpoints": true
     }
   ]
 }

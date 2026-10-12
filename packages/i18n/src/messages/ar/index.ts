@@ -34,8 +34,10 @@ import { funnels } from "./funnels";
 import { importer } from "./importer";
 import { inbox } from "./inbox";
 import { nav } from "./nav";
+import { notifications } from "./notifications";
 import { orders } from "./orders";
 import { overview } from "./overview";
+import { palette } from "./palette";
 import { payments } from "./payments";
 import { pipelines } from "./pipelines";
 import { products } from "./products";
@@ -47,6 +49,7 @@ import { store } from "./store";
 import { team } from "./team";
 import { templates } from "./templates";
 import { today } from "./today";
+import { topbar } from "./topbar";
 import { tracking } from "./tracking";
 import { webinar } from "./webinar";
 import { webinarsAdmin } from "./webinarsAdmin";
@@ -87,8 +90,10 @@ export const ar: Shape<typeof en> = {
   importer,
   inbox,
   nav,
+  notifications,
   orders,
   overview,
+  palette,
   payments,
   pipelines,
   products,
@@ -100,6 +105,7 @@ export const ar: Shape<typeof en> = {
   team,
   templates,
   today,
+  topbar,
   tracking,
   webinar,
   webinarsAdmin,

@@ -23,3 +23,4 @@ export * from "./webinars";
 export * from "./platform";
 export * from "./media";
 export * from "./goals";
+export * from "./notifications";

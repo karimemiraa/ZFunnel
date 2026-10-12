@@ -1,5 +1,5 @@
 import { getTranslator } from "@zfunnel/i18n";
-import { bookings, contacts, emailMessages, sql } from "@zfunnel/db";
+import { bookings, contacts, emailMessages, notify, sql } from "@zfunnel/db";
 import { logActivity, system } from "@zfunnel/payments";
 import { enqueue } from "@zfunnel/queue";
 import { NextResponse } from "next/server";
@@ -74,6 +74,12 @@ export async function POST(req: Request) {
           meta: { kind: "booking", bookingId: b!.id },
         })
         .returning({ id: emailMessages.id });
+      await notify(tx, {
+        workspaceId: g.ws.id,
+        type: "booking",
+        entityId: b!.id,
+        data: { name: p.data.name, calendar: cal.name, calendarId: cal.id, startAt: start.toISOString() },
+      });
       return { bookingId: b!.id, contactId: c!.id, messageId: m!.id };
     });
   } catch (err) {

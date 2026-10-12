@@ -256,3 +256,29 @@ Format: **ID — Title** · Status (Proposed / Accepted / Superseded) · Date. S
 - Hiding the onboarding checklist is a per-browser cookie, not stored data.
 
 **Consequences.** Query cost grows with a workspace's 60-day orders, contacts and events. If large workspaces make the home slow, add daily rollups behind the same `todayData` function. Day boundaries are UTC until workspaces have a time zone setting.
+
+### ADR-027 — Dashboard shell: in-transaction notifications, polled server actions, no palette dependency · **Accepted** · 2026-10-12
+
+**Decision.**
+
+- **Notifications are a workspace-scoped table written where events happen.** The `notifications` table has `workspace_id`, `type`, `entity_id`, a small `data` payload, `read_by text[]` and `created_at`, with FORCE RLS through `app_enable_workspace_rls`. The event is shared by the workspace, and read state is per user (an auth user id in `read_by`). `notify(tx, …)` in `@zfunnel/db` writes inside the caller's transaction, in a savepoint, and swallows errors. A notification commits only with its order, lead or booking, and a failed notification never rolls them back.
+- **Emit points.**
+  - `recomputeOrder` emits when an order first becomes paid or becomes failed. Every checkout, upsell and Stripe webhook path goes through it.
+  - The public opt-in route emits when it creates a new contact (`xmax = 0`).
+  - Form submissions emit every time.
+  - Chat emits once per unread burst.
+  - Bookings emit every time.
+- **Text is rendered by the viewer.** Only the type and the data are stored, so each user sees the notification in their own dashboard language.
+- **Polling, not push.** One server action (`pollShell`) returns the inbox count, the new-orders count, the unread count and the 20 latest notifications. It runs about every 60 s while the tab is visible, plus on focus and when the bell opens. Each query is an indexed count or a LIMITed read inside `withWorkspace`. "New orders" counts from the browser's last visit to Orders, stored in localStorage, or from the last 24 hours.
+- **Command palette without `cmdk`.** The repo had no command-menu dependency. The palette is a Radix dialog (already a dependency) holding an ARIA combobox and listbox, about 400 lines. Server search is a debounced server action, limited to 5 hits per type and scoped by `withWorkspace`.
+- **UI preferences stay in the browser.** Collapsed groups, pins, the icon rail, palette recents and the last Orders visit are stored in localStorage through `useSyncExternalStore`, with guarded access. They are per-browser conveniences, not account settings.
+- **"+ Create" reuses each module's flow.** Each item links to `/<module>?create=1`. A small shell component then clicks the page's primary action, the last control in `PageHeader`'s actions, so the modules keep a single creation flow.
+
+**Why.** Writing in the same transaction keeps notifications consistent with the records they describe, with no queue or outbox. A minute of latency is acceptable for a bell (owner decision), and polling avoids new infrastructure such as WebSockets or SSE. Building the palette ourselves avoids a new dependency for about 400 lines that we fully control, including RTL and Arabic.
+
+**Consequences.**
+
+- Polling costs about 4 small queries per open dashboard tab per minute. Move to SSE if this ever matters.
+- `read_by` grows with team size. That is fine for small teams; switch to a `notification_reads` table if workspaces get large.
+- The `?create=1` convention depends on the primary action being last in `PageHeader`'s actions. Pages that break this convention should pass their own header.
+- Old notifications are not pruned yet. Only the last 30 days count as unread.

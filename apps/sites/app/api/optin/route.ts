@@ -1,4 +1,4 @@
-import { contacts, getDb, sql, withSystem } from "@zfunnel/db";
+import { contacts, getDb, notify, sql, withSystem } from "@zfunnel/db";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { jsonError } from "@/lib/api";
@@ -69,8 +69,10 @@ export async function POST(req: Request) {
           updatedAt: now,
         },
       })
-      .returning({ id: contacts.id });
+      .returning({ id: contacts.id, inserted: sql<boolean>`(xmax = 0)` });
     await logActivity(tx, { workspaceId: ws.id, contactId: c!.id, type: "optin", body: "opt-in form" });
+    if (c!.inserted)
+      await notify(tx, { workspaceId: ws.id, type: "lead", entityId: c!.id, data: { name: name || email } });
     return c!.id;
   });
   await enqueue("workflow-events", {

@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { conversationMessages, conversations, eq } from "@zfunnel/db";
+import { conversationMessages, conversations, eq, notify } from "@zfunnel/db";
 import { system, upsertContact } from "@zfunnel/payments";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
@@ -51,6 +51,14 @@ export async function POST(req: Request) {
         .update(conversations)
         .set({ unread: true, status: "open", lastMessageAt: new Date() })
         .where(eq(conversations.id, thread.conversation.id));
+      // One notification per unread burst, not one per message.
+      if (!thread.conversation.unread)
+        await notify(tx, {
+          workspaceId: g.ws.id,
+          type: "chat",
+          entityId: thread.conversation.id,
+          data: { name: thread.conversation.name || thread.conversation.email, preview: p.data.body.slice(0, 120) },
+        });
     });
     return NextResponse.json({ ok: true });
   }
@@ -73,6 +81,12 @@ export async function POST(req: Request) {
     await tx
       .insert(conversationMessages)
       .values({ workspaceId: g.ws.id, conversationId: c!.id, sender: "visitor", body: p.data.body });
+    await notify(tx, {
+      workspaceId: g.ws.id,
+      type: "chat",
+      entityId: c!.id,
+      data: { name: p.data.name || p.data.email!, preview: p.data.body.slice(0, 120) },
+    });
   });
   jar.set(CHAT_COOKIE, token, chatCookieOptions);
   return NextResponse.json({ ok: true });

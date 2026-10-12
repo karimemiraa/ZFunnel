@@ -8,6 +8,7 @@ import {
   eq,
   funnelSessions,
   getDb,
+  notify,
   orderItems,
   orders,
   paymentAccounts,
@@ -280,6 +281,23 @@ export async function recomputeOrder(tx: Tx, orderId: string) {
     .set({ total, status, paidAt: paid.length && !order.paidAt ? new Date() : order.paidAt })
     .where(eq(orders.id, orderId));
   await syncCommission(tx, orderId);
+  // Notifications center: the first time an order is paid, or when its payment fails.
+  const becamePaid = status === "paid" && !order.paidAt;
+  const becameFailed = status === "failed" && order.status !== "failed";
+  if (becamePaid || becameFailed) {
+    const [c] = order.contactId
+      ? await tx
+          .select({ name: contacts.name, email: contacts.email })
+          .from(contacts)
+          .where(eq(contacts.id, order.contactId))
+      : [];
+    await notify(tx, {
+      workspaceId: order.workspaceId,
+      type: becamePaid ? "order" : "payment_failed",
+      entityId: order.id,
+      data: { number: order.number, amount: total, currency: order.currency, name: c?.name || c?.email || null },
+    });
+  }
 }
 
 /**

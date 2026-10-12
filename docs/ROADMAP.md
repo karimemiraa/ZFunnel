@@ -335,6 +335,25 @@ Live & evergreen webinars (LiveKit) · AI conversion coach (analyses funnel stat
 
 **Status: 8.5a and 8.5k (2026-10-12).** Built. The workspace home is now a **Today** screen. It shows KPI tiles for revenue, orders, new leads and funnel conversion over today, 7 days or 30 days, each compared with the previous period. It is multi-currency aware: one main currency, with other currencies listed separately and never added in. Below the tiles are a 30-day revenue chart and a monthly **revenue goal** card with progress, an even-pace marker, an on track / ahead / behind status and a projected month-end. The **Needs attention** list covers failed payments, past-due subscriptions, chats waiting more than 4 hours, abandoned checkouts, unpublished drafts, live webinars starting within 7 days with no registrants, domains that failed verification, and Stripe not connected. Each item links to its record. The home also shows recent orders, leads and bookings, the top funnels by revenue, and up to three next-step suggestions. The onboarding checklist stays until it is complete or hidden. Goals are set in a dialog on the home page or under Settings → General, either for every month or for one month. They are stored in the new `revenue_goals` table, which has RLS (ADR-026). The home runs four aggregate queries in parallel. **Limits:** day boundaries are UTC. Courses have no start date, so only webinars are checked for "starting soon with no registrants". Revenue counts paid orders, including test-mode orders.
 
+### 8.1 / 8.3 / 8.5h / 8.5i status — **Done** (2026-10-12)
+
+- **8.1 Navigation.** The sidebar (`lib/nav.ts`, `components/sidebar-nav.tsx`) has Overview at the top, then **Sell**, **Marketing**, **Customers**, **Learn & community** and **Insights**, and Settings at the bottom. You can collapse groups, pin favorites (they appear in a "Pinned" group) and switch to an icon-only rail (`[` or the panel button). All three are saved per browser in localStorage, and every access is wrapped in try/catch. Live badges show unread inbox conversations and new paid orders since your last visit to Orders (or the last 24 hours). Breadcrumbs appear automatically on deep pages that use the shared `PageHeader` (`components/breadcrumbs.tsx`; pages can pass `breadcrumbs` to override). The new top bar holds a search button, a global **+ Create** menu (funnel, product, contact, broadcast, automation, course, blog post, form) and the notifications bell. Each Create item opens the module's existing "New …" flow through `?create=1`. Phones get a bottom bar: Overview, Funnels, Search, Orders and Inbox.
+- **8.3 Command palette** (⌘K / Ctrl+K, or `/`). It is built on the existing Radix dialog, with no new dependency. The input is an ARIA combobox driving a listbox. The server action `searchWorkspace` runs inside `withWorkspace`, waits 200 ms after typing stops and returns at most 5 matches per type: funnels, funnel pages, contacts, orders (by number or buyer), products and courses. Settings pages, "new X", "go to X", switch workspace, theme and language actions are matched in the browser. Recent items are stored in localStorage per workspace. Search ignores Arabic tashkeel and Latin accents, and the palette works in RTL.
+- **8.5h Shortcuts.** `?` opens the help sheet, `c` opens Create, `/` opens search, `[` toggles the sidebar, and `g` followed by h/f/c/o/p/i/e/a/n/s jumps to a section. Shortcuts never fire in inputs, textareas, selects, contenteditable areas or open dialogs and menus.
+- **8.5i Notifications.** A new `notifications` table (migrations 0055–0056, with RLS) keeps per-user read state in `read_by`. `notify()` in `@zfunnel/db` writes inside a savepoint, so a failure never blocks the event that triggered it. Notifications are sent for:
+  - paid orders and failed payments (`recomputeOrder`, which covers the checkout, upsell and Stripe webhook paths);
+  - new opt-in contacts and form submissions;
+  - the first visitor message in each unread chat burst;
+  - bookings.
+
+  The bell polls about every 60 s while the tab is visible and on opening. It shows the 20 latest notifications, rendered in the viewer's language. You can mark one or all as read. Design in ADR-027.
+
+- English and Arabic in the `topbar`, `palette` and `notifications` namespaces. Tests: an RLS test for `notifications` and `e2e/tests/shell.spec.ts` (nav groups, pins, rail, Create, breadcrumbs, shortcuts, bottom bar, palette with Arabic, notifications).
+- Limits:
+  - Admins using "view as" don't see badges, search or notifications.
+  - Products and orders have no detail pages yet, so palette hits open the filtered list.
+  - The contact and funnel detail pages don't use `PageHeader`, so they keep their own back link instead of breadcrumbs.
+
 ---
 
 ## Working agreement
