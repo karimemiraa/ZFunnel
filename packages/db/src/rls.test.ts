@@ -180,6 +180,8 @@ describe.skipIf(!url)("row-level security", () => {
         .returning(),
     );
     expect(marked).toHaveLength(0);
+  });
+
   it("isolates saved list views", async () => {
     const ctxA = { organizationId: orgA, workspaceId: wsA };
     const ctxB = { organizationId: orgB, workspaceId: wsB };
