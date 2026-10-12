@@ -1,5 +1,6 @@
 import { csvCell } from "@zfunnel/shared";
 import { listContactsFiltered, listFields } from "@/lib/crm";
+import { filtersFromParams } from "@/lib/list-filters";
 import { requireUser } from "@/lib/session";
 import { getWorkspaceForUser, recordAudit } from "@/lib/workspaces";
 
@@ -9,11 +10,15 @@ export async function GET(req: Request, { params }: { params: Promise<{ workspac
   const ctx = await getWorkspaceForUser(user.id, (await params).workspace);
   if (!ctx) return new Response("Not found", { status: 404 });
   const q = new URL(req.url).searchParams;
+  const ids = q
+    .get("ids")
+    ?.split(",")
+    .filter((id) => /^[0-9a-f-]{36}$/i.test(id));
   const [{ rows }, fields] = await Promise.all([
     listContactsFiltered(ctx, {
-      q: q.get("q") ?? undefined,
-      tag: q.get("tag") ?? undefined,
+      filters: filtersFromParams("contacts", Object.fromEntries(q)),
       segmentId: q.get("segment") ?? undefined,
+      ids,
       limit: 100_000,
     }),
     listFields(ctx),

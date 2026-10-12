@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq, events, funnelSteps, gte, sql } from "@zfunnel/db";
+import { and, eq, events, funnelSteps, gte, isNull, sql } from "@zfunnel/db";
 import { inWorkspace } from "./funnels";
 import type { WorkspaceContext } from "./workspaces";
 
@@ -64,7 +64,7 @@ export async function funnelAnalytics(ctx: WorkspaceContext, funnelId: string | 
           })
           .from(funnelSteps)
           .leftJoin(events, and(eq(events.stepId, funnelSteps.id), gte(events.createdAt, since)))
-          .where(eq(funnelSteps.funnelId, funnelId))
+          .where(and(eq(funnelSteps.funnelId, funnelId), isNull(funnelSteps.deletedAt)))
           .groupBy(funnelSteps.id)
           .orderBy(funnelSteps.position)
       : [];

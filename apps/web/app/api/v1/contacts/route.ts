@@ -1,4 +1,4 @@
-import { and, contacts, desc, eq, lt, sql } from "@zfunnel/db";
+import { and, contacts, desc, eq, isNull, lt, sql } from "@zfunnel/db";
 import { enqueueMany } from "@zfunnel/queue";
 import { z } from "zod";
 import { apiError, authenticate, inApi, readJson } from "@/lib/api-auth";
@@ -29,6 +29,7 @@ export async function GET(req: Request) {
       .from(contacts)
       .where(
         and(
+          isNull(contacts.deletedAt),
           email ? eq(contacts.email, email) : undefined,
           before && !Number.isNaN(Date.parse(before)) ? lt(contacts.createdAt, new Date(before)) : undefined,
         ),
@@ -81,6 +82,7 @@ export async function POST(req: Request) {
       .onConflictDoUpdate({
         target: [contacts.workspaceId, contacts.email],
         set: {
+          deletedAt: null,
           name: sql`coalesce(excluded.name, ${contacts.name})`,
           phone: sql`coalesce(excluded.phone, ${contacts.phone})`,
           tags: sql`(select array(select distinct unnest(${contacts.tags} || excluded.tags)))`,

@@ -8,6 +8,7 @@ import {
   funnelSteps,
   getDb,
   inArray,
+  isNull,
   pageVersions,
   STEP_TYPES,
   stepVariants,
@@ -21,6 +22,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import {
+  copyOffers,
   copySteps,
   createFunnelWithSteps,
   FUNNEL_PRESETS,
@@ -35,7 +37,7 @@ import { requireUser } from "./session";
 import { getSharedFunnel } from "./share";
 import { getT, localizeMessage } from "./i18n";
 import type { T } from "@zfunnel/i18n";
-import { canManage, getWorkspaceForUser, recordAudit, type WorkspaceContext } from "./workspaces";
+import { getWorkspaceForUser, recordAudit, type WorkspaceContext } from "./workspaces";
 
 export type FormState = { error?: string; success?: string; fieldErrors?: Record<string, string[] | undefined> } | null;
 type Result = { ok: true; message?: string } | { ok: false; error: string };
@@ -81,7 +83,7 @@ async function stepsInFunnel(tx: Tx, funnelId: string, ids: string[]) {
   const rows = await tx
     .select({ id: funnelSteps.id })
     .from(funnelSteps)
-    .where(and(eq(funnelSteps.funnelId, funnelId), inArray(funnelSteps.id, wanted)));
+    .where(and(eq(funnelSteps.funnelId, funnelId), inArray(funnelSteps.id, wanted), isNull(funnelSteps.deletedAt)));
   return rows.length === new Set(wanted).size;
 }
 
@@ -163,16 +165,6 @@ async function setHomeFunnelInternal(ctx: WorkspaceContext, homeId: string | nul
   );
 }
 
-export async function archiveFunnel(workspaceSlug: string, funnelId: string) {
-  const { user, ctx, t } = await ctxFor(workspaceSlug);
-  if (!canManage(ctx.membership.role)) throw new Error(t("funnels.errors.onlyAdminsDelete"));
-  await inWorkspace(ctx, (tx) => tx.update(funnels).set({ archivedAt: new Date() }).where(eq(funnels.id, funnelId)));
-  await setHomeFunnelInternal(ctx, null, funnelId);
-  await recordAudit(ctx, user.id, { action: "funnel.deleted", entityType: "funnel", entityId: funnelId });
-  revalidatePath(`/${workspaceSlug}/funnels`);
-  redirect(`/${workspaceSlug}/funnels`);
-}
-
 export async function duplicateFunnel(workspaceSlug: string, funnelId: string): Promise<Result | void> {
   const { user, ctx, t } = await ctxFor(workspaceSlug);
   const blocked = await enforce(ctx.membership.organizationId, "funnels");
@@ -189,8 +181,13 @@ export async function duplicateFunnel(workspaceSlug: string, funnelId: string): 
         slug: uniqueSlug(`${src.slug}-copy`, taken),
       })
       .returning();
-    const steps = await tx.select().from(funnelSteps).where(eq(funnelSteps.funnelId, funnelId));
-    await copySteps(tx, steps, ctx.workspace.id, f!.id);
+    const steps = await tx
+      .select()
+      .from(funnelSteps)
+      .where(and(eq(funnelSteps.funnelId, funnelId), isNull(funnelSteps.deletedAt)));
+    const idMap = await copySteps(tx, steps, ctx.workspace.id, f!.id);
+    // Same workspace, so the copy keeps selling the same products.
+    await copyOffers(tx, ctx.workspace.id, [...idMap.entries()]);
     return f!;
   });
   await recordAudit(ctx, user.id, {
@@ -287,28 +284,6 @@ export async function updateStep(
   return { success: t("funnels.errors.saved") };
 }
 
-export async function deleteStep(workspaceSlug: string, stepId: string): Promise<Result> {
-  const { ctx } = await ctxFor(workspaceSlug);
-  let funnelId = "";
-  await inWorkspace(ctx, async (tx) => {
-    const [step] = await tx.select().from(funnelSteps).where(eq(funnelSteps.id, stepId));
-    if (!step) return;
-    funnelId = step.funnelId;
-    // Heal the flow: anything pointing at this step now points where it pointed.
-    await tx
-      .update(funnelSteps)
-      .set({ nextStepId: step.nextStepId })
-      .where(and(eq(funnelSteps.funnelId, step.funnelId), eq(funnelSteps.nextStepId, stepId)));
-    await tx
-      .update(funnelSteps)
-      .set({ declineStepId: step.nextStepId })
-      .where(and(eq(funnelSteps.funnelId, step.funnelId), eq(funnelSteps.declineStepId, stepId)));
-    await tx.delete(funnelSteps).where(eq(funnelSteps.id, stepId));
-  });
-  revalidateFunnel(workspaceSlug, funnelId);
-  return { ok: true };
-}
-
 export async function reorderSteps(workspaceSlug: string, funnelId: string, orderedIds: string[]): Promise<Result> {
   const { ctx, t } = await ctxFor(workspaceSlug);
   if (!orderedIds.every((id) => uuid.safeParse(id).success))
@@ -338,17 +313,21 @@ export async function duplicateStep(workspaceSlug: string, stepId: string): Prom
           .update(funnelSteps)
           .set({ position: sib.position + 1 })
           .where(eq(funnelSteps.id, sib.id));
-    await tx.insert(funnelSteps).values({
-      workspaceId: ctx.workspace.id,
-      funnelId: s.funnelId,
-      name: t("funnels.copyName", { name: s.name }),
-      type: s.type,
-      slug: uniqueSlug(`${s.slug}-copy`, new Set(siblings.map((x) => x.slug))),
-      position: s.position + 1,
-      mapX: s.mapX + 40,
-      mapY: s.mapY + 140,
-      draft: s.draft,
-    });
+    const [copy] = await tx
+      .insert(funnelSteps)
+      .values({
+        workspaceId: ctx.workspace.id,
+        funnelId: s.funnelId,
+        name: t("funnels.copyName", { name: s.name }),
+        type: s.type,
+        slug: uniqueSlug(`${s.slug}-copy`, new Set(siblings.map((x) => x.slug))),
+        position: s.position + 1,
+        mapX: s.mapX + 40,
+        mapY: s.mapY + 140,
+        draft: s.draft,
+      })
+      .returning({ id: funnelSteps.id });
+    await copyOffers(tx, ctx.workspace.id, [[s.id, copy!.id]]);
   });
   revalidateFunnel(workspaceSlug, funnelId);
   return { ok: true };
@@ -449,7 +428,10 @@ export async function publishFunnel(workspaceSlug: string, funnelId: string): Pr
   const { user, ctx } = await ctxFor(workspaceSlug);
   const now = new Date();
   const count = await inWorkspace(ctx, async (tx) => {
-    const steps = await tx.select().from(funnelSteps).where(eq(funnelSteps.funnelId, funnelId));
+    const steps = await tx
+      .select()
+      .from(funnelSteps)
+      .where(and(eq(funnelSteps.funnelId, funnelId), isNull(funnelSteps.deletedAt)));
     for (const step of steps) {
       const [v] = await tx
         .insert(pageVersions)

@@ -14,7 +14,7 @@ export async function getSharedFunnel(token: string) {
     const steps = await tx
       .select()
       .from(funnelSteps)
-      .where(eq(funnelSteps.funnelId, f.id))
+      .where(and(eq(funnelSteps.funnelId, f.id), isNull(funnelSteps.deletedAt)))
       .orderBy(asc(funnelSteps.position));
     const [ws] = await tx
       .select({ siteLocale: workspaces.siteLocale })

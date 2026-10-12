@@ -24,5 +24,7 @@ export * from "./schema/tracking";
 export * from "./schema/webinars";
 export * from "./schema/platform";
 export * from "./schema/media";
+export * from "./schema/views";
 export { and, asc, count, desc, eq, gt, gte, ilike, inArray, isNotNull, isNull, lt, ne, or, sql } from "drizzle-orm";
+export type { SQL } from "drizzle-orm";
 export { ruleCondition, segmentCondition } from "./segments";

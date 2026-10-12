@@ -10,7 +10,8 @@ import { toast } from "@zfunnel/ui/toaster";
 import { CopyPlusIcon, Loader2Icon, RocketIcon, SettingsIcon, Trash2Icon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useTransition } from "react";
-import { archiveFunnel, duplicateFunnel, publishFunnel, updateFunnel } from "@/lib/funnel-actions";
+import { DeleteDialog } from "@/components/records/delete-dialog";
+import { duplicateFunnel, publishFunnel, updateFunnel } from "@/lib/funnel-actions";
 
 export function FunnelActionsBar({
   workspaceSlug,
@@ -94,19 +95,25 @@ export function FunnelActionsBar({
                   <CopyPlusIcon /> {t("funnels.duplicate")}
                 </Button>
                 {canDelete && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="text-destructive hover:text-destructive"
-                    disabled={busy}
-                    onClick={() => {
-                      if (confirm(t("funnels.confirmDelete", { name: funnel.name })))
-                        start(() => archiveFunnel(workspaceSlug, funnel.id));
-                    }}
-                  >
-                    <Trash2Icon /> {t("common.delete")}
-                  </Button>
+                  <DeleteDialog
+                    workspaceSlug={workspaceSlug}
+                    kind="funnel"
+                    usedInKind="funnel"
+                    id={funnel.id}
+                    name={funnel.name}
+                    after={() => router.push(`/${workspaceSlug}/funnels`)}
+                    trigger={
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive"
+                        disabled={busy}
+                      >
+                        <Trash2Icon /> {t("common.delete")}
+                      </Button>
+                    }
+                  />
                 )}
               </div>
               <Button type="submit" disabled={saving}>

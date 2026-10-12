@@ -39,6 +39,8 @@ export const workflows = pgTable(
     graph: jsonb().$type<WorkflowGraph>().notNull(),
     /** false: a contact goes through this automation at most once. */
     allowReentry: boolean().notNull().default(false),
+    /** Soft delete (ADR-026): no new enrollments, and waiting runs hold until it is restored or purged. */
+    deletedAt: timestamp({ withTimezone: true }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true })
       .notNull()

@@ -37,6 +37,8 @@ export const contacts = pgTable(
     /** Proof of consent for GDPR: when, where, and what IP. */
     consentAt: timestamp({ withTimezone: true }),
     consentIp: text(),
+    /** Soft delete (ADR-026): hidden everywhere, restorable until the worker purges it after 30 days. */
+    deletedAt: timestamp({ withTimezone: true }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true })
       .notNull()

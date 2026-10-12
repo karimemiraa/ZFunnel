@@ -254,7 +254,10 @@ export async function enrollByEmail(workspaceSlug: string, courseId: string, ema
     const [c] = await tx
       .insert(contacts)
       .values({ workspaceId: ctx.workspace.id, email: e.data })
-      .onConflictDoUpdate({ target: [contacts.workspaceId, contacts.email], set: { updatedAt: new Date() } })
+      .onConflictDoUpdate({
+        target: [contacts.workspaceId, contacts.email],
+        set: { deletedAt: null, updatedAt: new Date() },
+      })
       .returning({ id: contacts.id });
     await tx
       .insert(courseEnrollments)

@@ -114,7 +114,7 @@ export async function upsertContact(
     })
     .onConflictDoUpdate({
       target: [contacts.workspaceId, contacts.email],
-      set: { name: sql`coalesce(excluded.name, ${contacts.name})`, updatedAt: now },
+      set: { deletedAt: null, name: sql`coalesce(excluded.name, ${contacts.name})`, updatedAt: now },
     })
     .returning();
   return c!;

@@ -1,7 +1,9 @@
 import { EmptyState } from "@zfunnel/ui/empty-state";
-import { ClipboardListIcon } from "lucide-react";
+import { Button } from "@zfunnel/ui/button";
+import { ClipboardListIcon, Trash2Icon } from "lucide-react";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
+import { DeleteDialog } from "@/components/records/delete-dialog";
 import { requireWorkspace } from "@/lib/context";
 import { listForms } from "@/lib/forms";
 import { getFmt, getT } from "@/lib/i18n";
@@ -37,6 +39,7 @@ export default async function FormsPage({ params }: { params: Promise<{ workspac
                 <th className="px-4 py-3 max-md:hidden">{t("formsAdmin.colFunnel")}</th>
                 <th className="px-4 py-3 text-end">{t("formsAdmin.colResponses")}</th>
                 <th className="px-4 py-3 text-end max-sm:hidden">{t("formsAdmin.colLastResponse")}</th>
+                <th className="w-12 px-2 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -60,6 +63,26 @@ export default async function FormsPage({ params }: { params: Promise<{ workspac
                   <td className="px-4 py-3 text-end font-semibold tabular-nums">{fm.number(f.responses)}</td>
                   <td className="px-4 py-3 text-end text-muted-foreground max-sm:hidden">
                     {fm.timeAgo(new Date(f.last))}
+                  </td>
+                  <td className="px-2 py-3 text-end">
+                    {f.stepId && (
+                      <DeleteDialog
+                        workspaceSlug={ws}
+                        kind="form"
+                        usedInKind="form"
+                        id={`${f.stepId}:${f.blockId}`}
+                        name={f.formName}
+                        trigger={
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label={t("records.form.deleteAria", { name: f.formName })}
+                          >
+                            <Trash2Icon />
+                          </Button>
+                        }
+                      />
+                    )}
                   </td>
                 </tr>
               ))}

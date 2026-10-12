@@ -5,8 +5,6 @@ import {
   calendars,
   contacts,
   conversationMessages,
-  webinarRegistrations,
-  webinars,
   desc,
   emailMessages,
   emails,
@@ -17,9 +15,11 @@ import {
   segmentCondition,
   segments,
   sql,
+  type Tx,
+  webinarRegistrations,
+  webinars,
   withSystem,
   workspaces,
-  type Tx,
 } from "@zfunnel/db";
 import { esc, renderEmail, signToken, trackingUrls, type EmailDoc } from "@zfunnel/email";
 import { dir, getTranslator, intlLocale, type Locale } from "@zfunnel/i18n";
@@ -55,6 +55,7 @@ export async function processBroadcast({ broadcastId }: BroadcastJob) {
     const audience = and(
       eq(contacts.workspaceId, b.workspaceId),
       isNull(contacts.unsubscribedAt),
+      isNull(contacts.deletedAt),
       seg ? segmentCondition(seg.match, seg.rules) : undefined,
       b.tag ? segmentCondition("all", [{ field: "tag", op: "has", value: b.tag }]) : undefined,
     );
@@ -122,6 +123,10 @@ export async function processEmail({ messageId }: EmailJob) {
   if (contact?.unsubscribedAt && !m.meta?.test) {
     await mark({ status: "skipped", error: "Unsubscribed" });
     return { skipped: "unsubscribed" };
+  }
+  if (contact?.deletedAt && !m.meta?.test) {
+    await mark({ status: "skipped", error: "Contact deleted" });
+    return { skipped: "deleted" };
   }
   const urls = trackingUrls(APP_URL(), m.id);
   const vars = contact ? contactVars(contact) : { email: m.toEmail, first_name: "", name: "" };

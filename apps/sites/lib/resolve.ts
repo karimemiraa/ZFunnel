@@ -12,8 +12,8 @@ import {
   getDb,
   gt,
   isNull,
-  orgBilling,
   organizationSuspensions,
+  orgBilling,
   pageVersions,
   sql,
   stepVariants,
@@ -154,7 +154,7 @@ export function resolvePage(ws: SiteWorkspace, segments: string[]): Promise<Reso
           publishedVersionId: funnelSteps.publishedVersionId,
         })
         .from(funnelSteps)
-        .where(eq(funnelSteps.funnelId, funnel.id))
+        .where(and(eq(funnelSteps.funnelId, funnel.id), isNull(funnelSteps.deletedAt)))
         .orderBy(asc(funnelSteps.position));
       const step = segments[1] ? steps.find((s) => s.slug === segments[1]) : steps[0];
       if (!step?.publishedVersionId) return null;
@@ -204,7 +204,14 @@ export async function resolveStepForWorkspace(workspaceId: string, stepId: strin
       })
       .from(funnelSteps)
       .innerJoin(funnels, eq(funnels.id, funnelSteps.funnelId))
-      .where(and(eq(funnelSteps.id, stepId), eq(funnelSteps.workspaceId, workspaceId), isNull(funnels.archivedAt)))
+      .where(
+        and(
+          eq(funnelSteps.id, stepId),
+          eq(funnelSteps.workspaceId, workspaceId),
+          isNull(funnels.archivedAt),
+          isNull(funnelSteps.deletedAt),
+        ),
+      )
       .limit(1);
     if (!row?.published) return null;
     const pathOf = async (id: string | null) => {
@@ -212,7 +219,7 @@ export async function resolveStepForWorkspace(workspaceId: string, stepId: strin
       const [s] = await tx
         .select({ slug: funnelSteps.slug, published: funnelSteps.publishedVersionId })
         .from(funnelSteps)
-        .where(eq(funnelSteps.id, id));
+        .where(and(eq(funnelSteps.id, id), isNull(funnelSteps.deletedAt)));
       return s?.published ? `/${row.funnelSlug}/${s.slug}` : null;
     };
     return { ...row, nextPath: await pathOf(row.nextStepId), declinePath: await pathOf(row.declineStepId) };

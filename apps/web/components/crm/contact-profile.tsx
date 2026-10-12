@@ -11,7 +11,8 @@ import { useT } from "@zfunnel/i18n/react";
 import { Loader2Icon, PlusIcon, Trash2Icon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { addNote, deleteContact, setTags, updateContact } from "@/lib/crm-actions";
+import { DeleteDialog } from "@/components/records/delete-dialog";
+import { addNote, setTags, updateContact } from "@/lib/crm-actions";
 
 type Field = { key: string; label: string; type: string; options: string[] | null };
 
@@ -151,13 +152,19 @@ export function ContactProfile({
       </div>
 
       {canDelete && (
-        <Button
-          variant="ghost"
-          className="w-full text-destructive hover:text-destructive"
-          onClick={() => confirm(t("contacts.deleteConfirm")) && start(() => deleteContact(workspaceSlug, contact.id))}
-        >
-          <Trash2Icon /> {t("contacts.deleteGdpr")}
-        </Button>
+        <DeleteDialog
+          workspaceSlug={workspaceSlug}
+          kind="contact"
+          usedInKind="contact"
+          id={contact.id}
+          name={contact.name ?? t("records.thisContact")}
+          after={() => router.push(`/${workspaceSlug}/contacts`)}
+          trigger={
+            <Button variant="ghost" className="w-full text-destructive hover:text-destructive">
+              <Trash2Icon /> {t("contacts.deleteGdpr")}
+            </Button>
+          }
+        />
       )}
     </div>
   );

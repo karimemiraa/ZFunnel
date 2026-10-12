@@ -18,7 +18,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const [c] = await tx
       .insert(contacts)
       .values({ workspaceId: a.workspaceId, email: p.data.email, name: p.data.name ?? null })
-      .onConflictDoUpdate({ target: [contacts.workspaceId, contacts.email], set: { updatedAt: new Date() } })
+      .onConflictDoUpdate({
+        target: [contacts.workspaceId, contacts.email],
+        set: { deletedAt: null, updatedAt: new Date() },
+      })
       .returning({ id: contacts.id });
     const [e] = await tx
       .insert(courseEnrollments)

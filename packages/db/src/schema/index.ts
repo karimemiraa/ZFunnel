@@ -22,3 +22,4 @@ export * from "./tracking";
 export * from "./webinars";
 export * from "./platform";
 export * from "./media";
+export * from "./views";

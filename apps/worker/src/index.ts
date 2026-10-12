@@ -1,8 +1,9 @@
 import { Worker, type Processor } from "bullmq";
-import { QUEUES, redis, type SystemJob } from "@zfunnel/queue";
+import { queue, QUEUES, redis, type SystemJob } from "@zfunnel/queue";
 import { fanOutConversions, processConversion } from "./jobs/conversions";
 import { processBroadcast, processEmail } from "./jobs/email";
 import { fanOutWebhooks, processWebhook } from "./jobs/webhooks";
+import { purgeDeleted } from "./jobs/purge";
 import { processWorkflowEvent, processWorkflowRun } from "./jobs/workflows";
 
 const connection = redis();
@@ -50,7 +51,17 @@ const workers = [
     concurrency: 10,
   }),
   start(QUEUES.workflowRuns, (job) => processWorkflowRun(job.data as never), { concurrency: 10 }),
+  start(QUEUES.maintenance, () => purgeDeleted(), { concurrency: 1 }),
 ];
+
+// Purge soft-deleted records every 6 hours (ADR-026). Upserting keeps exactly one schedule.
+queue("maintenance")
+  .upsertJobScheduler(
+    "purge-deleted",
+    { every: 6 * 3_600_000 },
+    { name: "purge-deleted", data: { type: "purge-deleted" } },
+  )
+  .catch((err) => console.error("[maintenance] could not schedule purge:", (err as Error).message));
 
 async function shutdown(signal: string) {
   console.log(`[worker] ${signal} received, draining…`);

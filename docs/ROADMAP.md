@@ -333,6 +333,16 @@ Live & evergreen webinars (LiveKit) · AI conversion coach (analyses funnel stat
 2. Build all of the scope.
 3. For now the AI writer is available only to platform admins (`PLATFORM_ADMIN_EMAILS`).
 
+### 8.2, 8.5c, 8.5d, 8.5f, 8.5g status — **Done** (2026-10-12)
+
+- **8.2 Linked records.** The contact page has one timeline built from the records themselves (orders, form responses, emails with open/click state, bookings, course enrollments, chats, deals) plus notes, tags, opt-ins, automations and unsubscribes, filterable by type, with every item linking to its record. New **order** pages link the contact, each product, the funnel and step, the affiliate and commission, and list payments with refunds (and a Stripe link). New **product** pages show "Sold in" (funnel › step with its role), the courses it grants, revenue per funnel, recent orders and price history. Funnel pages have a 30-day per-step strip (visits, opt-ins, sales, conversion) from the existing `events` table, plus the products, forms and automations the funnel uses. A reusable **"Used in"** panel warns before deleting a product, form, funnel, step, contact, email or automation, and still allows the delete.
+- **8.5c Bulk actions.** Contacts and orders: select rows, the page, or every row matching the filters; then add or remove a tag, add to an automation, or export CSV. Contacts can also be deleted (with undo). Orders act on their buyers and are never deleted. Funnels: select cards, export CSV or delete (with undo); "archive" and "delete" are the same state for funnels (ADR-026). Every action asks for confirmation first and runs as a server action inside `withWorkspace`.
+- **8.5d Saved views.** A filter bar on contacts and orders (tags, date range, source funnel, status, amount) keeps its state in the URL, so exports and "select all" use the same filters. Named views are saved per workspace in the new `saved_views` table (migrations 0055–0056, RLS, test in `rls.test.ts`). The lists are now paginated (50 rows).
+- **8.5f Duplicate.** Funnels (steps, pages and now step offers) and single steps already existed; step offers are now copied too. New: product (prices copied without Stripe ids, so they are mirrored again on first sale; the copy starts hidden from the store), broadcast (email design and audience, as a new draft), and automation (as a draft, with its own copies of its automation emails).
+- **8.5g Undo.** Soft delete with a 10-second undo toast for contacts, funnels, steps, products, forms and automations, filtered everywhere including `apps/sites` and the worker, and purged after 30 days by a worker job (ADR-026).
+
+**Later:** a "Recently deleted" screen to restore after the toast is gone; bulk actions on products and automations; saved views on more lists.
+
 ---
 
 ## Working agreement

@@ -1,20 +1,20 @@
 "use server";
 
 import {
+  and,
   emails,
   emailSettings,
   eq,
-  workflowRuns,
-  workflows,
-  and,
   inArray,
+  isNull,
   type WorkflowGraph,
   type WorkflowNode,
+  workflowRuns,
+  workflows,
   type WorkflowTrigger,
 } from "@zfunnel/db";
 import { enqueue } from "@zfunnel/queue";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { z } from "zod";
 import { enforce } from "./billing";
 import { localizedStarterEmail } from "./email";
@@ -186,7 +186,10 @@ export async function setWorkflowStatus(
     if (blocked) return { ok: false, error: blocked };
   }
   const err = await inWorkspace(ctx, async (tx) => {
-    const [w] = await tx.select().from(workflows).where(eq(workflows.id, workflowId));
+    const [w] = await tx
+      .select()
+      .from(workflows)
+      .where(and(eq(workflows.id, workflowId), isNull(workflows.deletedAt)));
     if (!w) return t("automations.actions.notFound");
     if (status === "active") {
       const nodes = Object.values(w.graph.nodes);
@@ -280,21 +283,18 @@ export async function cancelRun(workspaceSlug: string, runId: string): Promise<R
   return { ok: true, message: (await getT())("automations.actions.removed") };
 }
 
-export async function deleteWorkflow(workspaceSlug: string, workflowId: string) {
-  const { user, ctx } = await ctxFor(workspaceSlug);
-  await inWorkspace(ctx, (tx) => tx.delete(workflows).where(eq(workflows.id, workflowId)));
-  await recordAudit(ctx, user.id, { action: "automation.deleted", entityType: "workflow", entityId: workflowId });
-  revalidatePath(`/${workspaceSlug}/automations`);
-  redirect(`/${workspaceSlug}/automations`);
-}
-
 /** "Add to automation" from a contact's profile. Works for any live automation. */
 export async function enrollContact(workspaceSlug: string, contactId: string, workflowId: string): Promise<Result> {
   const { user, ctx } = await ctxFor(workspaceSlug);
   const t = await getT();
   if (!uuid.safeParse(contactId).success || !uuid.safeParse(workflowId).success)
     return { ok: false, error: t("automations.actions.invalidRequest") };
-  const [w] = await inWorkspace(ctx, (tx) => tx.select().from(workflows).where(eq(workflows.id, workflowId)));
+  const [w] = await inWorkspace(ctx, (tx) =>
+    tx
+      .select()
+      .from(workflows)
+      .where(and(eq(workflows.id, workflowId), isNull(workflows.deletedAt))),
+  );
   if (!w || w.status !== "active") return { ok: false, error: t("automations.actions.notLive") };
   const ok = await enqueue("workflow-events", {
     workspaceId: ctx.workspace.id,

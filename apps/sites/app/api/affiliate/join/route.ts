@@ -31,7 +31,7 @@ export async function POST(req: Request) {
       .values({ workspaceId: g.ws.id, email, name: p.data.name ?? null, consentAt: new Date(), consentIp: g.ip })
       .onConflictDoUpdate({
         target: [contacts.workspaceId, contacts.email],
-        set: { name: sql`coalesce(${contacts.name}, excluded.name)`, updatedAt: new Date() },
+        set: { deletedAt: null, name: sql`coalesce(${contacts.name}, excluded.name)`, updatedAt: new Date() },
       })
       .returning({ id: contacts.id, name: contacts.name });
     const base = (slugify(c!.name ?? email.split("@")[0]!) || "partner").slice(0, 20);

@@ -13,9 +13,12 @@ export const QUEUES = {
   workflowRuns: "workflow-runs",
   webhooks: "webhooks",
   conversions: "conversions",
+  maintenance: "maintenance",
 } as const;
 
 export type SystemJob = { type: "ping"; sentAt: string };
+/** Periodic housekeeping, e.g. purging soft-deleted records (ADR-026). */
+export type MaintenanceJob = { type: "purge-deleted" };
 export type EmailJob = { messageId: string };
 export type BroadcastJob = { broadcastId: string };
 export type WorkflowEvent = {
@@ -63,6 +66,7 @@ type Payloads = {
   "workflow-runs": WorkflowRunJob;
   webhooks: WebhookJob;
   conversions: ConversionJob;
+  maintenance: MaintenanceJob;
 };
 export type QueueName = keyof Payloads;
 

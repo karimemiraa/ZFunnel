@@ -1,6 +1,6 @@
 import "server-only";
 
-import { asc, contacts, desc, eq, sql, webinarRegistrations, webinars } from "@zfunnel/db";
+import { and, asc, contacts, desc, eq, isNull, sql, webinarRegistrations, webinars } from "@zfunnel/db";
 import { inWorkspace } from "./funnels";
 import type { WorkspaceContext } from "./workspaces";
 
@@ -34,7 +34,7 @@ export async function getWebinar(ctx: WorkspaceContext, id: string) {
         contactId: contacts.id,
       })
       .from(webinarRegistrations)
-      .innerJoin(contacts, eq(contacts.id, webinarRegistrations.contactId))
+      .innerJoin(contacts, and(eq(contacts.id, webinarRegistrations.contactId), isNull(contacts.deletedAt)))
       .where(eq(webinarRegistrations.webinarId, w.id))
       .orderBy(desc(webinarRegistrations.createdAt))
       .limit(500);

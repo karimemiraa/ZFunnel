@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, funnelSteps, ne, inArray, paymentAccounts, prices, products, stepOffers } from "@zfunnel/db";
+import { and, eq, funnelSteps, ne, paymentAccounts, prices, products, stepOffers } from "@zfunnel/db";
 import {
   createConnectedAccount,
   createOnboardingLink,
@@ -170,27 +170,9 @@ export async function saveProduct(
     entityId: id,
     data: { name: d.name },
   });
-  revalidatePath(`/${workspaceSlug}/products`);
+  revalidatePath(`/${workspaceSlug}/products`, "layout");
   const t = await getT();
   return { success: productId ? t("products.saved") : t("products.created") };
-}
-
-export async function archiveProduct(workspaceSlug: string, productId: string): Promise<Result> {
-  const { user, ctx } = await ctxFor(workspaceSlug);
-  await inWorkspace(ctx, async (tx) => {
-    await tx.update(products).set({ archivedAt: new Date() }).where(eq(products.id, productId));
-    const ps = await tx.select({ id: prices.id }).from(prices).where(eq(prices.productId, productId));
-    if (ps.length)
-      await tx.delete(stepOffers).where(
-        inArray(
-          stepOffers.priceId,
-          ps.map((p) => p.id),
-        ),
-      );
-  });
-  await recordAudit(ctx, user.id, { action: "product.archived", entityType: "product", entityId: productId });
-  revalidatePath(`/${workspaceSlug}/products`);
-  return { ok: true };
 }
 
 // ---------- Step offers ----------

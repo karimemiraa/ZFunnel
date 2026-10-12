@@ -386,6 +386,20 @@
       "when": 1791663781784,
       "tag": "0054_media_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1791841846544,
+      "tag": "0055_records_soft_delete",
+      "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1791841848026,
+      "tag": "0056_saved_views_rls",
+      "breakpoints": true
     }
   ]
 }

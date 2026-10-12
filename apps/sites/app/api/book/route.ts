@@ -41,7 +41,7 @@ export async function POST(req: Request) {
         })
         .onConflictDoUpdate({
           target: [contacts.workspaceId, contacts.email],
-          set: { name: sql`coalesce(${contacts.name}, excluded.name)`, updatedAt: new Date() },
+          set: { deletedAt: null, name: sql`coalesce(${contacts.name}, excluded.name)`, updatedAt: new Date() },
         })
         .returning({ id: contacts.id });
       const [b] = await tx

@@ -1,4 +1,4 @@
-import { and, contacts, eq } from "@zfunnel/db";
+import { and, contacts, eq, isNull } from "@zfunnel/db";
 import { system } from "@zfunnel/payments";
 import { enqueue } from "@zfunnel/queue";
 import { NextResponse } from "next/server";
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     const [c] = await tx
       .select({ id: contacts.id })
       .from(contacts)
-      .where(and(eq(contacts.workspaceId, g.ws.id), eq(contacts.email, parsed.data.email)));
+      .where(and(eq(contacts.workspaceId, g.ws.id), eq(contacts.email, parsed.data.email), isNull(contacts.deletedAt)));
     if (!c) return null;
     return queueLoginLink(tx, {
       workspaceId: g.ws.id,

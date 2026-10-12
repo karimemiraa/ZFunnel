@@ -4,10 +4,11 @@ import {
   contacts,
   eq,
   getDb,
+  isNull,
   webhookDeliveries,
   webhookEndpoints,
-  withSystem,
   type WebhookEvent,
+  withSystem,
 } from "@zfunnel/db";
 import { queue, type WebhookJob, type WorkflowEvent } from "@zfunnel/queue";
 import { isPublicUrl } from "./workflows";
@@ -41,7 +42,10 @@ export async function fanOutWebhooks(event: WorkflowEvent, eventId: string) {
         .where(and(eq(webhookEndpoints.workspaceId, event.workspaceId), eq(webhookEndpoints.status, "active")))
     ).filter((e) => e.events.includes(name));
     if (!endpoints.length) return [];
-    const [c] = await tx.select().from(contacts).where(eq(contacts.id, event.contactId));
+    const [c] = await tx
+      .select()
+      .from(contacts)
+      .where(and(eq(contacts.id, event.contactId), isNull(contacts.deletedAt)));
     const payload = {
       id: `evt_${eventId}`,
       type: name,

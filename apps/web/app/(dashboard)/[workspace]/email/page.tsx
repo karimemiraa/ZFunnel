@@ -2,6 +2,7 @@ import { Button } from "@zfunnel/ui/button";
 import { EmptyState } from "@zfunnel/ui/empty-state";
 import { MailIcon, PlusIcon, SettingsIcon, TriangleAlertIcon } from "lucide-react";
 import Link from "next/link";
+import { BroadcastMenu } from "@/components/email/broadcast-menu";
 import { SenderSettings } from "@/components/email/sender-settings";
 import { BroadcastStatusBadge } from "@/components/email/status-badge";
 import { PageHeader } from "@/components/page-header";
@@ -96,6 +97,7 @@ export default async function EmailPage({ params }: { params: Promise<{ workspac
                 <th className="px-4 py-3 text-end max-md:hidden">{t("email.table.sent")}</th>
                 <th className="px-4 py-3 text-end max-md:hidden">{t("email.table.opens")}</th>
                 <th className="px-4 py-3 text-end max-md:hidden">{t("email.table.clicks")}</th>
+                <th className="w-12 px-2 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -118,6 +120,15 @@ export default async function EmailPage({ params }: { params: Promise<{ workspac
                   <td className="px-4 py-3 text-end tabular-nums max-md:hidden">{f.number(r.sent)}</td>
                   <td className="px-4 py-3 text-end tabular-nums max-md:hidden">{pct(r.opened, r.sent)}</td>
                   <td className="px-4 py-3 text-end tabular-nums max-md:hidden">{pct(r.clicked, r.sent)}</td>
+                  <td className="px-2 py-3 text-end">
+                    <BroadcastMenu
+                      workspaceSlug={ws}
+                      broadcastId={r.b.id}
+                      emailId={r.b.emailId}
+                      name={r.name}
+                      canDelete={r.b.status !== "sending"}
+                    />
+                  </td>
                 </tr>
               ))}
             </tbody>

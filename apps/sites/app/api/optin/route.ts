@@ -64,6 +64,8 @@ export async function POST(req: Request) {
         target: [contacts.workspaceId, contacts.email],
         // Keep the original source; fill in details the contact didn't give before.
         set: {
+          // A soft-deleted contact who opts in again is restored (ADR-026).
+          deletedAt: null,
           name: sql`coalesce(excluded.name, ${contacts.name})`,
           phone: sql`coalesce(excluded.phone, ${contacts.phone})`,
           updatedAt: now,
