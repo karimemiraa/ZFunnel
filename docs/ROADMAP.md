@@ -294,7 +294,7 @@ Live & evergreen webinars (LiveKit) · AI conversion coach (analyses funnel stat
 
 ## Phase 8 — Navigation, UX and power tools (L)
 
-### Phase 8 plan (2026-10-12) — awaiting sign-off
+### Phase 8 plan (2026-10-12) — signed off
 
 **Problem.**
 
@@ -327,11 +327,11 @@ Live & evergreen webinars (LiveKit) · AI conversion coach (analyses funnel stat
 - Real-time multi-user editing.
 - A marketplace for third-party templates.
 
-**Open questions for the owner.**
+**Owner decisions (2026-10-12).**
 
-1. Do the sidebar groups above match how you think about the product? Should Store and Courses be top-level for your customers?
-2. Is 8.5 the right priority order? If you only want some of it now, which items first?
-3. Should the AI writer (8.5j) use the existing AI key, and therefore cost you per use? Or should it be a Pro-plan feature?
+1. The sidebar groups are approved as proposed.
+2. Build all of the scope.
+3. For now the AI writer is available only to platform admins (`PLATFORM_ADMIN_EMAILS`).
 
 ---
 
