@@ -24,5 +24,24 @@ export * from "./schema/tracking";
 export * from "./schema/webinars";
 export * from "./schema/platform";
 export * from "./schema/media";
-export { and, asc, count, desc, eq, gt, gte, ilike, inArray, isNotNull, isNull, lt, ne, or, sql } from "drizzle-orm";
+export * from "./schema/notifications";
+export * from "./notify";
+export {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gt,
+  gte,
+  ilike,
+  inArray,
+  isNotNull,
+  isNull,
+  lt,
+  ne,
+  not,
+  or,
+  sql,
+} from "drizzle-orm";
 export { ruleCondition, segmentCondition } from "./segments";

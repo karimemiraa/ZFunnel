@@ -1,5 +1,5 @@
 import { findBlock, pickOutcome, scoreAnswers, validateAnswers, type SurveyDef } from "@zfunnel/blocks/survey";
-import { contacts, eq, formSubmissions, inArray, or, pageVersions, sql, stepVariants } from "@zfunnel/db";
+import { contacts, eq, formSubmissions, inArray, notify, or, pageVersions, sql, stepVariants } from "@zfunnel/db";
 import { logActivity, system } from "@zfunnel/payments";
 import { enqueue, enqueueMany } from "@zfunnel/queue";
 import { NextResponse } from "next/server";
@@ -120,6 +120,12 @@ export async function POST(req: Request) {
       answers: checked.answers.map(({ key, label, type, value }) => ({ key, label, type, value })),
       score,
       outcome: outcome?.title ?? null,
+    });
+    await notify(tx, {
+      workspaceId: g.ws.id,
+      type: "lead",
+      entityId: id,
+      data: { name: contactName || email || null, form: (def.formName || "").slice(0, 120) || null },
     });
     return id;
   });

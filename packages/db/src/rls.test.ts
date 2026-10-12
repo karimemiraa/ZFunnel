@@ -8,6 +8,8 @@ import { contacts } from "./schema/contacts";
 import { organizationSuspensions, platformAuditLog } from "./schema/platform";
 import { funnels, funnelSteps, pageVersions } from "./schema/funnels";
 import { mediaFiles } from "./schema/media";
+import { notifications } from "./schema/notifications";
+import { notify } from "./notify";
 import { auditLogs, workspaces } from "./schema/tenancy";
 import { withOrganization, withSystem, withWorkspace } from "./tenant";
 
@@ -135,6 +137,32 @@ describe.skipIf(!url)("row-level security", () => {
     await expect(
       withWorkspace(db, ctxA, (tx) => tx.insert(mediaFiles).values({ workspaceId: wsB, ...file, sha256: "x" })),
     ).rejects.toThrow();
+  });
+
+  it("isolates notifications and keeps notify best-effort", async () => {
+    const ctxA = { organizationId: orgA, workspaceId: wsA };
+    const ctxB = { organizationId: orgB, workspaceId: wsB };
+    await withWorkspace(db, ctxB, (tx) => notify(tx, { workspaceId: wsB, type: "order", data: { number: 1001 } }));
+    expect(await withWorkspace(db, ctxA, (tx) => tx.select().from(notifications))).toHaveLength(0);
+    const [own] = await withWorkspace(db, ctxB, (tx) => tx.select().from(notifications));
+    expect(own?.data).toEqual({ number: 1001 });
+    await expect(
+      withWorkspace(db, ctxA, (tx) => tx.insert(notifications).values({ workspaceId: wsB, type: "lead" })),
+    ).rejects.toThrow();
+    // A blocked write is swallowed by notify and leaves the caller's transaction usable.
+    const after = await withWorkspace(db, ctxA, async (tx) => {
+      await notify(tx, { workspaceId: wsB, type: "lead" });
+      return tx.select().from(workspaces);
+    });
+    expect(after.map((w) => w.slug)).toEqual(["a-one"]);
+    // Marking read in another tenant changes nothing.
+    const marked = await withWorkspace(db, ctxA, (tx) =>
+      tx
+        .update(notifications)
+        .set({ readBy: ["intruder"] })
+        .returning(),
+    );
+    expect(marked).toHaveLength(0);
   });
 
   it("isolates organization billing", async () => {
